@@ -1,0 +1,331 @@
+{
+  "common": {
+    "login": "Hyrje",
+    "signup": "Regjistrohu",
+    "logout": "Dilni",
+    "dashboard": "Paneli",
+    "save": "Ruaj",
+    "cancel": "Anulo",
+    "delete": "Fshij",
+    "edit": "Redakto",
+    "search": "Kërko",
+    "loading": "Duke ngarkuar...",
+    "errorOccurred": "Ndodhi një gabim",
+    "comingSoon": "Së Shpejti",
+    "back": "Kthehu",
+    "next": "Tjetër",
+    "submit": "Dërgo",
+    "continue": "Vazhdo",
+    "viewAll": "Shiko të Gjitha",
+    "seeMore": "Shiko Më Shumë",
+    "seeLess": "Shiko Më Pak"
+  },
+  "navigation": {
+    "home": "Kryefaqja",
+    "freelancers": "Freelancerë",
+    "lookingForWork": "Kërko Punë",
+    "explore": "Eksploro",
+    "dashboard": "Paneli",
+    "messages": "Mesazhet",
+    "notifications": "Njoftimet",
+    "settings": "Cilësimet",
+    "howItWorks": "Si Funksionon",
+    "billing": "Faturimi",
+    "profile": "Profili",
+    "openMenu": "Hap Menynë",
+    "closeMenu": "Mbyll Menynë",
+    "mobileMenu": "Menyja e Navigimit për Celular",
+    "accountSettings": "Cilësimet e Llogarisë",
+    "preferences": "Preferencat",
+    "freelancerRole": "Freelancer"
+  },
+  "settings": {
+    "appearance": {
+      "title": "Pamja",
+      "theme": "Tema",
+      "light": "E Ndritshme",
+      "dark": "E Errët",
+      "system": "Sistemi",
+      "toggleTheme": "Ndrysho temën"
+    },
+    "language": {
+      "title": "Gjuha",
+      "select": "Zgjidh Gjuhën",
+      "english": "English",
+      "albanian": "Shqip"
+    },
+    "account": {
+      "title": "Llogaria",
+      "dangerZone": "Zona e Rrezikshme",
+      "dangerZoneDescription": "Këto veprime janë të pakthyeshme. Ju lutemi vazhdoni me kujdes.",
+      "deleteAccount": "Fshij Llogarinë"
+    }
+  },
+  "hero": {
+    "title": "Gjeni shërbimet",
+    "freelance": "freelance",
+    "titleEnd": "perfekte për biznesin tuaj",
+    "subtitle": "Lidhuni me freelancerë të talentuar dhe realizoni projektet tuaja shpejt dhe me efikasitet në Beamly.",
+    "searchPlaceholder": "Kërko për shërbime...",
+    "search": "Kërko",
+    "popular": "Popullore",
+    "trustedBy": "Besuar nga markat kryesore",
+    "categories": {
+      "webDesign": "Dizajn Ueb",
+      "logoDesign": "Dizajn Logo",
+      "contentWriting": "Shkrim Përmbajtje",
+      "videoEditing": "Editim Video"
+    }
+  },
+  "categories": {
+    "explore": "Eksploro Kategoritë",
+    "title": "Popullore",
+    "subtitle": "Gjeni shërbime në kategoritë kryesore për t'ju ndihmuar të arrini qëllimet tuaja",
+    "browseAll": "Shfletoni të Gjitha Kategoritë",
+    "findTalented": "Gjeni freelancerë të talentuar",
+    "items": {
+      "graphicDesign": "Dizajn Grafik",
+      "webDevelopment": "Zhvillim Ueb",
+      "digitalMarketing": "Marketing Dixhital",
+      "writingTranslation": "Shkrim & Përkthim",
+      "videoAnimation": "Video & Animacion",
+      "musicAudio": "Muzikë & Audio",
+      "programming": "Programim",
+      "business": "Biznes"
+    }
+  },
+  "features": {
+    "why": "Pse të Zgjidhni",
+    "subtitle": "Ne po revolucionarizojmë tregun e freelancerit me këto veçori unike",
+    "qualityWork": {
+      "title": "Punë Cilësore",
+      "description": "Gjeni shërbimet dhe talentet me cilësinë më të lartë me procesin tonë të rreptë të verifikimit."
+    },
+    "zeroCommission": {
+      "title": "Zero Komision",
+      "description": "Mbani më shumë nga ajo që fitoni me politikën tonë të zero komisionit për freelancerët."
+    },
+    "securePayments": {
+      "title": "Pagesa të Sigurta",
+      "description": "Pagesat tuaja janë të mbrojtura me sistemin tonë të sigurt të pagesave dhe shërbimin e garancisë."
+    },
+    "support": {
+      "title": "Mbështetje 24/7",
+      "description": "Merrni ndihmë në çdo kohë me ekipin tonë të përkushtuar të mbështetjes së klientit në dispozicion gjatë gjithë kohës."
+    }
+  },
+  "howItWorks": {
+    "title": "Si",
+    "titleEnd": "Funksionon",
+    "subtitle": "Realizoni projektet tuaja në 4 hapa të thjeshtë",
+    "step1": {
+      "title": "Krijoni një Llogari",
+      "description": "Regjistrohuni falas dhe plotësoni profilin tuaj për të filluar."
+    },
+    "step2": {
+      "title": "Zbuloni Shërbimet",
+      "description": "Shfletoni mijëra shërbime ose postoni një kërkesë."
+    },
+    "step3": {
+      "title": "Punësoni Freelancerë",
+      "description": "Zgjidhni freelancerin perfekt për projektin tuaj dhe bashkëpunoni."
+    },
+    "step4": {
+      "title": "Përfundoni Projektin",
+      "description": "Miratoni punën dhe lëshoni pagesën kur jeni të kënaqur."
+    }
+  },
+  "testimonials": {
+    "title": "Çfarë Thonë",
+    "users": "Përdoruesit",
+    "say": "Tanë",
+    "subtitle": "Bashkohuni me mijëra klientë dhe freelancerë të kënaqur",
+    "roles": {
+      "marketingDirector": "Drejtor Marketingu",
+      "startupFounder": "Themelues Startup-i",
+      "freelancer": "Dizajner Freelance"
+    },
+    "selfEmployed": "I vetëpunësuar",
+    "sarah": "Beamly ka transformuar mënyrën se si gjejmë talente krijuese. Cilësia e punës dhe shpejtësia e dorëzimit kanë qenë të jashtëzakonshme.",
+    "michael": "Si themelues i një startup-i, Beamly ka qenë i paçmuar. Kam gjetur zhvillues dhe dizajnerë të mrekullueshëm që kanë ndihmuar në realizimin e vizionit tim.",
+    "jessica": "Politika e zero komisionit është një ndryshim i lojës! Kam arritur të rris biznesin tim freelance në mënyrë të konsiderueshme që kur u bashkova me Beamly."
+  },
+  "cta": {
+    "ready": "Gati për të",
+    "start": "Filluar",
+    "project": "Projektin Tuaj?",
+    "description": "Bashkohuni me Beamly sot dhe lidhuni me freelancerët më të mirë nga e gjithë bota. Pavarësisht nëse keni nevojë për një detyrë të shpejtë ose një projekt kompleks, ne ju mbulojmë.",
+    "hireFreelancer": "Punësoni një Freelancer",
+    "becomeFreelancer": "Bëhuni Freelancer"
+  },
+  "login": {
+    "welcomeBack": "Mirë se u kthyet në",
+    "subtitle": "Hyni në llogarinë tuaj për të vazhduar",
+    "emailAddress": "Adresa e Emailit",
+    "emailPlaceholder": "Vendosni emailin tuaj",
+    "password": "Fjalëkalimi",
+    "passwordPlaceholder": "Vendosni fjalëkalimin tuaj",
+    "forgotPassword": "Keni harruar fjalëkalimin?",
+    "rememberMe": "Më mbaj mend",
+    "loginButton": "Hyrje",
+    "noAccount": "Nuk keni një llogari?",
+    "signUp": "Regjistrohuni",
+    "goBack": "Kthehu Prapa",
+    "accountType": "Lloji i llogarisë",
+    "freelancer": "Freelancer",
+    "company": "Kompani"
+  },
+  "signup": {
+    "join": "Bashkohuni me",
+    "today": "sot",
+    "subtitle": "Krijoni llogarinë tuaj dhe filloni udhëtimin tuaj",
+    "fullName": "Emri i Plotë",
+    "fullNamePlaceholder": "Vendosni emrin tuaj të plotë",
+    "emailAddress": "Adresa e Emailit",
+    "emailPlaceholder": "Vendosni emailin tuaj",
+    "password": "Fjalëkalimi",
+    "passwordPlaceholder": "Krijoni një fjalëkalim të fortë",
+    "passwordHint": "Fjalëkalimi duhet të jetë të paktën 8 karaktere me numra dhe karaktere speciale",
+    "agreeTerms": "Unë pranoj",
+    "termsOfService": "Kushtet e Shërbimit",
+    "and": "dhe",
+    "privacyPolicy": "Politikën e Privatësisë",
+    "createAccount": "Krijo Llogari",
+    "haveAccount": "Tashmë keni një llogari?",
+    "login": "Hyni",
+    "goBack": "Kthehu Prapa",
+    "accountType": "Lloji i llogarisë",
+    "freelancer": "Freelancer",
+    "company": "Kompani",
+    "skills": "Aftësitë (të ndara me presje)",
+    "skillsPlaceholder": "p.sh., Dizajn Ueb, Dizajn Logo, Shkrim Përmbajtje",
+    "experience": "Vite Eksperience",
+    "experiencePlaceholder": "Vite eksperience",
+    "companyName": "Emri i Kompanisë",
+    "companyNamePlaceholder": "Emri i kompanisë suaj",
+    "industry": "Industria",
+    "industryPlaceholder": "p.sh., Teknologji, Marketing, Shëndetësi"
+  },
+  "dashboard": {
+    "welcomeBack": "Mirë se u ktheve",
+    "activeJobs": "Punë Aktive",
+    "balance": "Gjendja",
+    "notifications": "Njoftime",
+    "viewAll": "Shiko të Gjitha",
+    "jobs": "Punë",
+    "messages": "Mesazhe",
+    "settings": "Cilësimet",
+    "billing": "Faturimi",
+    "postJob": "Posto një Punë",
+    "withdraw": "Tërhiq",
+    "earnings": "Fitimet",
+    "totalEarned": "Totali i fituar",
+    "pendingPayments": "Pagesat në pritje",
+    "availableForWithdrawal": "Disponibël për tërheqje",
+    "recentTransactions": "Transaksionet e fundit",
+    "upcomingDeadlines": "Afatet e ardhshme",
+    "tasksDue": "Detyra për t'u dorëzuar",
+    "noUpcomingDeadlines": "Nuk ka afate të ardhshme",
+    "quickActions": "Veprime të shpejta",
+    "findWork": "Gjej punë",
+    "editProfile": "Ndrysho profilin",
+    "withdrawFunds": "Tërhiq fondet"
+  },
+  "social": {
+    "facebook": "Facebook",
+    "twitter": "Twitter",
+    "instagram": "Instagram",
+    "linkedin": "LinkedIn"
+  },
+  "footer": {
+    "description": "Beamly lidh bizneset me freelancerë të talentuar që ofrojnë shërbime cilësore pa komision.",
+    "forClients": "Për Klientët",
+    "forFreelancers": "Për Freelancerët",
+    "resources": "Burime",
+    "legal": {
+      "title": "Ligjore",
+      "privacyPolicy": "Politika e Privatësisë",
+      "termsOfService": "Kushtet e Shërbimit",
+      "sitemap": "Harta e Faqes"
+    },
+    "clients": {
+      "howToHire": "Si të Punësoni",
+      "talentMarketplace": "Tregu i Talenteve",
+      "projectCatalog": "Katalogu i Projekteve",
+      "enterprise": "Ndërmarrje",
+      "paymentProtection": "Mbrojtja e Pagesave"
+    },
+    "freelancers": {
+      "howToFindWork": "Si të Gjeni Punë",
+      "directContracts": "Kontratat Direkte",
+      "marketplaceInsights": "Njohuri për Tregun",
+      "community": "Komuniteti",
+      "zeroCommission": "Zero Komision"
+    },
+    "resources": {
+      "helpSupport": "Ndihmë & Mbështetje",
+      "successStories": "Histori Suksesi",
+      "blog": "Blog",
+      "community": "Komuniteti",
+      "affiliateProgram": "Programi i Partneritetit",
+      "contactUs": "Na Kontaktoni"
+    },
+    "copyright": "© {{year}} Beamly. Të gjitha të drejtat e rezervuara."
+  },
+  "lookingForWork": {
+    "title": "Kërko Punë",
+    "subtitle": "Gjeni mundësitë perfekte të punës për aftësitë tuaja",
+    "searchPlaceholder": "Kërko për punë sipas titullit, kompanisë ose fjalëve kyçe...",
+    "searchButton": "Kërko",
+    "filterCategories": {
+      "all": "Të Gjitha Kategoritë",
+      "design": "Dizajn",
+      "development": "Zhvillim",
+      "marketing": "Marketing",
+      "writing": "Shkrim",
+      "video": "Video & Animacion"
+    },
+    "sortBy": {
+      "title": "Rendit sipas",
+      "recent": "Më të Rejat",
+      "salaryHigh": "Paga më e Lartë",
+      "salaryLow": "Paga më e Ulët"
+    },
+    "jobCard": {
+      "save": "Ruaj",
+      "viewDetails": "Shiko Detajet"
+    },
+    "noJobsFound": {
+      "title": "Nuk u gjetën punë",
+      "description": "Provoni të rregulloni kërkimin ose filtrat tuaj"
+    },
+    "loadMore": "Ngarko Më Shumë"
+  },
+  "freelancerProfile": {
+    "title": "Profili i Freelancerit",
+    "about": "Rreth Meje",
+    "skills": "Aftësitë",
+    "experience": "Eksperienca",
+    "education": "Edukimi",
+    "portfolio": "Portofoli",
+    "reviews": "Vlerësimet",
+    "contactMe": "Më Kontakto",
+    "hireMe": "Më Puno",
+    "availability": "Disponueshmëria",
+    "memberSince": "Anëtar që nga",
+    "lastActive": "Aktiv së fundmi",
+    "completedJobs": "Punë të Përfunduara",
+    "ongoingJobs": "Punë në Proces",
+    "languages": "Gjuhët",
+    "verifiedProfile": "Profil i Verifikuar",
+    "responseRate": "Shkalla e Përgjigjes",
+    "responseTime": "Koha e Përgjigjes",
+    "hourlyRate": "Tarifa për Orë",
+    "location": "Vendndodhja",
+    "viewPortfolio": "Shiko Portofolin",
+    "viewResume": "Shiko CV-në",
+    "sendMessage": "Dërgo Mesazh",
+    "saveProfile": "Ruaj Profilin",
+    "reportProfile": "Raporto Profilin"
+  }
+}

@@ -1,0 +1,501 @@
+{
+  "common": {
+    "home": "Kryefaqja",
+    "explore": "Eksploro",
+    "freelancers": "Freelancerë",
+    "lookingForWork": "Kërko Punë",
+    "dashboard": "Paneli",
+    "login": "Hyrje",
+    "signup": "Regjistrohu",
+    "logout": "Dilni",
+    "search": "Kërko",
+    "back": "Kthehu",
+    "save": "Ruaj",
+    "share": "Ndaj",
+    "apply": "Apliko",
+    "view": "Shiko",
+    "edit": "Ndrysho",
+    "delete": "Fshij",
+    "cancel": "Anulo"
+  },
+  "navigation": {
+    "home": "Kryefaqja",
+    "freelancers": "Freelancerë",
+    "lookingForWork": "Kërko Punë",
+    "howItWorks": "Si Funksionon",
+    "dashboard": "Paneli"
+  },
+  "footer": {
+    "privacy": "Politika e Privatësisë",
+    "terms": "Kushtet e Shërbimit",
+    "help": "Ndihmë dhe Mbështetje",
+    "contact": "Na Kontaktoni",
+    "copyright": "© {{year}} Beamly. Të gjitha të drejtat e rezervuara."
+  },
+  "settings": {
+    "title": "Cilësimet",
+    "appearance": {
+      "title": "Pamja",
+      "light": "E ndritshme",
+      "dark": "E errët",
+      "system": "Sistemi"
+    },
+    "language": {
+      "title": "Gjuha",
+      "english": "Anglisht",
+      "albanian": "Shqip"
+    },
+    "account": {
+      "title": "Llogaria",
+      "deleteAccount": "Fshij Llogarinë",
+      "dangerZone": "Zona e Rrezikut",
+      "deleteAccountWarning": "Ky veprim nuk mund të kthehet. Të gjitha të dhënat tuaja do të fshihen përgjithmonë."
+    }
+  },
+  "messages": {
+    "title": "Mesazhe",
+    "inbox": "Kutia hyrëse",
+    "sent": "Të dërguara",
+    "archived": "Arkivuar",
+    "newMessage": "Mesazh i ri",
+    "search": "Kërko mesazhe",
+    "noMessages": "Nuk ka mesazhe",
+    "loadMore": "Ngarko më shumë",
+    "online": "Në linjë",
+    "offline": "Jashtë linje",
+    "lastSeen": "Parë së fundmi {{time}}",
+    "typing": "Po shkruan...",
+    "attachFile": "Bashkangjit skedar",
+    "sendMessage": "Dërgo mesazh",
+    "messageDeleted": "Ky mesazh është fshirë",
+    "deleteMessage": "Fshi mesazhin",
+    "editMessage": "Ndrysho mesazhin"
+  },
+  "jobs": {
+    "postJob": "Posto një punë",
+    "browseJobs": "Shfleto punët",
+    "myJobs": "Punët e mia",
+    "activeJobs": "Punë aktive",
+    "completedJobs": "Punë të përfunduara",
+    "savedJobs": "Punë të ruajtura",
+    "jobTitle": "Titulli i punës",
+    "jobDescription": "Përshkrimi i punës",
+    "jobCategory": "Kategoria",
+    "jobSkills": "Aftësitë e kërkuara",
+    "jobBudget": "Buxheti",
+    "fixedPrice": "Çmim fiks",
+    "hourlyRate": "Tarifë për orë",
+    "experienceLevel": "Niveli i eksperiencës",
+    "beginner": "Fillestar",
+    "intermediate": "I ndërmjetëm",
+    "expert": "Ekspert",
+    "projectLength": "Kohëzgjatja e projektit",
+    "lessThanMonth": "Më pak se 1 muaj",
+    "oneToThreeMonths": "1-3 muaj",
+    "threeToSixMonths": "3-6 muaj",
+    "moreThanSixMonths": "Më shumë se 6 muaj",
+    "attachments": "Bashkëngjitjet",
+    "addAttachment": "Shto bashkëngjitje",
+    "removeAttachment": "Hiq bashkëngjitjen",
+    "postingAs": "Duke postuar si",
+    "preview": "Paraqitje paraprake",
+    "publish": "Publiko",
+    "saveAsDraft": "Ruaj si draft",
+    "jobPosted": "Puna u postua me sukses!",
+    "jobSaved": "Puna u ruajt si draft",
+    "viewJob": "Shiko punën",
+    "editJob": "Ndrysho punën",
+    "deleteJob": "Fshi punën",
+    "applyForJob": "Apliko për punë",
+    "proposals": "Propozime",
+    "noProposals": "Ende nuk ka propozime",
+    "proposalSubmitted": "Propozimi u dërgua me sukses!",
+    "alreadyApplied": "Ju keni aplikuar tashmë për këtë punë"
+  },
+  "freelancers": {
+    "findFreelancers": "Gjej Freelancerë",
+    "topRated": "Më të vlerësuarit",
+    "newFreelancers": "Freelancerë të rinj",
+    "filterBy": "Filtro sipas",
+    "skills": "Aftësitë",
+    "hourlyRate": "Tarifa për orë",
+    "availability": "Disponueshmëria",
+    "location": "Vendndodhja",
+    "rating": "Vlerësimi",
+    "languages": "Gjuhët",
+    "showMore": "Shfaq më shumë",
+    "showLess": "Shfaq më pak",
+    "sortBy": "Rendit sipas",
+    "relevance": "Rëndësisë",
+    "newest": "Më të rinjtë",
+    "oldestFirst": "Më të vjetrit",
+    "highestRated": "Vlerësimi më i lartë",
+    "lowestRated": "Vlerësimi më i ulët",
+    "profile": {
+      "about": "Rreth meje",
+      "skills": "Aftësitë",
+      "experience": "Eksperienca",
+      "education": "Edukimi",
+      "portfolio": "Portofoli",
+      "reviews": "Vlerësime",
+      "contactMe": "Më kontakto",
+      "hireMe": "Më puno",
+      "availability": "Disponueshmëria",
+      "memberSince": "Anëtar që nga",
+      "lastActive": "Aktiv së fundmi",
+      "completedJobs": "Punë të përfunduara",
+      "ongoingJobs": "Punë në proces",
+      "languages": "Gjuhët",
+      "verifiedProfile": "Profil i verifikuar",
+      "responseRate": "Shkalla e përgjigjes",
+      "responseTime": "Koha e përgjigjes"
+    }
+  },
+  "dashboard": {
+    "welcomeBack": "Mirë se u ktheve",
+    "activeJobs": "Punë Aktive",
+    "balance": "Gjendja",
+    "notifications": "Njoftime",
+    "viewAll": "Shiko të Gjitha",
+    "earnings": "Fitimet",
+    "totalEarned": "Totali i fituar",
+    "pendingPayments": "Pagesat në pritje",
+    "availableForWithdrawal": "Disponibël për tërheqje",
+    "recentTransactions": "Transaksionet e fundit",
+    "upcomingDeadlines": "Afatet e ardhshme",
+    "tasksDue": "Detyra për t'u dorëzuar",
+    "noUpcomingDeadlines": "Nuk ka afate të ardhshme",
+    "quickActions": "Veprime të shpejta",
+    "findWork": "Gjej punë",
+    "postJob": "Posto një punë",
+    "editProfile": "Ndrysho profilin",
+    "withdrawFunds": "Tërhiq fondet",
+    "statistics": {
+      "title": "Statistikat",
+      "jobsCompleted": "Punë të përfunduara",
+      "ongoingJobs": "Punë në proces",
+      "proposalsSent": "Propozime të dërguara",
+      "proposalAcceptanceRate": "Shkalla e pranimit të propozimeve",
+      "averageRating": "Vlerësimi mesatar",
+      "totalHoursWorked": "Orë totale të punuara"
+    }
+  },
+  "profile": {
+    "editProfile": "Ndrysho profilin",
+    "personalInfo": "Informacion personal",
+    "fullName": "Emri i plotë",
+    "email": "Email",
+    "phone": "Telefon",
+    "location": "Vendndodhja",
+    "timezone": "Zona kohore",
+    "profilePicture": "Foto e profilit",
+    "uploadNew": "Ngarko të re",
+    "remove": "Hiq",
+    "professionalInfo": "Informacion profesional",
+    "title": "Titulli",
+    "bio": "Biografia",
+    "skills": "Aftësitë",
+    "addSkill": "Shto aftësi",
+    "removeSkill": "Hiq aftësi",
+    "hourlyRate": "Tarifa për orë",
+    "availability": "Disponueshmëria",
+    "fullTime": "Kohë e plotë",
+    "partTime": "Kohë e pjesshme",
+    "notAvailable": "Jo i disponueshëm",
+    "languages": "Gjuhët",
+    "addLanguage": "Shto gjuhë",
+    "removeLanguage": "Hiq gjuhë",
+    "languageProficiency": {
+      "basic": "Bazike",
+      "conversational": "Bisedues",
+      "fluent": "Rrjedhshëm",
+      "native": "Amtare"
+    },
+    "portfolio": "Portofoli",
+    "addProject": "Shto projekt",
+    "projectTitle": "Titulli i projektit",
+    "projectDescription": "Përshkrimi i projektit",
+    "projectLink": "Lidhja e projektit",
+    "uploadImages": "Ngarko imazhe",
+    "education": "Edukimi",
+    "addEducation": "Shto edukim",
+    "institution": "Institucioni",
+    "degree": "Diploma",
+    "fieldOfStudy": "Fusha e studimit",
+    "startDate": "Data e fillimit",
+    "endDate": "Data e përfundimit",
+    "current": "Aktual",
+    "experience": "Eksperienca",
+    "addExperience": "Shto eksperiencë",
+    "company": "Kompania",
+    "position": "Pozicioni",
+    "description": "Përshkrimi",
+    "saveChanges": "Ruaj ndryshimet",
+    "discardChanges": "Anulo ndryshimet",
+    "profileUpdated": "Profili u përditësua me sukses!"
+  },
+  "pages": {
+    "notFound": {
+      "title": "Faqja nuk u gjet",
+      "message": "Na vjen keq, faqja që po kërkoni nuk ekziston.",
+      "backHome": "Kthehu në kryefaqe"
+    },
+    "postJob": {
+      "title": "Posto një Punë të Re",
+      "steps": {
+        "info": "Informacion Bazë",
+        "details": "Detajet e Punës",
+        "budget": "Buxheti",
+        "review": "Rishikim"
+      }
+    },
+    "chat": {
+      "title": "Mesazhe",
+      "newMessage": "Mesazh i Ri",
+      "noMessages": "Ende nuk ka mesazhe",
+      "typeMessage": "Shkruaj një mesazh...",
+      "sendMessage": "Dërgo",
+      "attachFile": "Bashkangjit skedar",
+      "searchConversations": "Kërko bisedat",
+      "online": "Në linjë",
+      "offline": "Jashtë linje",
+      "lastSeen": "Parë së fundmi {{time}}",
+      "typing": "Po shkruan...",
+      "startConversation": "Fillo një bisedë",
+      "noConversationsYet": "Ende nuk keni biseda",
+      "selectContact": "Zgjidhni një kontakt për të filluar bisedën",
+      "messageDeleted": "Ky mesazh është fshirë",
+      "you": "Ti",
+      "today": "Sot",
+      "yesterday": "Dje"
+    },
+    "billing": {
+      "title": "Faturimi",
+      "currentPlan": "Plani Aktual",
+      "managePlan": "Menaxho Planin",
+      "invoices": "Faturat"
+    },
+    "notifications": {
+      "title": "Njoftime",
+      "markAllRead": "Shëno të gjitha si të lexuara",
+      "noNotifications": "Nuk ka njoftime",
+      "newMessage": "Mesazh i ri",
+      "newProposal": "Propozim i ri",
+      "jobInvitation": "Ftesë për punë",
+      "paymentReceived": "Pagesë e marrë",
+      "projectCompleted": "Projekt i përfunduar",
+      "reviewReceived": "Vlerësim i marrë",
+      "settings": "Cilësimet e njoftimeve",
+      "emailNotifications": "Njoftime me email",
+      "pushNotifications": "Njoftime push",
+      "inAppNotifications": "Njoftime në aplikacion",
+      "notificationTypes": {
+        "messages": "Mesazhe",
+        "proposals": "Propozime",
+        "jobs": "Punë",
+        "payments": "Pagesa",
+        "reviews": "Vlerësime",
+        "system": "Sistemi"
+      }
+    }
+  },
+  "legal": {
+    "termsTitle": "Kushtet e Përdorimit",
+    "termsEffectiveDate": "Data efektive: 10.06.2025",
+    "termsWelcome": "Mirë se vini në Beamly. Duke përdorur platformën tonë, ju pranoni të respektoni dhe të jeni të detyruar nga këto Kushte të Përdorimit. Ju lutemi lexoni me kujdes këto Kushte përpara se të përdorni shërbimet tona. Nëse nuk jeni dakord me ndonjë pjesë të këtyre Kushteve, ju nuk duhet të përdorni platformën tonë.",
+    "termsContent": {
+      "section1": {
+        "title": "1. Përmbledhje",
+        "content": "Beamly ofron një platformë për të lidhur freelancerët me klientët për punë freelance, ku freelancerët ofrojnë shërbime të lidhura me software, dizajn, marketing dixhital, zhvillim dhe detyra të tjera të lidhura me teknologjinë (\"Shërbimet\"). Platforma nuk lehtëson shitjen e mallrave fizike, shërbimeve njerëzore që nuk lidhen me software, ose çdo kategori tjetër të ndaluar sipas rregullave në fuqi."
+      },
+      "section2": {
+        "title": "2. Pranueshmëria e Përdoruesit",
+        "content": "Ju duhet të jeni të paktën 18 vjeç për të përdorur platformën. Duke përdorur platformën tonë, ju përfaqësoni dhe garantoni se jeni në moshën ligjore për të formuar një kontratë të detyrueshme dhe se do të respektoni këto Kushte dhe të gjitha ligjet e aplikueshme."
+      },
+      "section3": {
+        "title": "3. Regjistrimi i Llogarisë",
+        "content": "Për të përdorur platformën tonë, përdoruesit duhet të krijojnë një llogari. Ju jeni përgjegjës për mbajtjen e konfidencialitetit të kredencialeve të llogarisë tuaj dhe për të gjitha aktivitetet nën llogarinë tuaj. Ju bini dakord të na njoftoni menjëherë për çdo përdorim të paautorizuar të llogarisë tuaj."
+      },
+      "section4": {
+        "title": "4. Aktivitetet e Ndaluara",
+        "content": "Përdoruesve të Beamly u ndalohet të angazhohen në aktivitetet e mëposhtme: Shitja e produkteve fizike ose produkteve që kërkojnë dorëzim fizik. Ofrimi i shërbimeve njerëzore që nuk lidhen me një ofertë software (p.sh., konsulencë e pastër ose shërbime këshilluese, përfshirë por jo kufizuar në këshilla ligjore, trajnime dhe akses në një komunitet ekspertësh). Angazhimi në praktika mashtruese, mashtruese ose të paligjshme, ose shkelja e çdo ligji ose rregulloreje. Shkelja e të drejtave të autorit, markave tregtare ose të drejtave të pronësisë intelektuale të të tjerëve. Lehtësimi i çdo aksesi të paautorizuar në të dhëna të palës së tretë, përfshirë por jo kufizuar në spyware, keyloggers ose shërbime të zhbllokimit të pajisjeve. Shitja ose lehtësimi i shitjeve të përmbajtjes së ndaluar ose të kufizuar, përfshirë përmbajtjen për të rritur, shërbimet e basteve dhe këshillat financiare ose të investimit. Ofrimi i shërbimeve lidhur me fushata politike ose sociale, telemarketing, ose marketingun masiv të padëshiruar. Angazhimi në skemat piramidale, marketingun shumë-nivelësh, ose praktika të tjera mashtruese të marketingut. Ofrimi i shërbimeve ose produkteve të lidhura me pseudo-shkencën, të tilla si tejshikimi, parashikimi i fatit, ose këshilla mjekësore të pabazuara në prova. Çdo përpjekje për të shkelur këto kushte ose për t'u angazhuar në aktivitete të ndaluara do të rezultojë në pezullim të menjëhershëm ose përfundim të llogarisë së përdoruesit."
+      },
+      "section5": {
+        "title": "5. Pagesa dhe Tarifat",
+        "content": "Beamly merr një tarifë për përdorimin e platformës, e cila do të specifikohet në kohën e regjistrimit ose në njoftimet pasuese. Të gjitha tarifat janë subjekt i ndryshimit dhe ju do të njoftoheni paraprakisht për çdo ndryshim. Ju pranoni të paguani të gjitha tarifat e aplikueshme për shërbimet e ofruara përmes platformës."
+      },
+      "section6": {
+        "title": "6. Pronësia Intelektuale",
+        "content": "Të gjitha të drejtat e pronësisë intelektuale në platformë, duke përfshirë software, përmbajtje, marka tregtare dhe logot, janë të zotëruara nga Beamly ose licencuesit e saj. Përdoruesit u jepet një licencë e kufizuar, jo e transferueshme për të përdorur platformën për kohëzgjatjen e llogarisë së tyre, subjekt i këtyre Kushteve."
+      },
+      "section7": {
+        "title": "7. Mbrojtja e të Dhënave dhe Privatësia",
+        "content": "Beamly është e përkushtuar për të mbrojtur informacionin tuaj personal. Ne respektojmë ligjet e aplikueshme të mbrojtjes së të dhënave, përfshirë Rregulloren e Përgjithshme të Mbrojtjes së të Dhënave të BE-së (GDPR). Ju lutemi referojuni Politikës sonë të Privatësisë për detaje se si ne mbledhim, përdorim dhe mbrojmë të dhënat tuaja."
+      },
+      "section8": {
+        "title": "8. Kufizimi i Përgjegjësisë",
+        "content": "Ne nuk jemi përgjegjës për asnjë dëm të drejtpërdrejtë, indirekt, rastësor, ose pasues që vjen nga ose në lidhje me përdorimin e platformës ose shërbimeve të ofruara. Përgjegjësia jonë totale ndaj jush për çdo pretendim të lidhur me këto Kushte nuk do të tejkalojë shumën që keni paguar për shërbimin që shkaktoi pretendimin."
+      },
+      "section9": {
+        "title": "9. Përfundimi",
+        "content": "Ne rezervojmë të drejtën të pezullojmë ose të përfundojmë llogarinë tuaj në çdo kohë nëse ju shkelni ndonjë dispozitë të këtyre Kushteve. Ju gjithashtu mund të përfundoni llogarinë tuaj duke na kontaktuar drejtpërdrejt."
+      },
+      "section10": {
+        "title": "10. Ligji Qeverisës",
+        "content": "Këto Kushte do të qeverisen dhe interpretohen në përputhje me ligjet e Shqipërisë. Çdo mosmarrëveshje do të zgjidhet përmes arbitrazhit ose ndërmjetësimit në Tiranë, përveç nëse bihet dakord ndryshe."
+      },
+      "section11": {
+        "title": "11. Ndryshimet në Kushte",
+        "content": "Ne mund të përditësojmë ose ndryshojmë këto Kushte në çdo kohë. Ju do të njoftoheni për çdo ndryshim të rëndësishëm, dhe Kushtet e përditësuara do të postohen në platformën tonë. Vazhdimi i përdorimit të platformës pas këtyre ndryshimeve do të përbëjë pranimin tuaj të Kushteve të modifikuara."
+      },
+      "section12": {
+        "title": "12. Informacioni i Kontaktit",
+        "content": "Nëse keni ndonjë pyetje në lidhje me këto Kushte, ju lutemi na kontaktoni në: support@beamlyapp.com"
+      }
+    },
+    "privacyTitle": "Politika e Privatësisë",
+    "privacyEffectiveDate": "Data efektive: 06.10.2025",
+    "privacyIntro": "Në Beamly, ne jemi të përkushtuar për të mbrojtur privatësinë tuaj. Kjo Politikë Privatësie përshkruan se si ne mbledhim, përdorim dhe mbrojmë informacionin tuaj personal në përputhje me ligjet e aplikueshme, përfshirë Rregulloren e Përgjithshme të Mbrojtjes së të Dhënave (GDPR). Duke përdorur platformën tonë, ju pranoni mbledhjen dhe përdorimin e informacionit në përputhje me këtë Politikë Privatësie.",
+    "privacyContent": {
+      "section1": {
+        "title": "1. Informacioni që ne Mbledhim",
+        "content": "Ne mbledhim llojet e mëposhtme të informacionit personal: Informacioni i llogarisë: Kur krijoni një llogari në Beamly, ne mbledhim emrin, adresën e emailit, emrin e përdoruesit dhe informacione të tjera të kontaktit që ju ofroni. Informacioni i pagesës: Nëse bëni një blerje përmes platformës sonë, ne mund të mbledhim detaje të pagesës të nevojshme për procesimin e transaksioneve, të cilat do të trajtohen në mënyrë të sigurt nga një procesor pagese i palës së tretë. Të dhënat e përdorimit: Ne mbledhim informacion rreth mënyrës se si aksesoni dhe përdorni platformën tonë, përfshirë adresën tuaj IP, llojin e shfletuesit, informacionin e pajisjes dhe aktivitetin e shfletimit. Komunikimet: Ne mund të mbledhim çdo komunikim që na dërgoni, siç janë pyetjet, reagimet ose kërkesat për mbështetje."
+      },
+      "section2": {
+        "title": "2. Si e Përdorim Informacionin Tuaj",
+        "content": "Ne përdorim të dhënat e mbledhura për qëllimet e mëposhtme: Për të ofruar dhe përmirësuar shërbimet tona: Ne përdorim informacionin tuaj për të operuar dhe përmirësuar platformën, duke siguruar një përvojë më të mirë për të gjithë përdoruesit. Për të procesuar pagesat: Informacioni i pagesës do të trajtohet në mënyrë të sigurt nga procesori ynë i pagesave i palës së tretë pasi të kemi një marrëveshje formale. Për të komunikuar me ju: Ne mund të përdorim informacionin tuaj të kontaktit për t'ju dërguar përditësime, buletine dhe komunikime të tjera lidhur me përdorimin e platformës sonë. Ju mund të zgjidhni të mos merrni komunikime jo thelbësore në çdo kohë. Për të përmbushur detyrimet ligjore: Ne mund të përdorim të dhënat tuaja siç kërkohet nga ligji, si për parandalimin e mashtrimit, përputhshmërinë me rregulloret qeveritare, ose për t'iu përgjigjur kërkesave ligjore."
+      },
+      "section3": {
+        "title": "3. Ndarja e të Dhënave dhe Shërbimet e Palëve të Treta",
+        "content": "Ne do të përdorim ofrues shërbimesh të palëve të treta të besueshme për procesimin e pagesave. Këta ofrues do të trajtojnë të dhënat tuaja të pagesës në mënyrë të sigurt dhe në përputhje me rregulloret e aplikueshme. Ne nuk ruajmë vetë informacione të ndjeshme të pagesës, dhe procesori ynë i pagesave do të menaxhojë detajet e pagesës tuaj në mënyrë të sigurt. Ne mund të ndajmë të dhënat tuaja me ofrues shërbimesh të palëve të treta vetëm për qëllimet e mëposhtme: Ofruesit e Shërbimit: Ne mund të përdorim shitës të palës së tretë për hosting, analitika dhe shërbime të tjera që mbështesin platformën tonë. Këta shitës janë të detyruar të respektojnë ligjet e mbrojtjes së të dhënave dhe të përpunojnë të dhënat tuaja vetëm për qëllimet që ne specifikojmë. Përputhshmëria Ligjore: Ne mund të zbulojmë të dhënat tuaja nëse kërkohet me ligj ose në përgjigje të kërkesave ligjore nga autoritetet publike."
+      },
+      "section4": {
+        "title": "4. Ruajtja e të Dhënave",
+        "content": "Ne ruajmë të dhënat tuaja personale vetëm për aq kohë sa është e nevojshme për të përmbushur qëllimet e përshkruara në këtë Politikë Privatësie ose siç kërkohet nga ligji. Pasi të dhënat tuaja nuk janë më të nevojshme, ne do të ndërmarrim hapa të arsyeshëm për t'i fshirë ose anonimizuar."
+      },
+      "section5": {
+        "title": "5. Siguria e të Dhënave",
+        "content": "Ne zbatojmë masa të arsyeshme dhe të përshtatshme teknike dhe organizative për të mbrojtur të dhënat tuaja personale nga aksesi i paautorizuar, humbja ose ndryshimi. Megjithatë, ju lutemi vini re se asnjë metodë e transmetimit të të dhënave përmes internetit nuk është 100% e sigurt, dhe ne nuk mund të garantojmë siguri absolute."
+      },
+      "section6": {
+        "title": "6. Të Drejtat Tuaja",
+        "content": "Sipas ligjeve të zbatueshme të mbrojtjes së të dhënave, përfshirë GDPR, ju keni të drejta të caktuara në lidhje me të dhënat tuaja personale. Këto përfshijnë: E drejta për akses: Ju mund të kërkoni akses në të dhënat personale që ne mbajmë për ju. E drejta për korrigjim: Ju mund të kërkoni që ne të korrigjojmë çdo pasaktësi në të dhënat tuaja personale. E drejta për fshirje: Ju mund të kërkoni që ne të fshijmë të dhënat tuaja personale, subjekt i përjashtimeve të caktuara. E drejta për të kufizuar përpunimin: Ju mund të kërkoni që ne të kufizojmë përpunimin e të dhënave tuaja në kushte specifike. E drejta për të kundërshtuar: Ju mund të kundërshtoni përpunimin e të dhënave tuaja në rrethana të caktuara. E drejta për portabilitetin e të dhënave: Ju mund të kërkoni një kopje të të dhënave tuaja në një format të përdorur zakonisht. Për të ushtruar ndonjë nga këto të drejta, ju lutemi na kontaktoni në support@beamlyapp.com. Ne do t'i përgjigjemi kërkesës suaj në përputhje me ligjet e aplikueshme."
+      },
+      "section7": {
+        "title": "7. Transfertat Ndërkombëtare",
+        "content": "Ndërsa platforma jonë mund të përfshijë transferimin e të dhënave personale në vende jashtë Zonës Ekonomike Evropiane (ZEE), ne sigurojmë që çdo transferim i tillë është në përputhje me ligjet e aplikueshme të mbrojtjes së të dhënave dhe që masat e duhura mbrojtëse janë në fuqi."
+      },
+      "section8": {
+        "title": "8. Cookies",
+        "content": "Ne përdorim cookies për të përmirësuar funksionalitetin e platformës sonë dhe për të përmirësuar përvojën e përdoruesit. Cookies janë skedarë të vegjël teksti të ruajtur në pajisjen tuaj që na ndihmojnë të gjurmojmë aktivitetin e përdoruesit, preferencat dhe të përmirësojmë funksionalitetin e faqes sonë të internetit. Ju mund të zgjidhni të pranoni ose refuzoni cookies përmes cilësimeve të shfletuesit tuaj, por vini re se disa funksione mund të mos funksionojnë siç duhet pa to. Për më shumë detaje se si përdorim cookies, ju lutemi referohuni Politikës sonë të Cookie-ve."
+      },
+      "section9": {
+        "title": "9. Ndryshimet në këtë Politikë Privatësie",
+        "content": "Ne mund të përditësojmë këtë Politikë Privatësie herë pas here. Kur bëjmë ndryshime, ne do të përditësojmë \"Datën Efektive\" në krye të kësaj faqeje dhe do t'ju njoftojmë për ndryshimet e rëndësishme me email ose një njoftim të dukshëm në platformë."
+      },
+      "section10": {
+        "title": "10. Na Kontaktoni",
+        "content": "Nëse keni ndonjë pyetje ose shqetësim në lidhje me këtë Politikë Privatësie ose se si ne trajtojmë të dhënat tuaja personale, ju lutemi na kontaktoni në: Beamly support@beamlyapp.com Tiranë, Shqipëri"
+      }
+    }
+  },
+  "categories": {
+    "explore": "Eksploro Kategoritë",
+    "title": "Popullore",
+    "subtitle": "Gjeni shërbime në kategoritë kryesore për t'ju ndihmuar të arrini qëllimet tuaja",
+    "browseAll": "Shfletoni të Gjitha Kategoritë"
+  },
+  "features": {
+    "why": "Pse të Zgjidhni",
+    "subtitle": "Ne po revolucionarizojmë tregun e freelancerit me këto veçori unike",
+    "qualityWork": {
+      "title": "Punë Cilësore",
+      "description": "Gjeni shërbimet dhe talentet me cilësinë më të lartë me procesin tonë të rreptë të verifikimit."
+    },
+    "zeroCommission": {
+      "title": "Zero Komision",
+      "description": "Mbani më shumë nga ajo që fitoni me politikën tonë të zero komisionit për freelancerët."
+    },
+    "securePayments": {
+      "title": "Pagesa të Sigurta",
+      "description": "Pagesat tuaja janë të mbrojtura me sistemin tonë të sigurt të pagesave dhe shërbimin e garancisë."
+    },
+    "support": {
+      "title": "Mbështetje 24/7",
+      "description": "Merrni ndihmë në çdo kohë me ekipin tonë të përkushtuar të mbështetjes së klientit në dispozicion gjatë gjithë kohës."
+    }
+  },
+  "howItWorks": {
+    "title": "Si",
+    "titleEnd": "Funksionon",
+    "subtitle": "Realizoni projektet tuaja në 4 hapa të thjeshtë",
+    "step1": {
+      "title": "Krijoni një Llogari",
+      "description": "Regjistrohuni falas dhe plotësoni profilin tuaj për të filluar."
+    },
+    "step2": {
+      "title": "Zbuloni Shërbimet",
+      "description": "Shfletoni mijëra shërbime ose postoni një kërkesë."
+    },
+    "step3": {
+      "title": "Punësoni Freelancerë",
+      "description": "Zgjidhni freelancerin perfekt për projektin tuaj dhe bashkëpunoni."
+    },
+    "step4": {
+      "title": "Përfundoni Projektin",
+      "description": "Miratoni punën dhe lëshoni pagesën kur jeni të kënaqur."
+    }
+  },
+  "testimonials": {
+    "title": "Çfarë Thonë",
+    "users": "Përdoruesit",
+    "say": "Tanë",
+    "subtitle": "Bashkohuni me mijëra klientë dhe freelancerë të kënaqur",
+    "roles": {
+      "marketingDirector": "Drejtor Marketingu",
+      "startupFounder": "Themelues Startup-i",
+      "freelancer": "Dizajner Freelance"
+    },
+    "selfEmployed": "I vetëpunësuar",
+    "sarah": "Beamly ka transformuar mënyrën se si gjejmë talente krijuese. Cilësia e punës dhe shpejtësia e dorëzimit kanë qenë të jashtëzakonshme.",
+    "michael": "Si themelues i një startup-i, Beamly ka qenë i paçmuar. Kam gjetur zhvillues dhe dizajnerë të mrekullueshëm që kanë ndihmuar në realizimin e vizionit tim.",
+    "jessica": "Politika e zero komisionit është një ndryshim i lojës! Kam arritur të rris biznesin tim freelance në mënyrë të konsiderueshme që kur u bashkova me Beamly."
+  },
+  "cta": {
+    "ready": "Gati për të",
+    "start": "Filluar",
+    "project": "Projektin Tuaj?",
+    "description": "Bashkohuni me Beamly sot dhe lidhuni me freelancerët më të mirë nga e gjithë bota. Pavarësisht nëse keni nevojë për një detyrë të shpejtë ose një projekt kompleks, ne ju mbulojmë.",
+    "hireFreelancer": "Punësoni një Freelancer",
+    "becomeFreelancer": "Bëhuni Freelancer"
+  },
+  "login": {
+    "welcomeBack": "Mirë se u kthyet në",
+    "subtitle": "Hyni në llogarinë tuaj për të vazhduar",
+    "emailAddress": "Adresa e Emailit",
+    "password": "Fjalëkalimi",
+    "forgotPassword": "Keni harruar fjalëkalimin?",
+    "rememberMe": "Më mbaj mend",
+    "loginButton": "Hyrje",
+    "noAccount": "Nuk keni një llogari?",
+    "signUp": "Regjistrohuni",
+    "goBack": "Kthehu Prapa"
+  },
+  "signup": {
+    "join": "Bashkohuni me",
+    "today": "sot",
+    "subtitle": "Krijoni llogarinë tuaj dhe filloni udhëtimin tuaj",
+    "fullName": "Emri i Plotë",
+    "emailAddress": "Adresa e Emailit",
+    "password": "Fjalëkalimi",
+    "passwordHint": "Fjalëkalimi duhet të jetë të paktën 8 karaktere me numra dhe karaktere speciale",
+    "agreeTerms": "Unë pranoj",
+    "termsOfService": "Kushtet e Shërbimit",
+    "and": "dhe",
+    "privacyPolicy": "Politikën e Privatësisë",
+    "createAccount": "Krijo Llogari",
+    "haveAccount": "Tashmë keni një llogari?",
+    "login": "Hyni",
+    "goBack": "Kthehu Prapa"
+  }
+}
