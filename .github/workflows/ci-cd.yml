@@ -1,0 +1,73 @@
+name: CI/CD Pipeline
+
+    on:
+      push:
+        branches: [ main, firebase-integration ]
+      pull_request:
+        branches: [ main, firebase-integration ]
+
+    jobs:
+      lint-test-build:
+        runs-on: ubuntu-latest
+        
+        strategy:
+          matrix:
+            payment-provider: [stripe, paddle]
+            
+        steps:
+          - uses: actions/checkout@v3
+          
+          - name: Setup Node.js
+            uses: actions/setup-node@v3
+            with:
+              node-version: '18'
+              cache: 'npm'
+              
+          - name: Install dependencies
+            run: npm ci
+            
+          - name: Lint
+            run: npm run lint
+            
+          - name: Test with ${{ matrix.payment-provider }}
+            run: npm run test
+            env:
+              PAYMENT_PROVIDER: ${{ matrix.payment-provider }}
+              
+          - name: UI Tests (Snapshots)
+            run: npm run test:ui
+            
+          - name: Build with ${{ matrix.payment-provider }}
+            run: npm run build
+            env:
+              PAYMENT_PROVIDER: ${{ matrix.payment-provider }}
+              
+      deploy:
+        needs: lint-test-build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+        
+        steps:
+          - uses: actions/checkout@v3
+          
+          - name: Setup Node.js
+            uses: actions/setup-node@v3
+            with:
+              node-version: '18'
+              cache: 'npm'
+              
+          - name: Install dependencies
+            run: npm ci
+            
+          - name: Build
+            run: npm run build
+            env:
+              PAYMENT_PROVIDER: stripe # Default to Stripe for production
+              
+          - name: Deploy to Firebase
+            uses: FirebaseExtended/action-hosting-deploy@v0
+            with:
+              repoToken: '${{ secrets.GITHUB_TOKEN }}'
+              firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+              channelId: live
+              projectId: your-firebase-project-id

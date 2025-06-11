@@ -1,0 +1,331 @@
+{
+  "common": {
+    "login": "Login",
+    "signup": "Sign Up",
+    "logout": "Logout",
+    "dashboard": "Dashboard",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "loading": "Loading...",
+    "errorOccurred": "An error occurred",
+    "comingSoon": "Coming Soon",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "continue": "Continue",
+    "viewAll": "View All",
+    "seeMore": "See More",
+    "seeLess": "See Less"
+  },
+  "navigation": {
+    "home": "Home",
+    "freelancers": "Freelancers",
+    "lookingForWork": "Looking for Work",
+    "explore": "Explore",
+    "dashboard": "Dashboard",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "settings": "Settings",
+    "howItWorks": "How It Works",
+    "billing": "Billing",
+    "profile": "Profile",
+    "openMenu": "Open Menu",
+    "closeMenu": "Close Menu",
+    "mobileMenu": "Mobile Navigation Menu",
+    "accountSettings": "Account Settings",
+    "preferences": "Preferences",
+    "freelancerRole": "Freelancer"
+  },
+  "settings": {
+    "appearance": {
+      "title": "Appearance",
+      "theme": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "toggleTheme": "Toggle theme"
+    },
+    "language": {
+      "title": "Language",
+      "select": "Select Language",
+      "english": "English",
+      "albanian": "Shqip"
+    },
+    "account": {
+      "title": "Account",
+      "dangerZone": "Danger Zone",
+      "dangerZoneDescription": "These actions are irreversible. Please proceed with caution.",
+      "deleteAccount": "Delete Account"
+    }
+  },
+  "hero": {
+    "title": "Find the perfect",
+    "freelance": "freelance",
+    "titleEnd": "services for your business",
+    "subtitle": "Connect with talented freelancers and get your projects done quickly and efficiently on Beamly.",
+    "searchPlaceholder": "Search for services...",
+    "search": "Search",
+    "popular": "Popular",
+    "trustedBy": "Trusted by leading brands",
+    "categories": {
+      "webDesign": "Web Design",
+      "logoDesign": "Logo Design",
+      "contentWriting": "Content Writing",
+      "videoEditing": "Video Editing"
+    }
+  },
+  "categories": {
+    "explore": "Explore Popular",
+    "title": "Categories",
+    "subtitle": "Find services in top categories to help you achieve your goals",
+    "browseAll": "Browse All Categories",
+    "findTalented": "Find talented freelancers",
+    "items": {
+      "graphicDesign": "Graphic Design",
+      "webDevelopment": "Web Development",
+      "digitalMarketing": "Digital Marketing",
+      "writingTranslation": "Writing & Translation",
+      "videoAnimation": "Video & Animation",
+      "musicAudio": "Music & Audio",
+      "programming": "Programming",
+      "business": "Business"
+    }
+  },
+  "features": {
+    "why": "Why Choose",
+    "subtitle": "We're revolutionizing the freelance marketplace with these unique features",
+    "qualityWork": {
+      "title": "Quality Work",
+      "description": "Find the highest quality services and talents with our strict verification process."
+    },
+    "zeroCommission": {
+      "title": "Zero Commission",
+      "description": "Keep more of what you earn with our zero commission policy for freelancers."
+    },
+    "securePayments": {
+      "title": "Secure Payments",
+      "description": "Your payments are protected with our secure payment system and escrow service."
+    },
+    "support": {
+      "title": "24/7 Support",
+      "description": "Get help anytime with our dedicated customer support team available round the clock."
+    }
+  },
+  "howItWorks": {
+    "title": "How",
+    "titleEnd": "Works",
+    "subtitle": "Get your projects done in 4 simple steps",
+    "step1": {
+      "title": "Create an Account",
+      "description": "Sign up for free and complete your profile to get started."
+    },
+    "step2": {
+      "title": "Discover Services",
+      "description": "Browse through thousands of services or post a request."
+    },
+    "step3": {
+      "title": "Hire Freelancers",
+      "description": "Choose the perfect freelancer for your project and collaborate."
+    },
+    "step4": {
+      "title": "Complete Project",
+      "description": "Approve the work and release payment when satisfied."
+    }
+  },
+  "testimonials": {
+    "title": "What Our",
+    "users": "Users",
+    "say": "Say",
+    "subtitle": "Join thousands of satisfied clients and freelancers",
+    "roles": {
+      "marketingDirector": "Marketing Director",
+      "startupFounder": "Startup Founder",
+      "freelancer": "Freelance Designer"
+    },
+    "selfEmployed": "Self-employed",
+    "sarah": "Beamly has transformed how we find creative talent. The quality of work and speed of delivery has been exceptional.",
+    "michael": "As a startup founder, Beamly has been invaluable. I've found amazing developers and designers who've helped bring my vision to life.",
+    "jessica": "The zero commission policy is a game-changer! I've been able to grow my freelance business significantly since joining Beamly."
+  },
+  "cta": {
+    "ready": "Ready to",
+    "start": "Start",
+    "project": "Your Project?",
+    "description": "Join Beamly today and connect with top freelancers from around the world. Whether you need a quick task or a complex project, we've got you covered.",
+    "hireFreelancer": "Hire a Freelancer",
+    "becomeFreelancer": "Become a Freelancer"
+  },
+  "login": {
+    "welcomeBack": "Welcome back to",
+    "subtitle": "Log in to your account to continue",
+    "emailAddress": "Email Address",
+    "emailPlaceholder": "Enter your email",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "forgotPassword": "Forgot password?",
+    "rememberMe": "Remember me",
+    "loginButton": "Log In",
+    "noAccount": "Don't have an account?",
+    "signUp": "Sign up",
+    "goBack": "Go Back",
+    "accountType": "Account type",
+    "freelancer": "Freelancer",
+    "company": "Company"
+  },
+  "signup": {
+    "join": "Join",
+    "today": "today",
+    "subtitle": "Create your account and start your journey",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "Enter your full name",
+    "emailAddress": "Email Address",
+    "emailPlaceholder": "Enter your email",
+    "password": "Password",
+    "passwordPlaceholder": "Create a strong password",
+    "passwordHint": "Password must be at least 8 characters with numbers and special characters",
+    "agreeTerms": "I agree to the",
+    "termsOfService": "Terms of Service",
+    "and": "and",
+    "privacyPolicy": "Privacy Policy",
+    "createAccount": "Create Account",
+    "haveAccount": "Already have an account?",
+    "login": "Log in",
+    "goBack": "Go Back",
+    "accountType": "Account type",
+    "freelancer": "Freelancer",
+    "company": "Company",
+    "skills": "Skills (separated by commas)",
+    "skillsPlaceholder": "e.g., Web Design, Logo Design, Content Writing",
+    "experience": "Years of Experience",
+    "experiencePlaceholder": "Years of experience",
+    "companyName": "Company Name",
+    "companyNamePlaceholder": "Your company name",
+    "industry": "Industry",
+    "industryPlaceholder": "e.g., Technology, Marketing, Healthcare"
+  },
+  "dashboard": {
+    "welcomeBack": "Welcome back",
+    "activeJobs": "Active Jobs",
+    "balance": "Balance",
+    "notifications": "Notifications",
+    "viewAll": "View All",
+    "jobs": "Jobs",
+    "messages": "Messages",
+    "settings": "Settings",
+    "billing": "Billing",
+    "postJob": "Post a Job",
+    "withdraw": "Withdraw",
+    "earnings": "Earnings",
+    "totalEarned": "Total Earned",
+    "pendingPayments": "Pending Payments",
+    "availableForWithdrawal": "Available for Withdrawal",
+    "recentTransactions": "Recent Transactions",
+    "upcomingDeadlines": "Upcoming Deadlines",
+    "tasksDue": "Tasks Due",
+    "noUpcomingDeadlines": "No upcoming deadlines",
+    "quickActions": "Quick Actions",
+    "findWork": "Find Work",
+    "editProfile": "Edit Profile",
+    "withdrawFunds": "Withdraw Funds"
+  },
+  "social": {
+    "facebook": "Facebook",
+    "twitter": "Twitter",
+    "instagram": "Instagram",
+    "linkedin": "LinkedIn"
+  },
+  "footer": {
+    "description": "Beamly connects businesses with talented freelancers offering quality services with zero commission.",
+    "forClients": "For Clients",
+    "forFreelancers": "For Freelancers",
+    "resources": "Resources",
+    "legal": {
+      "title": "Legal",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "sitemap": "Sitemap"
+    },
+    "clients": {
+      "howToHire": "How to Hire",
+      "talentMarketplace": "Talent Marketplace",
+      "projectCatalog": "Project Catalog",
+      "enterprise": "Enterprise",
+      "paymentProtection": "Payment Protection"
+    },
+    "freelancers": {
+      "howToFindWork": "How to Find Work",
+      "directContracts": "Direct Contracts",
+      "marketplaceInsights": "Marketplace Insights",
+      "community": "Community",
+      "zeroCommission": "Zero Commission"
+    },
+    "resources": {
+      "helpSupport": "Help & Support",
+      "successStories": "Success Stories",
+      "blog": "Blog",
+      "community": "Community",
+      "affiliateProgram": "Affiliate Program",
+      "contactUs": "Contact Us"
+    },
+    "copyright": "© {{year}} Beamly. All rights reserved."
+  },
+  "lookingForWork": {
+    "title": "Looking for Work",
+    "subtitle": "Find the perfect job opportunities for your skills",
+    "searchPlaceholder": "Search for jobs by title, company, or keywords...",
+    "searchButton": "Search",
+    "filterCategories": {
+      "all": "All Categories",
+      "design": "Design",
+      "development": "Development",
+      "marketing": "Marketing",
+      "writing": "Writing",
+      "video": "Video & Animation"
+    },
+    "sortBy": {
+      "title": "Sort by",
+      "recent": "Most Recent",
+      "salaryHigh": "Highest Salary",
+      "salaryLow": "Lowest Salary"
+    },
+    "jobCard": {
+      "save": "Save",
+      "viewDetails": "View Details"
+    },
+    "noJobsFound": {
+      "title": "No jobs found",
+      "description": "Try adjusting your search or filters"
+    },
+    "loadMore": "Load More"
+  },
+  "freelancerProfile": {
+    "title": "Freelancer Profile",
+    "about": "About Me",
+    "skills": "Skills",
+    "experience": "Experience",
+    "education": "Education",
+    "portfolio": "Portfolio",
+    "reviews": "Reviews",
+    "contactMe": "Contact Me",
+    "hireMe": "Hire Me",
+    "availability": "Availability",
+    "memberSince": "Member Since",
+    "lastActive": "Last Active",
+    "completedJobs": "Completed Jobs",
+    "ongoingJobs": "Ongoing Jobs",
+    "languages": "Languages",
+    "verifiedProfile": "Verified Profile",
+    "responseRate": "Response Rate",
+    "responseTime": "Response Time",
+    "hourlyRate": "Hourly Rate",
+    "location": "Location",
+    "viewPortfolio": "View Portfolio",
+    "viewResume": "View Resume",
+    "sendMessage": "Send Message",
+    "saveProfile": "Save Profile",
+    "reportProfile": "Report Profile"
+  }
+}

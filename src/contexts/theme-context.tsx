@@ -1,0 +1,121 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+type Theme = 'light' | 'dark' | 'system';
+
+type ThemeContextType = {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  isDarkMode: boolean;
+  toggleTheme: () => void;
+  systemThemeIsDark: boolean;
+};
+
+const ThemeContext = React.createContext<ThemeContextType>({
+  theme: 'dark',
+  setTheme: () => {},
+  isDarkMode: true,
+  toggleTheme: () => {},
+  systemThemeIsDark: false
+});
+
+interface ThemeProviderProps {
+  children: React.ReactNode;
+}
+
+export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ children }) => {
+  // Get initial theme from localStorage, default to dark
+  const [theme, setThemeState] = React.useState<Theme>(() => {
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
+      return storedTheme as Theme;
+    }
+    
+    // Default to dark
+    return 'dark';
+  });
+
+  // Derived state
+  const [isDarkMode, setIsDarkMode] = React.useState<boolean>(theme === 'dark');
+
+  // Add system theme detection
+  const [systemThemeIsDark, setSystemThemeIsDark] = React.useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
+  
+  // Listen for system theme changes
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      
+      const handleChange = (e: MediaQueryListEvent) => {
+        setSystemThemeIsDark(e.matches);
+        if (localStorage.getItem('theme') === 'system') {
+          setIsDarkMode(e.matches);
+        }
+      };
+      
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+  }, []);
+  
+  // Define toggleTheme function
+  const toggleTheme = () => {
+    const newTheme = isDarkMode ? 'light' : 'dark';
+    setTheme(newTheme);
+  };
+  
+  // Define setDarkMode function
+  const setDarkMode = (dark: boolean) => {
+    setIsDarkMode(dark);
+    setThemeState(dark ? 'dark' : 'light');
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  };
+  
+  // Add support for system theme preference
+  const setTheme = (newTheme: Theme) => {
+    setThemeState(newTheme);
+    if (newTheme === 'system') {
+      setIsDarkMode(systemThemeIsDark);
+    } else {
+      setIsDarkMode(newTheme === 'dark');
+    }
+    localStorage.setItem('theme', newTheme);
+  };
+  
+  // Apply theme class to body
+  React.useEffect(() => {
+    if (theme === 'system') {
+      if (systemThemeIsDark) {
+        document.body.className = 'dark-mode';
+      } else {
+        document.body.className = 'light-mode';
+      }
+    } else {
+      document.body.className = theme === 'dark' ? 'dark-mode' : 'light-mode';
+    }
+  }, [theme, systemThemeIsDark]);
+  
+  // Expose system theme option
+  const contextValue: ThemeContextType = {
+    isDarkMode,
+    toggleTheme,
+    setTheme,
+    theme,
+    systemThemeIsDark
+  };
+  
+  return (
+    <ThemeContext.Provider value={contextValue}>
+      {children}
+    </ThemeContext.Provider>
+  );
+});
+
+export const useTheme = () => React.useContext(ThemeContext);
+
+ThemeProvider.displayName = 'ThemeProvider';
+export const ThemeProviderProps = {};
