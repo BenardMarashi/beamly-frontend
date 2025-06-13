@@ -73,11 +73,11 @@ export const DashboardPage: React.FC = () => {
               <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 {t('dashboard.notifications', 'Notifications')}
               </h3>
-              <div className="p-2 rounded-full bg-purple-500/10">
-                <Icon icon="lucide:bell" className="text-purple-500" />
+              <div className="p-2 rounded-full bg-beamly-secondary/10">
+                <Icon icon="lucide:bell" className="text-beamly-secondary" />
               </div>
             </div>
-            <p className="text-3xl font-semibold text-purple-500">7</p>
+            <p className="text-3xl font-semibold text-beamly-secondary">7</p>
             <div className="mt-4">
               <Button
                 size="sm"

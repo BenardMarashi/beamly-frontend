@@ -8,7 +8,15 @@ export default {
 		"./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
 	],
 	theme: {
-		extend: {},
+		extend: {
+			colors: {
+				beamly: {
+					primary: "#0F43EE",
+					secondary: "#FCE90D",
+					third: "#011241"
+				}
+			}
+		},
 	},
 	darkMode: "class",
 	plugins: [heroui()],
