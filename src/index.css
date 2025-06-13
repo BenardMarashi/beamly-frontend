@@ -1,8 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   --beamly-primary: #0F43EE;
@@ -46,6 +47,130 @@ body.dark-mode .text-foreground,
 body.dark-mode .bg-background {
   background-color: transparent !important;
   background-image: none !important;
+}
+
+/* AGGRESSIVE PURPLE TO YELLOW OVERRIDES - MUST BE AFTER TAILWIND */
+/* Override all HeroUI purple/violet button colors */
+button[class*="bg-purple"],
+button[class*="bg-violet"],
+a[class*="bg-purple"],
+a[class*="bg-violet"],
+div[class*="bg-purple"],
+div[class*="bg-violet"],
+[data-slot="base"][class*="bg-purple"],
+[data-slot="base"][class*="bg-violet"] {
+  background-color: #FCE90D !important;
+}
+
+/* Override text colors */
+button[class*="text-purple"],
+button[class*="text-violet"],
+a[class*="text-purple"],
+a[class*="text-violet"],
+div[class*="text-purple"],
+div[class*="text-violet"],
+span[class*="text-purple"],
+span[class*="text-violet"],
+p[class*="text-purple"],
+p[class*="text-violet"] {
+  color: #FCE90D !important;
+}
+
+/* Override border colors */
+button[class*="border-purple"],
+button[class*="border-violet"],
+a[class*="border-purple"],
+a[class*="border-violet"],
+div[class*="border-purple"],
+div[class*="border-violet"] {
+  border-color: #FCE90D !important;
+}
+
+/* Override HeroUI specific color classes */
+.bg-purple-50 { background-color: rgba(252, 233, 13, 0.05) !important; }
+.bg-purple-100 { background-color: rgba(252, 233, 13, 0.1) !important; }
+.bg-purple-200 { background-color: rgba(252, 233, 13, 0.2) !important; }
+.bg-purple-300 { background-color: rgba(252, 233, 13, 0.3) !important; }
+.bg-purple-400 { background-color: rgba(252, 233, 13, 0.4) !important; }
+.bg-purple-500 { background-color: #FCE90D !important; }
+.bg-purple-600 { background-color: #e6d70c !important; }
+.bg-purple-700 { background-color: #cfc10b !important; }
+.bg-purple-800 { background-color: #b8ab0a !important; }
+.bg-purple-900 { background-color: #a19509 !important; }
+
+.bg-violet-50 { background-color: rgba(252, 233, 13, 0.05) !important; }
+.bg-violet-100 { background-color: rgba(252, 233, 13, 0.1) !important; }
+.bg-violet-200 { background-color: rgba(252, 233, 13, 0.2) !important; }
+.bg-violet-300 { background-color: rgba(252, 233, 13, 0.3) !important; }
+.bg-violet-400 { background-color: rgba(252, 233, 13, 0.4) !important; }
+.bg-violet-500 { background-color: #FCE90D !important; }
+.bg-violet-600 { background-color: #e6d70c !important; }
+.bg-violet-700 { background-color: #cfc10b !important; }
+.bg-violet-800 { background-color: #b8ab0a !important; }
+.bg-violet-900 { background-color: #a19509 !important; }
+
+.text-purple-50 { color: rgba(252, 233, 13, 0.05) !important; }
+.text-purple-100 { color: rgba(252, 233, 13, 0.1) !important; }
+.text-purple-200 { color: rgba(252, 233, 13, 0.2) !important; }
+.text-purple-300 { color: rgba(252, 233, 13, 0.3) !important; }
+.text-purple-400 { color: rgba(252, 233, 13, 0.4) !important; }
+.text-purple-500 { color: #FCE90D !important; }
+.text-purple-600 { color: #e6d70c !important; }
+.text-purple-700 { color: #cfc10b !important; }
+.text-purple-800 { color: #b8ab0a !important; }
+.text-purple-900 { color: #a19509 !important; }
+
+.text-violet-50 { color: rgba(252, 233, 13, 0.05) !important; }
+.text-violet-100 { color: rgba(252, 233, 13, 0.1) !important; }
+.text-violet-200 { color: rgba(252, 233, 13, 0.2) !important; }
+.text-violet-300 { color: rgba(252, 233, 13, 0.3) !important; }
+.text-violet-400 { color: rgba(252, 233, 13, 0.4) !important; }
+.text-violet-500 { color: #FCE90D !important; }
+.text-violet-600 { color: #e6d70c !important; }
+.text-violet-700 { color: #cfc10b !important; }
+.text-violet-800 { color: #b8ab0a !important; }
+.text-violet-900 { color: #a19509 !important; }
+
+/* Override hover states */
+button:hover[class*="bg-purple"],
+button:hover[class*="bg-violet"],
+a:hover[class*="bg-purple"],
+a:hover[class*="bg-violet"] {
+  background-color: #e6d70c !important;
+}
+
+/* Override focus states */
+button:focus[class*="bg-purple"],
+button:focus[class*="bg-violet"],
+a:focus[class*="bg-purple"],
+a:focus[class*="bg-violet"] {
+  background-color: #cfc10b !important;
+}
+
+/* Override HeroUI button color prop */
+[data-color="purple"],
+[data-color="violet"] {
+  --color: #FCE90D !important;
+  --color-50: rgba(252, 233, 13, 0.05) !important;
+  --color-100: rgba(252, 233, 13, 0.1) !important;
+  --color-200: rgba(252, 233, 13, 0.2) !important;
+  --color-300: rgba(252, 233, 13, 0.3) !important;
+  --color-400: rgba(252, 233, 13, 0.4) !important;
+  --color-500: #FCE90D !important;
+  --color-600: #e6d70c !important;
+  --color-700: #cfc10b !important;
+  --color-800: #b8ab0a !important;
+  --color-900: #a19509 !important;
+}
+
+/* Fix text color for dark buttons with yellow background */
+button.bg-beamly-secondary,
+button[class*="bg-purple"],
+button[class*="bg-violet"],
+a.bg-beamly-secondary,
+a[class*="bg-purple"],
+a[class*="bg-violet"] {
+  color: #011241 !important; /* Use beamly-third for text on yellow background */
 }
 
 /* Glass effect */
@@ -497,20 +622,27 @@ button, input, select, textarea {
   font-family: 'Outfit', sans-serif;
 }
 
-/* Fix purple buttons - use yellow */
-.bg-purple-500\/10 {
-  background-color: rgba(252, 233, 13, 0.1) !important;
+/* Add Beamly color classes for Tailwind */
+.text-beamly-primary {
+  color: var(--beamly-primary);
 }
 
-.text-purple-500 {
-  color: #FCE90D !important;
+.text-beamly-secondary {
+  color: var(--beamly-secondary);
 }
 
-/* Ensure no purple in project */
-[class*="purple"] {
-  color: #FCE90D !important;
+.text-beamly-third {
+  color: var(--beamly-third);
 }
 
-[class*="bg-purple"] {
-  background-color: rgba(252, 233, 13, 0.1) !important;
+.bg-beamly-primary {
+  background-color: var(--beamly-primary);
+}
+
+.bg-beamly-secondary {
+  background-color: var(--beamly-secondary);
+}
+
+.bg-beamly-third {
+  background-color: var(--beamly-third);
 }
