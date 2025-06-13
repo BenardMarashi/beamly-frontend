@@ -1,3 +1,5 @@
+// Update your src/contexts/theme-context.tsx with this fix
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -73,13 +75,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
     setTheme(newTheme);
   };
   
-  // Define setDarkMode function
-  const setDarkMode = (dark: boolean) => {
-    setIsDarkMode(dark);
-    setThemeState(dark ? 'dark' : 'light');
-    localStorage.setItem('theme', dark ? 'dark' : 'light');
-  };
-  
   // Add support for system theme preference
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
@@ -95,6 +90,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
   React.useEffect(() => {
     // Remove all theme classes first
     document.body.classList.remove('dark-mode', 'light-mode');
+    // Remove any background color inline styles that might have been set
+    document.body.style.backgroundColor = '';
     
     if (theme === 'system') {
       if (systemThemeIsDark) {
@@ -105,6 +102,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
     } else {
       document.body.classList.add(theme === 'dark' ? 'dark-mode' : 'light-mode');
     }
+    
+    // Force a repaint to ensure styles are applied
+    document.body.offsetHeight;
   }, [theme, systemThemeIsDark]);
   
   // Expose system theme option

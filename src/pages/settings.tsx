@@ -34,7 +34,7 @@ export const SettingsPage: React.FC = () => {
             </h2>
             <RadioGroup
               value={theme}
-              onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'system')}
+              onValueChange={(value) => setTheme(value as 'light' | 'dark')}
               aria-label={t('settings.appearance.theme')}
             >
               <Radio value="light" className={`${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
@@ -49,16 +49,7 @@ export const SettingsPage: React.FC = () => {
                   {t('settings.appearance.dark')}
                 </div>
               </Radio>
-              <Radio value="system" className={`${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                <div className="flex items-center">
-                  <Icon icon="lucide:monitor" className="mr-2" />
-                  {t('settings.appearance.system')}
-                </div>
-              </Radio>
             </RadioGroup>
-            <p className={`mt-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              {theme === 'system' && t('settings.appearance.systemDescription')}
-            </p>
           </CardBody>
         </Card>
         
