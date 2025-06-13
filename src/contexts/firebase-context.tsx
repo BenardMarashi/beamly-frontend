@@ -1,5 +1,5 @@
 import React from 'react';
-    import { QueryClient, QueryClientProvider } from 'react-query';
+    import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
     import { useAuthState } from 'react-firebase-hooks/auth';
     import { auth } from '../lib/firebase';
     
@@ -34,15 +34,30 @@ import React from 'react';
     
     export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children }) => {
       // Add error handling for useAuthState
-      const [user, loading, error] = useAuthState(auth, {
-        onUserChanged: (user) => {
-          if (user) {
-            console.log("User authenticated:", user.uid);
-          } else {
-            console.log("No user authenticated");
-          }
-        },
-      });
+      let user = null;
+      let loading = false;
+      let error = undefined;
+      
+      try {
+        // Only use auth hooks if auth is available
+        if (auth) {
+          const authState = useAuthState(auth, {
+            onUserChanged: (user) => {
+              if (user) {
+                console.log("User authenticated:", user.uid);
+              } else {
+                console.log("No user authenticated");
+              }
+            },
+          });
+          [user, loading, error] = authState;
+        } else {
+          console.log("Auth not available, running in demo mode");
+        }
+      } catch (e) {
+        console.error("Error initializing auth state:", e);
+        error = e as Error;
+      }
       
       // Log any auth errors
       React.useEffect(() => {
