@@ -8,27 +8,43 @@ import { useTheme } from "../contexts/theme-context";
 
 interface LoginPageProps {
   onLogin?: () => void;
+  onEmailLogin?: (email: string, password: string) => Promise<void>;
+  onGoogleLogin?: () => Promise<void>;
+  loading?: boolean;
+  error?: string | null;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ 
+  onLogin,
+  onEmailLogin,
+  onGoogleLogin,
+  loading = false,
+  error = null
+}) => {
   const [selected, setSelected] = React.useState("freelancer");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [rememberMe, setRememberMe] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
   const { t } = useTranslation();
   const { isDarkMode } = useTheme();
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login attempt with:", { email, password, rememberMe });
-    // Validate form
+    
     if (!email || !password) {
-      // Add validation and error handling
-      console.error("Email and password are required");
       return;
     }
-    // Call the onLogin prop to handle authentication
-    if (onLogin) onLogin();
+    
+    if (onEmailLogin) {
+      await onEmailLogin(email, password);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (onGoogleLogin) {
+      await onGoogleLogin();
+    }
   };
 
   return (
@@ -101,37 +117,71 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   value={email}
                   onValueChange={setEmail}
                   startContent={<Icon icon="lucide:mail" className="text-gray-400" />}
+                  endContent={
+                    showPassword && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(false)}
+                        className="text-gray-400"
+                      >
+                        <Icon icon="lucide:eye-off" />
+                      </button>
+                    )
+                  }
                   className="bg-white/10 border-white/20"
                   variant="bordered"
+                  isRequired
                 />
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-200 font-outfit">
-                    {t('login.password')}
-                  </label>
-                  <Link href="/forgot-password" className="text-sm text-beamly-secondary hover:underline font-outfit"
-                    onPress={(e) => {
-                      e.preventDefault();
-                      console.log("Forgot password link clicked");
-                      // No navigation, just a log
-                    }}
-                  >
-                    {t('login.forgotPassword')}
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder={t('login.passwordPlaceholder')}
-                  value={password}
-                  onValueChange={setPassword}
-                  startContent={<Icon icon="lucide:lock" className="text-gray-400" />}
-                  className="bg-white/10 border-white/20"
-                  variant="bordered"
-                />
+              <div className="flex items-center justify-between mb-1">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-200 font-outfit">
+                  {t('login.password')}
+                </label>
+                <Button
+                  variant="light"
+                  size="sm"
+                  className="text-sm text-beamly-secondary hover:underline font-outfit p-0 h-auto min-w-0"
+                  onPress={() => {
+                    console.log("Forgot password link clicked");
+                    // Later you can implement password reset
+                    // navigate('/forgot-password');
+                  }}
+                >
+                  {t('login.forgotPassword')}
+                </Button>
               </div>
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder={t('login.passwordPlaceholder')}
+                value={password}
+                onValueChange={setPassword}
+                startContent={<Icon icon="lucide:lock" className="text-gray-400" />}
+                endContent={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-gray-400"
+                  >
+                    <Icon icon={showPassword ? "lucide:eye-off" : "lucide:eye"} />
+                  </button>
+                }
+                className="bg-white/10 border-white/20"
+                variant="bordered"
+                isRequired
+              />
+            </div>
+
+              {error && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-red-500 text-sm flex items-center gap-2">
+                    <Icon icon="lucide:alert-circle" />
+                    {error}
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center justify-between">
                 <Checkbox 
@@ -150,14 +200,32 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   size="lg"
                   className="w-full font-medium font-outfit text-beamly-third"
                   type="submit"
-                  onPress={() => {
-                    if (onLogin) onLogin(); // Add this line to fix the login button
-                  }}
+                  isLoading={loading}
+                  isDisabled={loading || !email || !password}
                 >
                   {t('login.loginButton')}
                 </Button>
               </div>
             </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-[#010b29] text-gray-400">Or continue with</span>
+              </div>
+            </div>
+
+            <Button
+              variant="bordered"
+              className="w-full border-white/20 text-white"
+              startContent={<Icon icon="flat-color-icons:google" width={20} />}
+              onPress={handleGoogleSignIn}
+              isDisabled={loading}
+            >
+              Sign in with Google
+            </Button>
 
             <div className="mt-8 text-center">
               <p className="text-gray-300 font-outfit">

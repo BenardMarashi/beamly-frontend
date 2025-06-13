@@ -8,17 +8,57 @@ import { useTheme } from "../contexts/theme-context";
 
 interface SignupPageProps {
   onSignup?: () => void;
+  onEmailSignup?: (email: string, password: string, fullName: string, accountType: string, additionalData?: any) => Promise<void>;
+  onGoogleSignup?: () => Promise<void>;
+  loading?: boolean;
+  error?: string | null;
 }
 
-export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
+export const SignupPage: React.FC<SignupPageProps> = ({ 
+  onSignup,
+  onEmailSignup,
+  onGoogleSignup,
+  loading = false,
+  error = null
+}) => {
   const [selected, setSelected] = React.useState("freelancer");
   const [fullName, setFullName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [agreeTerms, setAgreeTerms] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+  
+  // Additional fields
+  const [skills, setSkills] = React.useState("");
+  const [experience, setExperience] = React.useState("");
+  const [companyName, setCompanyName] = React.useState("");
+  const [industry, setIndustry] = React.useState("");
+  
   const { t } = useTranslation();
   const { isDarkMode } = useTheme();
   
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!fullName || !email || !password || !agreeTerms) {
+      return;
+    }
+    
+    if (onEmailSignup) {
+      const additionalData = selected === "freelancer" 
+        ? { skills: skills.split(',').map(s => s.trim()), experience }
+        : { companyName, industry };
+        
+      await onEmailSignup(email, password, fullName, selected, additionalData);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    if (onGoogleSignup) {
+      await onGoogleSignup();
+    }
+  };
+
   const freelancerFields = (
     <>
       <div>
@@ -28,6 +68,8 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
         <Input
           id="skills"
           placeholder={t('signup.skillsPlaceholder')}
+          value={skills}
+          onValueChange={setSkills}
           startContent={<Icon icon="lucide:code" className="text-gray-400" />}
           className="bg-white/10 border-white/20"
           variant="bordered"
@@ -41,6 +83,8 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
           id="experience"
           type="number"
           placeholder={t('signup.experiencePlaceholder')}
+          value={experience}
+          onValueChange={setExperience}
           startContent={<Icon icon="lucide:briefcase" className="text-gray-400" />}
           className="bg-white/10 border-white/20"
           variant="bordered"
@@ -58,6 +102,8 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
         <Input
           id="company"
           placeholder={t('signup.companyNamePlaceholder')}
+          value={companyName}
+          onValueChange={setCompanyName}
           startContent={<Icon icon="lucide:building" className="text-gray-400" />}
           className="bg-white/10 border-white/20"
           variant="bordered"
@@ -70,6 +116,8 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
         <Input
           id="industry"
           placeholder={t('signup.industryPlaceholder')}
+          value={industry}
+          onValueChange={setIndustry}
           startContent={<Icon icon="lucide:layers" className="text-gray-400" />}
           className="bg-white/10 border-white/20"
           variant="bordered"
@@ -77,19 +125,6 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
       </div>
     </>
   );
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Signup attempt with:", { fullName, email, password, agreeTerms, selected });
-    // Validate form
-    if (!fullName || !email || !password || !agreeTerms) {
-      // Add validation and error handling
-      console.error("All fields are required and terms must be accepted");
-      return;
-    }
-    // Call the onSignup prop to handle account creation
-    if (onSignup) onSignup();
-  };
 
   return (
     <div className="min-h-[calc(100vh-64px)] overflow-hidden flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -162,6 +197,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
                   startContent={<Icon icon="lucide:user" className="text-gray-400" />}
                   className="bg-white/10 border-white/20"
                   variant="bordered"
+                  isRequired
                 />
               </div>
 
@@ -178,6 +214,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
                   startContent={<Icon icon="lucide:mail" className="text-gray-400" />}
                   className="bg-white/10 border-white/20"
                   variant="bordered"
+                  isRequired
                 />
               </div>
 
@@ -187,13 +224,23 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
                 </label>
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder={t('signup.passwordPlaceholder')}
                   value={password}
                   onValueChange={setPassword}
                   startContent={<Icon icon="lucide:lock" className="text-gray-400" />}
+                  endContent={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-gray-400"
+                    >
+                      <Icon icon={showPassword ? "lucide:eye-off" : "lucide:eye"} />
+                    </button>
+                  }
                   className="bg-white/10 border-white/20"
                   variant="bordered"
+                  isRequired
                 />
                 <p className="mt-1 text-xs text-gray-400 font-outfit">
                   {t('signup.passwordHint')}
@@ -201,6 +248,15 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
               </div>
 
               {selected === "freelancer" ? freelancerFields : companyFields}
+
+              {error && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-red-500 text-sm flex items-center gap-2">
+                    <Icon icon="lucide:alert-circle" />
+                    {error}
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center">
                 <Checkbox 
@@ -228,31 +284,51 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
                   size="lg"
                   className="w-full font-medium font-outfit text-beamly-third"
                   type="submit"
-                  isDisabled={!agreeTerms}
+                  isDisabled={!agreeTerms || loading}
+                  isLoading={loading}
                 >
                   {t('signup.createAccount')}
                 </Button>
               </div>
-
-              <div className="mt-8 text-center">
-                <p className="text-gray-300 font-outfit">
-                  {t('signup.haveAccount')}{" "}
-                  <Link href="/login" className="text-beamly-secondary hover:underline font-medium">
-                    {t('signup.login')}
-                  </Link>
-                </p>
-                
-                <Button 
-                  variant="light" 
-                  color="default"
-                  startContent={<Icon icon="lucide:arrow-left" />}
-                  className="mt-4 text-white"
-                  onPress={() => window.history.back()}
-                >
-                  {t('signup.goBack')}
-                </Button>
-              </div>
             </form>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-[#010b29] text-gray-400">Or continue with</span>
+              </div>
+            </div>
+
+            <Button
+              variant="bordered"
+              className="w-full border-white/20 text-white"
+              startContent={<Icon icon="flat-color-icons:google" width={20} />}
+              onPress={handleGoogleSignup}
+              isDisabled={loading}
+            >
+              Sign up with Google
+            </Button>
+
+            <div className="mt-8 text-center">
+              <p className="text-gray-300 font-outfit">
+                {t('signup.haveAccount')}{" "}
+                <Link href="/login" className="text-beamly-secondary hover:underline font-medium">
+                  {t('signup.login')}
+                </Link>
+              </p>
+              
+              <Button 
+                variant="light" 
+                color="default"
+                startContent={<Icon icon="lucide:arrow-left" />}
+                className="mt-4 text-white"
+                onPress={() => window.history.back()}
+              >
+                {t('signup.goBack')}
+              </Button>
+            </div>
           </div>
         </motion.div>
       </div>
