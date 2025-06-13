@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
@@ -11,11 +10,19 @@
   --beamly-third: #011241;
 }
 
+* {
+  font-family: 'Outfit', sans-serif;
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
 }
 
+/* Light mode */
 body.light-mode {
   background-color: #ffffff;
   color: #1a202c;
@@ -25,83 +32,86 @@ body.light-mode {
     radial-gradient(at 10% 70%, rgba(15, 67, 238, 0.02) 0px, transparent 50%);
 }
 
+/* Dark mode - Fixed background */
 body.dark-mode {
-  background-color: #010b29;
+  background-color: #010b29 !important;
   color: #ffffff;
+  background-image: none !important;
 }
 
+/* Ensure no background overrides in dark mode */
+body.dark-mode #root,
+body.dark-mode main,
+body.dark-mode .text-foreground,
+body.dark-mode .bg-background {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Glass effect */
 .glass-effect {
-  background: rgba(15, 67, 238, 0.1);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
   border-radius: 16px;
 }
 
-.glass-effect.light-mode {
-  background: rgba(255, 255, 255, 0.98); 
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+/* Glass effect - Light mode */
+body.light-mode .glass-effect {
+  background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(15, 67, 238, 0.1);
   box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.06);
 }
 
-.glass-effect.dark-mode {
+/* Glass effect - Dark mode */
+body.dark-mode .glass-effect {
   background: rgba(15, 67, 238, 0.1);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
 }
 
+/* Glass card */
 .glass-card {
-  background: rgba(15, 67, 238, 0.08);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
   border-radius: 16px;
 }
 
-.glass-card.light-mode {
+/* Glass card - Light mode */
+body.light-mode .glass-card {
   background: #ffffff;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
   border: 1px solid rgba(15, 67, 238, 0.1);
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.04);
 }
 
-.glass-card.dark-mode {
+/* Glass card - Dark mode */
+body.dark-mode .glass-card {
   background: rgba(15, 67, 238, 0.08);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
 }
 
+/* Yellow glass */
 .yellow-glass {
-  background: rgba(252, 233, 13, 0.1);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(252, 233, 13, 0.15);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+  border-radius: 16px;
 }
 
-.yellow-glass.light-mode {
+/* Yellow glass - Light mode */
+body.light-mode .yellow-glass {
   background: rgba(252, 233, 13, 0.08);
   border: 1px solid rgba(252, 233, 13, 0.2);
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.04);
 }
 
-.yellow-glass.dark-mode {
+/* Yellow glass - Dark mode */
+body.dark-mode .yellow-glass {
   background: rgba(252, 233, 13, 0.1);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
   border: 1px solid rgba(252, 233, 13, 0.15);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
 }
 
+/* Gradient backgrounds */
 .gradient-bg {
   background: linear-gradient(135deg, #010b29, #0F43EE);
 }
@@ -113,9 +123,10 @@ body.dark-mode {
   color: transparent;
 }
 
+/* Section container */
 .section-container {
   position: relative;
-  padding: 2.5rem 0; /* Reduced from 5rem to 2.5rem */
+  padding: 2.5rem 0;
   overflow: hidden;
 }
 
@@ -130,6 +141,7 @@ body.dark-mode {
   z-index: -1;
 }
 
+/* Typography */
 .section-title {
   font-family: 'Outfit', sans-serif;
   font-weight: 700;
@@ -140,6 +152,7 @@ body.dark-mode {
   font-weight: 300;
 }
 
+/* Primary glow effect */
 .primary-glow {
   position: relative;
 }
@@ -156,11 +169,13 @@ body.dark-mode {
   z-index: -1;
 }
 
+/* Blue background section */
 .blue-bg-section {
   background: linear-gradient(135deg, #010b29, #0F43EE);
   color: white;
 }
 
+/* Accent shapes */
 .blue-accent {
   position: absolute;
   background-color: var(--beamly-primary);
@@ -205,7 +220,8 @@ body.dark-mode {
   right: -100px;
 }
 
-.bg-mesh {
+/* Background mesh - different for light and dark */
+body.light-mode .bg-mesh {
   background-image: 
     radial-gradient(at 40% 20%, rgba(15, 67, 238, 0.15) 0px, transparent 50%),
     radial-gradient(at 80% 50%, rgba(252, 233, 13, 0.1) 0px, transparent 50%),
@@ -215,123 +231,121 @@ body.dark-mode {
   background-repeat: no-repeat;
 }
 
+body.dark-mode .bg-mesh {
+  background-image: 
+    radial-gradient(at 40% 20%, rgba(15, 67, 238, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(252, 233, 13, 0.03) 0px, transparent 50%),
+    radial-gradient(at 10% 70%, rgba(15, 67, 238, 0.05) 0px, transparent 50%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Card hover effect */
 .card-hover {
   transition: all 0.3s ease;
 }
 
 .card-hover:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
-  border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Light mode improved text visibility */
-.light-mode .text-white {
-  color: #1a202c; /* Darker text for better contrast */
-}
-
-.light-mode .text-gray-300 {
-  color: #4a5568; /* Darker gray for better contrast */
-}
-
-.light-mode .text-gray-400 {
-  color: #2d3748; /* Even darker gray for better readability */
-}
-
-/* Glass effect improvements for light mode */
-.light-mode .glass-effect {
-  background: rgba(255, 255, 255, 0.98); 
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(15, 67, 238, 0.1);
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.06);
-}
-
-/* Card effect improvements for light mode */
-.light-mode .glass-card {
-  background: #ffffff;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid rgba(15, 67, 238, 0.1);
-  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.04);
-}
-
-/* Fix yellow glass in light mode */
-.light-mode .yellow-glass {
-  background: rgba(252, 233, 13, 0.08);
-  border: 1px solid rgba(252, 233, 13, 0.2);
-  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.04);
-}
-
-/* Ensure proper text contrast in light mode */
-.light-mode .section-title {
-  color: #111827;
-  font-weight: 700;
-}
-
-.light-mode .section-subtitle {
-  color: #4b5563;
-  font-weight: 400;
-}
-
-/* Fix button and link colors in light mode */
-.light-mode button.text-white,
-.light-mode a.text-white {
-  color: #111827;
-}
-
-/* Fix hover states in light mode */
-.light-mode a.text-gray-300:hover,
-.light-mode a.text-white:hover {
-  color: #0F43EE;
-}
-
-/* Fix card hover in light mode */
-.light-mode .card-hover:hover {
+body.light-mode .card-hover:hover {
   box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.08);
   border-color: rgba(15, 67, 238, 0.2);
 }
 
-/* Ensure proper contrast for inputs in light mode */
-.light-mode input,
-.light-mode textarea {
+body.dark-mode .card-hover:hover {
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Text colors for light mode */
+body.light-mode .text-white {
   color: #1a202c;
 }
 
-.light-mode input::placeholder {
-  color: #9ca3af;
+body.light-mode .text-gray-300 {
+  color: #4a5568;
 }
 
-/* Fix beamly secondary color in light mode for better visibility */
-.light-mode .text-beamly-secondary {
-  color: #c2b001;
+body.light-mode .text-gray-400 {
+  color: #2d3748;
 }
 
-/* Fix background for light mode components */
-.light-mode .bg-white\/10 {
-  background-color: rgba(15, 67, 238, 0.1);
+body.light-mode .text-gray-500 {
+  color: #718096;
 }
 
-/* Fix text colors in glass elements */
-.light-mode .glass-card .text-white,
-.light-mode .glass-effect .text-white,
-.light-mode .yellow-glass .text-white {
+body.light-mode .text-gray-600 {
+  color: #4a5568;
+}
+
+/* Ensure proper text in glass components */
+body.light-mode .glass-card .text-white,
+body.light-mode .glass-effect .text-white,
+body.light-mode .yellow-glass .text-white {
   color: #111827;
 }
 
-.light-mode .glass-card .text-gray-300,
-.light-mode .glass-effect .text-gray-300,
-.light-mode .yellow-glass .text-gray-300 {
+body.light-mode .glass-card .text-gray-300,
+body.light-mode .glass-effect .text-gray-300,
+body.light-mode .yellow-glass .text-gray-300 {
   color: #4b5563;
 }
 
-.light-mode .glass-card .text-gray-400,
-.light-mode .glass-effect .text-gray-400,
-.light-mode .yellow-glass .text-gray-400 {
+body.light-mode .glass-card .text-gray-400,
+body.light-mode .glass-effect .text-gray-400,
+body.light-mode .yellow-glass .text-gray-400 {
   color: #6b7280;
 }
 
-/* Mobile responsive styles */
+/* Dark mode text should stay white */
+body.dark-mode .text-white {
+  color: #ffffff !important;
+}
+
+body.dark-mode .text-gray-300 {
+  color: #d1d5db !important;
+}
+
+body.dark-mode .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+/* Button fixes */
+body.light-mode button.text-white,
+body.light-mode a.text-white {
+  color: #111827;
+}
+
+/* Hover states */
+body.light-mode a.text-gray-300:hover,
+body.light-mode a.text-white:hover {
+  color: #0F43EE;
+}
+
+/* Input styles */
+body.light-mode input,
+body.light-mode textarea {
+  color: #1a202c;
+}
+
+body.light-mode input::placeholder {
+  color: #9ca3af;
+}
+
+/* Secondary color in light mode */
+body.light-mode .text-beamly-secondary {
+  color: #c2b001;
+}
+
+/* Background utilities */
+body.light-mode .bg-white\/10 {
+  background-color: rgba(15, 67, 238, 0.1);
+}
+
+/* Mobile responsive */
 @media (max-width: 768px) {
   .glass-effect,
   .glass-card,
@@ -356,7 +370,7 @@ body.dark-mode {
   }
 }
 
-/* Chip component for community page */
+/* Chip component */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -364,20 +378,23 @@ body.dark-mode {
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
+  font-family: 'Outfit', sans-serif;
 }
 
+/* Scrollbar */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .no-scrollbar::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
+  display: none;
 }
 
-/* Fix prose styling for light/dark mode */
+/* Prose styles */
 .prose {
   max-width: none;
+  font-family: 'Outfit', sans-serif;
 }
 
 .prose h1, 
@@ -394,87 +411,12 @@ body.dark-mode {
 .prose p {
   margin-top: 1em;
   margin-bottom: 1em;
+  font-family: 'Outfit', sans-serif;
 }
 
 .prose ul {
   margin-top: 1em;
   margin-bottom: 1em;
-}
-
-.prose li {
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-}
-
-.prose strong {
-  font-weight: 600;
-}
-
-/* Light mode prose styles */
-.light-mode .prose:not(.prose-invert) {
-  color: #4b5563;
-}
-
-.light-mode .prose:not(.prose-invert) h1,
-.light-mode .prose:not(.prose-invert) h2,
-.light-mode .prose:not(.prose-invert) h3,
-.light-mode .prose:not(.prose-invert) h4 {
-  color: #111827;
-}
-
-.light-mode .prose:not(.prose-invert) a {
-  color: #0F43EE;
-}
-
-.light-mode .prose:not(.prose-invert) strong {
-  color: #111827;
-}
-
-/* Dark mode prose styles */
-.dark-mode .prose-invert {
-  color: #ffffff;
-}
-
-.dark-mode .prose-invert h1,
-.dark-mode .prose-invert h2,
-.dark-mode .prose-invert h3,
-.dark-mode .prose-invert h4,
-.dark-mode .prose-invert h5,
-.dark-mode .prose-invert h6 {
-  color: #ffffff;
-}
-
-.dark-mode .prose-invert strong {
-  color: #ffffff;
-}
-
-.dark-mode .prose-invert a {
-  color: #FCE90D;
-}
-
-.dark-mode .prose-invert ul,
-.dark-mode .prose-invert ol {
-  color: #ffffff;
-}
-
-.dark-mode .prose-invert li {
-  color: #ffffff;
-}
-
-.dark-mode .prose-invert p {
-  color: #ffffff;
-}
-
-/* Ensure glass-effect content is white in dark mode */
-.dark-mode .glass-effect .text-gray-600,
-.dark-mode .glass-effect .text-gray-500,
-.dark-mode .glass-effect .text-gray-400,
-.dark-mode .glass-effect .text-gray-300 {
-  color: #ffffff;
-}
-
-/* Fix list styling in both modes */
-.prose ul {
   list-style-type: disc;
   padding-left: 1.5rem;
 }
@@ -484,33 +426,91 @@ body.dark-mode {
   padding-left: 1.5rem;
 }
 
-/* Ensure all prose content is white in dark mode */
-.dark .prose-invert h1,
-.dark .prose-invert h2,
-.dark .prose-invert h3,
-.dark .prose-invert h4,
-.dark .prose-invert h5,
-.dark .prose-invert h6 {
-  color: white !important;
+.prose li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  font-family: 'Outfit', sans-serif;
 }
 
-.dark .prose-invert p,
-.dark .prose-invert ul,
-.dark .prose-invert ol,
-.dark .prose-invert li,
-.dark .prose-invert a,
-.dark .prose-invert strong,
-.dark .prose-invert em,
-.dark .prose-invert blockquote {
-  color: white !important;
+.prose strong {
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
 }
 
-/* Additional override for any nested elements */
-.dark .glass-effect * {
-  color: white !important;
+/* Light mode prose */
+body.light-mode .prose:not(.prose-invert) {
+  color: #4b5563;
 }
 
-/* Preserve link colors */
-.dark .prose-invert a {
+body.light-mode .prose:not(.prose-invert) h1,
+body.light-mode .prose:not(.prose-invert) h2,
+body.light-mode .prose:not(.prose-invert) h3,
+body.light-mode .prose:not(.prose-invert) h4 {
+  color: #111827;
+}
+
+body.light-mode .prose:not(.prose-invert) a {
+  color: #0F43EE;
+}
+
+body.light-mode .prose:not(.prose-invert) strong {
+  color: #111827;
+}
+
+/* Dark mode prose */
+body.dark-mode .prose-invert {
+  color: #ffffff;
+}
+
+body.dark-mode .prose-invert h1,
+body.dark-mode .prose-invert h2,
+body.dark-mode .prose-invert h3,
+body.dark-mode .prose-invert h4,
+body.dark-mode .prose-invert h5,
+body.dark-mode .prose-invert h6 {
+  color: #ffffff;
+}
+
+body.dark-mode .prose-invert strong {
+  color: #ffffff;
+}
+
+body.dark-mode .prose-invert a {
+  color: #FCE90D;
+}
+
+body.dark-mode .prose-invert ul,
+body.dark-mode .prose-invert ol {
+  color: #ffffff;
+}
+
+body.dark-mode .prose-invert li {
+  color: #ffffff;
+}
+
+body.dark-mode .prose-invert p {
+  color: #ffffff;
+}
+
+/* Ensure all fonts are Outfit */
+button, input, select, textarea {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Fix purple buttons - use yellow */
+.bg-purple-500\/10 {
+  background-color: rgba(252, 233, 13, 0.1) !important;
+}
+
+.text-purple-500 {
   color: #FCE90D !important;
+}
+
+/* Ensure no purple in project */
+[class*="purple"] {
+  color: #FCE90D !important;
+}
+
+[class*="bg-purple"] {
+  background-color: rgba(252, 233, 13, 0.1) !important;
 }

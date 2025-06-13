@@ -23,9 +23,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <FirebaseProvider>
         <HeroUIProvider>
-          <main className="text-foreground bg-background">
-            <App />
-          </main>
+          {/* Remove the main wrapper that might be adding background styles */}
+          <App />
         </HeroUIProvider>
       </FirebaseProvider>
     </BrowserRouter>
