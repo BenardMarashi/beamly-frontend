@@ -1,17 +1,27 @@
-
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HeroUI Chat - App</title>
+    <title>Beamly - Freelance Marketplace</title>
+    <script>
+      // Apply theme immediately to prevent flash
+      (function() {
+        const theme = localStorage.getItem('theme') || 'dark';
+        if (theme === 'system') {
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.body.classList.add(prefersDark ? 'dark-mode' : 'light-mode');
+        } else {
+          document.body.classList.add(theme === 'dark' ? 'dark-mode' : 'light-mode');
+        }
+      })();
+    </script>
   </head>
-  <body class="h-full min-h-screen">
+  <body class="h-full min-h-screen dark-mode">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script src="https://cdn.jsdelivr.net/npm/heroui-chat-script@0/dist/index.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/heroui-chat-script@beta/dist/select-and-edit-utils.global.js"></script>
   </body>
 </html>
-    

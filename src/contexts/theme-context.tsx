@@ -35,7 +35,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
   });
 
   // Derived state
-  const [isDarkMode, setIsDarkMode] = React.useState<boolean>(theme === 'dark');
+  const [isDarkMode, setIsDarkMode] = React.useState<boolean>(() => {
+    if (theme === 'system') {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return theme === 'dark';
+  });
 
   // Add system theme detection
   const [systemThemeIsDark, setSystemThemeIsDark] = React.useState<boolean>(() => {
@@ -86,16 +91,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
     localStorage.setItem('theme', newTheme);
   };
   
-  // Apply theme class to body
+  // Apply theme class to body immediately on mount and when theme changes
   React.useEffect(() => {
+    // Remove all theme classes first
+    document.body.classList.remove('dark-mode', 'light-mode');
+    
     if (theme === 'system') {
       if (systemThemeIsDark) {
-        document.body.className = 'dark-mode';
+        document.body.classList.add('dark-mode');
       } else {
-        document.body.className = 'light-mode';
+        document.body.classList.add('light-mode');
       }
     } else {
-      document.body.className = theme === 'dark' ? 'dark-mode' : 'light-mode';
+      document.body.classList.add(theme === 'dark' ? 'dark-mode' : 'light-mode');
     }
   }, [theme, systemThemeIsDark]);
   

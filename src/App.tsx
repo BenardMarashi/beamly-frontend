@@ -46,9 +46,22 @@ const LoadingFallback = () => (
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
   const { i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Simulate initial loading
+  React.useEffect(() => {
+    console.log('App component mounted');
+    
+    // Check if user is logged in (you can add Firebase auth check here)
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handle login/logout
   const handleLogin = () => {
@@ -75,6 +88,14 @@ const App: React.FC = () => {
       }
     }
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Spinner color="secondary" size="lg" />
+      </div>
+    );
+  }
 
   return (
     <ThemeProvider>
