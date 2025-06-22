@@ -1,8 +1,21 @@
 {
-  "functions": {
-    "source": "functions",
-    "ignore": ["**/.eslintrc.js"]
-  },
+  "functions": [
+    {
+      "source": "functions",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "codebase": "default",
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ],
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -16,5 +29,14 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "firestore": {
+    "database": "beamly-app",
+    "location": "europe-west8",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }
