@@ -1,6 +1,6 @@
-// functions/src/index.ts
-
-import * as functions from "firebase-functions";
+import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
@@ -9,192 +9,199 @@ const db = admin.firestore();
 const messaging = admin.messaging();
 
 // Trigger: Send notification when a new proposal is received
-export const onNewProposal = functions.firestore
-  .document("proposals/{proposalId}")
-  .onCreate(async (snap, context) => {
-    const proposal = snap.data();
-    const proposalId = context.params.proposalId;
+export const onNewProposal = onDocumentCreated("proposals/{proposalId}", async (event) => {
+  const proposal = event.data?.data();
+  const proposalId = event.params.proposalId;
 
-    try {
-      // Get job details
-      const jobDoc = await db.doc(`jobs/${proposal.jobId}`).get();
-      const job = jobDoc.data();
+  if (!proposal) return;
 
-      if (!job) return;
+  try {
+    // Get job details
+    const jobDoc = await db.doc(`jobs/${proposal.jobId}`).get();
+    const job = jobDoc.data();
 
-      // Create notification for client
-      await db.collection("notifications").add({
-        userId: job.clientId,
-        title: "New Proposal Received",
-        body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
-        type: "proposal",
-        actionUrl: `/proposals/${proposalId}`,
-        actionData: {
+    if (!job) return;
+
+    // Create notification for client
+    await db.collection("notifications").add({
+      userId: job.clientId,
+      title: "New Proposal Received",
+      body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
+      type: "proposal",
+      actionUrl: `/proposals/${proposalId}`,
+      actionData: {
+        proposalId,
+        jobId: proposal.jobId,
+      },
+      read: false,
+      pushSent: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Send push notification if FCM token exists
+    const clientDoc = await db.doc(`users/${job.clientId}`).get();
+    const client = clientDoc.data();
+
+    if (client?.fcmToken) {
+      await messaging.send({
+        token: client.fcmToken,
+        notification: {
+          title: "New Proposal Received",
+          body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
+        },
+        data: {
+          type: "proposal",
           proposalId,
           jobId: proposal.jobId,
         },
-        read: false,
-        pushSent: false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
-
-      // Send push notification if FCM token exists
-      const clientDoc = await db.doc(`users/${job.clientId}`).get();
-      const client = clientDoc.data();
-
-      if (client?.fcmToken) {
-        await messaging.send({
-          token: client.fcmToken,
-          notification: {
-            title: "New Proposal Received",
-            body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
-          },
-          data: {
-            type: "proposal",
-            proposalId,
-            jobId: proposal.jobId,
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error in onNewProposal:", error);
     }
-  });
+  } catch (error) {
+    console.error("Error in onNewProposal:", error);
+  }
+});
 
 // Trigger: Send notification when a proposal is accepted
-export const onProposalAccepted = functions.firestore
-  .document("proposals/{proposalId}")
-  .onUpdate(async (change, context) => {
-    const before = change.before.data();
-    const after = change.after.data();
+export const onProposalAccepted = onDocumentUpdated("proposals/{proposalId}", async (event) => {
+  const before = event.data?.before.data();
+  const after = event.data?.after.data();
+  const proposalId = event.params.proposalId;
 
-    // Check if proposal was just accepted
-    if (before.status !== "accepted" && after.status === "accepted") {
-      try {
-        // Create notification for freelancer
-        await db.collection("notifications").add({
-          userId: after.freelancerId,
-          title: "Proposal Accepted!",
-          body: "Your proposal has been accepted. A contract has been created.",
-          type: "contract",
-          actionUrl: "/contracts",
-          actionData: {
-            proposalId: context.params.proposalId,
-            jobId: after.jobId,
-          },
-          read: false,
-          pushSent: false,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+  if (!before || !after) return;
 
-        // Send push notification
-        const freelancerDoc = await db.doc(`users/${after.freelancerId}`).get();
-        const freelancer = freelancerDoc.data();
-
-        if (freelancer?.fcmToken) {
-          await messaging.send({
-            token: freelancer.fcmToken,
-            notification: {
-              title: "Proposal Accepted!",
-              body: "Your proposal has been accepted. A contract has been created.",
-            },
-            data: {
-              type: "contract",
-              proposalId: context.params.proposalId,
-              jobId: after.jobId,
-            },
-          });
-        }
-      } catch (error) {
-        console.error("Error in onProposalAccepted:", error);
-      }
-    }
-  });
-
-// Trigger: Send notification for new messages
-export const onNewMessage = functions.firestore
-  .document("messages/{messageId}")
-  .onCreate(async (snap, context) => {
-    const message = snap.data();
-
+  // Check if proposal was just accepted
+  if (before.status !== "accepted" && after.status === "accepted") {
     try {
-      // Determine recipient
-      const conversationParts = message.conversationId.split("_");
-      const recipientId = conversationParts.find((id: string) => id !== message.senderId);
-
-      if (!recipientId) return;
-
-      // Create notification
+      // Create notification for freelancer
       await db.collection("notifications").add({
-        userId: recipientId,
-        title: "New Message",
-        body: `${message.senderName}: ${message.text?.substring(0, 50)}...`,
-        type: "message",
-        actionUrl: `/messages/${message.conversationId}`,
+        userId: after.freelancerId,
+        title: "Proposal Accepted!",
+        body: "Your proposal has been accepted. A contract has been created.",
+        type: "contract",
+        actionUrl: "/contracts",
         actionData: {
-          conversationId: message.conversationId,
+          proposalId,
+          jobId: after.jobId,
         },
         read: false,
         pushSent: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      // Update unread count in conversation
-      await db.doc(`conversations/${message.conversationId}`).update({
-        [`unreadCount.${recipientId}`]: admin.firestore.FieldValue.increment(1),
-      });
-
       // Send push notification
-      const recipientDoc = await db.doc(`users/${recipientId}`).get();
-      const recipient = recipientDoc.data();
+      const freelancerDoc = await db.doc(`users/${after.freelancerId}`).get();
+      const freelancer = freelancerDoc.data();
 
-      if (recipient?.fcmToken) {
+      if (freelancer?.fcmToken) {
         await messaging.send({
-          token: recipient.fcmToken,
+          token: freelancer.fcmToken,
           notification: {
-            title: `New message from ${message.senderName}`,
-            body: message.text?.substring(0, 100) || "Sent an attachment",
+            title: "Proposal Accepted!",
+            body: "Your proposal has been accepted. A contract has been created.",
           },
           data: {
-            type: "message",
-            conversationId: message.conversationId,
+            type: "contract",
+            proposalId,
+            jobId: after.jobId,
           },
         });
       }
     } catch (error) {
-      console.error("Error in onNewMessage:", error);
+      console.error("Error in onProposalAccepted:", error);
     }
-  });
+  }
+});
+
+// Trigger: Send notification for new messages
+export const onNewMessage = onDocumentCreated("messages/{messageId}", async (event) => {
+  const message = event.data?.data();
+
+  if (!message) return;
+
+  try {
+    // Determine recipient
+    const conversationParts = message.conversationId.split("_");
+    const recipientId = conversationParts.find(
+      (id: string) => id !== message.senderId
+    );
+
+    if (!recipientId) return;
+
+    // Create notification
+    await db.collection("notifications").add({
+      userId: recipientId,
+      title: "New Message",
+      body: `${message.senderName}: ${message.text?.substring(0, 50)}...`,
+      type: "message",
+      actionUrl: `/messages/${message.conversationId}`,
+      actionData: {
+        conversationId: message.conversationId,
+      },
+      read: false,
+      pushSent: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Update unread count in conversation
+    await db.doc(`conversations/${message.conversationId}`).update({
+      [`unreadCount.${recipientId}`]: admin.firestore.FieldValue.increment(1),
+    });
+
+    // Send push notification
+    const recipientDoc = await db.doc(`users/${recipientId}`).get();
+    const recipient = recipientDoc.data();
+
+    if (recipient?.fcmToken) {
+      await messaging.send({
+        token: recipient.fcmToken,
+        notification: {
+          title: `New message from ${message.senderName}`,
+          body: message.text?.substring(0, 100) || "Sent an attachment",
+        },
+        data: {
+          type: "message",
+          conversationId: message.conversationId,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("Error in onNewMessage:", error);
+  }
+});
 
 // HTTP Function: Process Stripe payment webhook
-export const stripeWebhook = functions.https.onRequest(async (req, res) => {
+export const stripeWebhook = onRequest(async (req, res) => {
   const sig = req.headers["stripe-signature"] as string;
 
   try {
-    // Verify webhook signature (you'll need to add Stripe SDK)
+    // TODO: Verify webhook signature with Stripe SDK
     // const event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
+    console.log("Stripe signature:", sig); // Use the sig variable
 
     // Handle different event types
     const event = req.body; // Simplified for example
 
     switch (event.type) {
-    case "checkout.session.completed":
+    case "checkout.session.completed": {
       // Handle successful subscription payment
       const session = event.data.object;
       await handleSuccessfulSubscription(session);
       break;
+    }
 
-    case "invoice.payment_succeeded":
+    case "invoice.payment_succeeded": {
       // Handle recurring subscription payment
       const invoice = event.data.object;
       await handleRecurringPayment(invoice);
       break;
+    }
 
-    case "customer.subscription.deleted":
+    case "customer.subscription.deleted": {
       // Handle subscription cancellation
       const subscription = event.data.object;
       await handleSubscriptionCancellation(subscription);
       break;
+    }
     }
 
     res.json({ received: true });
@@ -287,153 +294,151 @@ async function handleSubscriptionCancellation(subscription: any) {
 }
 
 // Scheduled Function: Check expired subscriptions
-export const checkExpiredSubscriptions = functions.pubsub
-  .schedule("every 24 hours")
-  .onRun(async (context) => {
-    const now = admin.firestore.Timestamp.now();
+export const checkExpiredSubscriptions = onSchedule("every 24 hours", async (event) => {
+  console.log("Running scheduled function:", event.scheduleTime);
+  const now = admin.firestore.Timestamp.now();
 
-    try {
-      // Find expired subscriptions
-      const expiredSubs = await db.collection("users")
-        .where("subscription.status", "==", "active")
-        .where("subscription.endDate", "<=", now)
-        .get();
+  try {
+    // Find expired subscriptions
+    const expiredSubs = await db.collection("users")
+      .where("subscription.status", "==", "active")
+      .where("subscription.endDate", "<=", now)
+      .get();
 
-      const batch = db.batch();
+    const batch = db.batch();
 
-      expiredSubs.forEach((doc) => {
-        batch.update(doc.ref, {
-          "subscription.status": "expired",
-        });
-
-        // Create notification
-        const notification = db.collection("notifications").doc();
-        batch.set(notification, {
-          userId: doc.id,
-          title: "Subscription Expired",
-          body: "Your subscription has expired. Renew to continue enjoying premium features.",
-          type: "system",
-          actionUrl: "/billing",
-          read: false,
-          pushSent: false,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+    expiredSubs.forEach((doc) => {
+      batch.update(doc.ref, {
+        "subscription.status": "expired",
       });
 
-      await batch.commit();
+      // Create notification
+      const notification = db.collection("notifications").doc();
+      batch.set(notification, {
+        userId: doc.id,
+        title: "Subscription Expired",
+        body: "Your subscription has expired. Renew to continue enjoying premium features.",
+        type: "system",
+        actionUrl: "/billing",
+        read: false,
+        pushSent: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
 
-      console.log(`Updated ${expiredSubs.size} expired subscriptions`);
-    } catch (error) {
-      console.error("Error in checkExpiredSubscriptions:", error);
-    }
-  });
+    await batch.commit();
+
+    console.log(`Updated ${expiredSubs.size} expired subscriptions`);
+  } catch (error) {
+    console.error("Error in checkExpiredSubscriptions:", error);
+  }
+});
 
 // Scheduled Function: Calculate daily analytics
-export const calculateDailyAnalytics = functions.pubsub
-  .schedule("every 24 hours")
-  .onRun(async (context) => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
+export const calculateDailyAnalytics = onSchedule("every 24 hours", async (event) => {
+  console.log("Calculating daily analytics:", event.scheduleTime);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(0, 0, 0, 0);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    const yesterdayTimestamp = admin.firestore.Timestamp.fromDate(yesterday);
-    const todayTimestamp = admin.firestore.Timestamp.fromDate(today);
+  const yesterdayTimestamp = admin.firestore.Timestamp.fromDate(yesterday);
+  const todayTimestamp = admin.firestore.Timestamp.fromDate(today);
 
-    try {
-      // Count new users
-      const newUsers = await db.collection("users")
+  try {
+    // Count new users
+    const newUsers = await db.collection("users")
+      .where("createdAt", ">=", yesterdayTimestamp)
+      .where("createdAt", "<", todayTimestamp)
+      .get();
+
+    // Count active users (users who logged in)
+    const activeUsers = await db.collection("users")
+      .where("lastActive", ">=", yesterdayTimestamp)
+      .where("lastActive", "<", todayTimestamp)
+      .get();
+
+    // Count new jobs
+    const newJobs = await db.collection("jobs")
+      .where("createdAt", ">=", yesterdayTimestamp)
+      .where("createdAt", "<", todayTimestamp)
+      .get();
+
+    // Count completed jobs
+    const completedJobs = await db.collection("jobs")
+      .where("completedAt", ">=", yesterdayTimestamp)
+      .where("completedAt", "<", todayTimestamp)
+      .get();
+
+    // Calculate revenue
+    const transactions = await db.collection("transactions")
+      .where("completedAt", ">=", yesterdayTimestamp)
+      .where("completedAt", "<", todayTimestamp)
+      .where("status", "==", "completed")
+      .get();
+
+    const revenue = {
+      subscriptions: 0,
+      jobFees: 0,
+      featureBoosts: 0,
+      total: 0,
+    };
+
+    transactions.forEach((doc) => {
+      const transaction = doc.data();
+      revenue.total += transaction.amount;
+
+      switch (transaction.type) {
+      case "subscription":
+        revenue.subscriptions += transaction.amount;
+        break;
+      case "job-fee":
+        revenue.jobFees += transaction.amount;
+        break;
+      case "feature-boost":
+        revenue.featureBoosts += transaction.amount;
+        break;
+      }
+    });
+
+    // Save analytics
+    const analyticsId = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
+    await db.doc(`analytics/${analyticsId}`).set({
+      date: yesterdayTimestamp,
+      newUsers: newUsers.size,
+      activeUsers: activeUsers.size,
+      totalUsers: (await db.collection("users").get()).size,
+      newJobs: newJobs.size,
+      activeJobs: (await db.collection("jobs").where("status", "==", "open").get()).size,
+      completedJobs: completedJobs.size,
+      revenue,
+      proposalsSubmitted: (await db.collection("proposals")
         .where("createdAt", ">=", yesterdayTimestamp)
         .where("createdAt", "<", todayTimestamp)
-        .get();
-
-      // Count active users (users who logged in)
-      const activeUsers = await db.collection("users")
-        .where("lastActive", ">=", yesterdayTimestamp)
-        .where("lastActive", "<", todayTimestamp)
-        .get();
-
-      // Count new jobs
-      const newJobs = await db.collection("jobs")
+        .get()).size,
+      messagesSent: (await db.collection("messages")
         .where("createdAt", ">=", yesterdayTimestamp)
         .where("createdAt", "<", todayTimestamp)
-        .get();
+        .get()).size,
+      contractsCreated: (await db.collection("contracts")
+        .where("createdAt", ">=", yesterdayTimestamp)
+        .where("createdAt", "<", todayTimestamp)
+        .get()).size,
+    });
 
-      // Count completed jobs
-      const completedJobs = await db.collection("jobs")
-        .where("completedAt", ">=", yesterdayTimestamp)
-        .where("completedAt", "<", todayTimestamp)
-        .get();
-
-      // Calculate revenue
-      const transactions = await db.collection("transactions")
-        .where("completedAt", ">=", yesterdayTimestamp)
-        .where("completedAt", "<", todayTimestamp)
-        .where("status", "==", "completed")
-        .get();
-
-      const revenue = {
-        subscriptions: 0,
-        jobFees: 0,
-        featureBoosts: 0,
-        total: 0,
-      };
-
-      transactions.forEach((doc) => {
-        const transaction = doc.data();
-        revenue.total += transaction.amount;
-
-        switch (transaction.type) {
-        case "subscription":
-          revenue.subscriptions += transaction.amount;
-          break;
-        case "job-fee":
-          revenue.jobFees += transaction.amount;
-          break;
-        case "feature-boost":
-          revenue.featureBoosts += transaction.amount;
-          break;
-        }
-      });
-
-      // Save analytics
-      const analyticsId = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
-      await db.doc(`analytics/${analyticsId}`).set({
-        date: yesterdayTimestamp,
-        newUsers: newUsers.size,
-        activeUsers: activeUsers.size,
-        totalUsers: (await db.collection("users").get()).size,
-        newJobs: newJobs.size,
-        activeJobs: (await db.collection("jobs").where("status", "==", "open").get()).size,
-        completedJobs: completedJobs.size,
-        revenue,
-        proposalsSubmitted: (await db.collection("proposals")
-          .where("createdAt", ">=", yesterdayTimestamp)
-          .where("createdAt", "<", todayTimestamp)
-          .get()).size,
-        messagesSent: (await db.collection("messages")
-          .where("createdAt", ">=", yesterdayTimestamp)
-          .where("createdAt", "<", todayTimestamp)
-          .get()).size,
-        contractsCreated: (await db.collection("contracts")
-          .where("createdAt", ">=", yesterdayTimestamp)
-          .where("createdAt", "<", todayTimestamp)
-          .get()).size,
-      });
-
-      console.log(`Analytics calculated for ${analyticsId}`);
-    } catch (error) {
-      console.error("Error in calculateDailyAnalytics:", error);
-    }
-  });
+    console.log(`Analytics calculated for ${analyticsId}`);
+  } catch (error) {
+    console.error("Error in calculateDailyAnalytics:", error);
+  }
+});
 
 // HTTP Function: Search jobs with advanced filters
-export const searchJobs = functions.https.onCall(async (data, context) => {
+export const searchJobs = onCall(async (request) => {
   // Verify user is authenticated
-  if (!context.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
   }
 
   const {
@@ -447,7 +452,7 @@ export const searchJobs = functions.https.onCall(async (data, context) => {
     sortBy = "createdAt",
     page = 1,
     limit = 20,
-  } = data;
+  } = request.data;
 
   try {
     let jobsQuery = db.collection("jobs").where("status", "==", "open");
@@ -473,7 +478,7 @@ export const searchJobs = functions.https.onCall(async (data, context) => {
 
     // Filter by budget range (Firestore doesn't support range queries on multiple fields)
     if (budgetMin || budgetMax) {
-      jobs = jobs.filter((job) => {
+      jobs = jobs.filter((job: any) => {
         const jobBudgetMin = job.budgetMin || job.fixedPrice || 0;
         const jobBudgetMax = job.budgetMax || job.fixedPrice || Infinity;
 
@@ -485,7 +490,7 @@ export const searchJobs = functions.https.onCall(async (data, context) => {
 
     // Filter by skills
     if (skills && skills.length > 0) {
-      jobs = jobs.filter((job) =>
+      jobs = jobs.filter((job: any) =>
         skills.some((skill: string) => job.skills?.includes(skill))
       );
     }
@@ -495,7 +500,7 @@ export const searchJobs = functions.https.onCall(async (data, context) => {
       const queryLower = query.toLowerCase();
       const queryWords = queryLower.split(" ");
 
-      jobs = jobs.map((job) => {
+      jobs = jobs.map((job: any) => {
         let score = 0;
         const titleLower = job.title.toLowerCase();
         const descLower = job.description.toLowerCase();
@@ -504,7 +509,7 @@ export const searchJobs = functions.https.onCall(async (data, context) => {
         if (titleLower.includes(queryLower)) score += 10;
 
         // Word matches
-        queryWords.forEach((word) => {
+        queryWords.forEach((word: string) => {
           if (titleLower.includes(word)) score += 5;
           if (descLower.includes(word)) score += 2;
           if (job.skills?.some((skill: string) => skill.toLowerCase().includes(word))) score += 3;
@@ -514,11 +519,11 @@ export const searchJobs = functions.https.onCall(async (data, context) => {
       });
 
       // Filter out jobs with no matches
-      jobs = jobs.filter((job) => job.score > 0);
+      jobs = jobs.filter((job: any) => job.score > 0);
     }
 
     // Sort
-    jobs.sort((a, b) => {
+    jobs.sort((a: any, b: any) => {
       if (query && a.score !== b.score) {
         return b.score - a.score; // Higher score first
       }
@@ -539,7 +544,10 @@ export const searchJobs = functions.https.onCall(async (data, context) => {
     const paginatedJobs = jobs.slice(startIndex, startIndex + limit);
 
     return {
-      jobs: paginatedJobs.map(({ score, ...job }) => job), // Remove score from response
+      jobs: paginatedJobs.map((job: any) => {
+        const { score: _, ...jobData } = job;
+        return jobData;
+      }), // Remove score from response
       total: jobs.length,
       page,
       totalPages: Math.ceil(jobs.length / limit),
@@ -547,17 +555,17 @@ export const searchJobs = functions.https.onCall(async (data, context) => {
     };
   } catch (error) {
     console.error("Error in searchJobs:", error);
-    throw new functions.https.HttpsError("internal", "Error searching jobs");
+    throw new HttpsError("internal", "Error searching jobs");
   }
 });
 
 // HTTP Function: Get job recommendations for a freelancer
-export const getJobRecommendations = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "User must be authenticated");
+export const getJobRecommendations = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
   }
 
-  const userId = context.auth.uid;
+  const userId = request.auth.uid;
 
   try {
     // Get user profile
@@ -587,7 +595,7 @@ export const getJobRecommendations = functions.https.onCall(async (data, context
 
     const recentCategories = recentJobs
       .filter((doc) => doc.exists)
-      .map((doc) => doc.data()!.category);
+      .map((doc) => doc.data()?.category);
 
     // Build recommendation query
     const recommendedJobs: any[] = [];
@@ -660,10 +668,13 @@ export const getJobRecommendations = functions.https.onCall(async (data, context
     });
 
     return {
-      jobs: sortedJobs.slice(0, 20).map(({ matchReason, ...job }) => job),
+      jobs: sortedJobs.slice(0, 20).map((job: any) => {
+        const { matchReason: _, ...jobData } = job;
+        return jobData;
+      }),
     };
   } catch (error) {
     console.error("Error in getJobRecommendations:", error);
-    throw new functions.https.HttpsError("internal", "Error getting recommendations");
+    throw new HttpsError("internal", "Error getting recommendations");
   }
 });
