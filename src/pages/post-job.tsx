@@ -1,19 +1,16 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Input, Textarea, Select, SelectItem, Button, Card, CardBody, Chip } from "@heroui/react";
+import { Input, Textarea, Select, SelectItem, Button, Card, CardBody, Chip, RadioGroup, Radio } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { useTheme } from "../contexts/theme-context";
-import { JobService } from "../services/firebase-services";
-import { useAuth } from "../hooks/use-auth";
+import { useAuth } from "../contexts/AuthContext";
+import { httpsCallable } from 'firebase/functions';
+import { fns } from '../lib/firebase';
+import { toast } from 'react-hot-toast';
 
 export const PostJobPage: React.FC = () => {
-  const { t } = useTranslation();
-  const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -25,29 +22,26 @@ export const PostJobPage: React.FC = () => {
     subcategory: "",
     skills: [] as string[],
     budgetType: "fixed",
-    fixedPrice: "",
-    hourlyRateMin: "",
-    hourlyRateMax: "",
+    fixedPrice: 0,
+    budgetMin: 0,
+    budgetMax: 0,
     duration: "",
-    experienceLevel: "",
+    experienceLevel: "intermediate",
     locationType: "remote",
     location: "",
-    attachments: [] as File[]
+    projectSize: "medium"
   });
   
   const [currentSkill, setCurrentSkill] = useState("");
   
   const categories = [
-    { value: "web-development", label: "Web Development" },
-    { value: "mobile-development", label: "Mobile Development" },
+    { value: "development", label: "Development" },
     { value: "design", label: "Design" },
-    { value: "writing", label: "Writing" },
     { value: "marketing", label: "Marketing" },
-    { value: "video-animation", label: "Video & Animation" },
-    { value: "music-audio", label: "Music & Audio" },
-    { value: "programming", label: "Programming" },
-    { value: "business", label: "Business" },
-    { value: "data-science", label: "Data Science" }
+    { value: "writing", label: "Writing" },
+    { value: "video", label: "Video & Animation" },
+    { value: "data-science", label: "Data Science" },
+    { value: "business", label: "Business" }
   ];
   
   const experienceLevels = [
@@ -58,6 +52,7 @@ export const PostJobPage: React.FC = () => {
   
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setError(null); // Clear error when user makes changes
   };
   
   const addSkill = () => {
@@ -75,18 +70,19 @@ export const PostJobPage: React.FC = () => {
     if (!formData.title.trim()) return "Job title is required";
     if (!formData.description.trim()) return "Job description is required";
     if (!formData.category) return "Please select a category";
-    if (formData.skills.length === 0) return "Please add at least one required skill";
+    if (formData.skills.length === 0) return "Please add at least one skill";
     if (!formData.experienceLevel) return "Please select experience level";
+    if (!formData.duration) return "Please specify project duration";
     
     if (formData.budgetType === "fixed") {
-      if (!formData.fixedPrice || parseFloat(formData.fixedPrice) <= 0) {
+      if (!formData.fixedPrice || formData.fixedPrice <= 0) {
         return "Please enter a valid fixed price";
       }
     } else {
-      if (!formData.hourlyRateMin || !formData.hourlyRateMax) {
+      if (!formData.budgetMin || !formData.budgetMax) {
         return "Please enter both minimum and maximum hourly rates";
       }
-      if (parseFloat(formData.hourlyRateMin) >= parseFloat(formData.hourlyRateMax)) {
+      if (formData.budgetMin >= formData.budgetMax) {
         return "Maximum rate must be higher than minimum rate";
       }
     }
@@ -104,11 +100,14 @@ export const PostJobPage: React.FC = () => {
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
+      toast.error(validationError);
       return;
     }
     
     if (!user) {
       setError("You must be logged in to post a job");
+      toast.error("Please log in to post a job");
+      navigate('/login');
       return;
     }
     
@@ -116,29 +115,53 @@ export const PostJobPage: React.FC = () => {
     setError(null);
     
     try {
+      // Prepare the data for the Cloud Function
       const jobData = {
-        ...formData,
-        clientId: user.uid,
-        clientName: user.displayName || "Anonymous",
-        clientPhotoURL: user.photoURL || "",
-        budgetMin: formData.budgetType === "hourly" ? parseFloat(formData.hourlyRateMin) : parseFloat(formData.fixedPrice),
-        budgetMax: formData.budgetType === "hourly" ? parseFloat(formData.hourlyRateMax) : parseFloat(formData.fixedPrice),
-        status: "open",
-        featured: false,
-        urgent: false,
-        verified: true
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        subcategory: formData.subcategory || "",
+        skills: formData.skills,
+        budgetType: formData.budgetType,
+        budgetMin: formData.budgetType === "hourly" ? formData.budgetMin : formData.fixedPrice,
+        budgetMax: formData.budgetType === "hourly" ? formData.budgetMax : formData.fixedPrice,
+        fixedPrice: formData.budgetType === "fixed" ? formData.fixedPrice : 0,
+        hourlyRateMin: formData.budgetType === "hourly" ? formData.budgetMin : 0,
+        hourlyRateMax: formData.budgetType === "hourly" ? formData.budgetMax : 0,
+        duration: formData.duration,
+        experienceLevel: formData.experienceLevel,
+        locationType: formData.locationType,
+        location: formData.location,
+        projectSize: formData.projectSize
       };
       
-      const result = await JobService.createJob(jobData);
+      console.log('Submitting job data:', jobData);
       
-      if (result.success) {
-        navigate(`/job/${result.jobId}`);
+      // Call the Cloud Function
+      const createJob = httpsCallable(fns, 'createJob');
+      const result = await createJob(jobData);
+      
+      if ((result.data as any).success) {
+        toast.success('Job posted successfully!');
+        navigate(`/jobs/${(result.data as any).jobId}`);
       } else {
-        setError("Failed to create job. Please try again.");
+        throw new Error('Failed to create job');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error posting job:", err);
-      setError("An error occurred while posting the job.");
+      
+      // Handle specific error cases
+      if (err.code === 'permission-denied') {
+        setError("Your account type doesn't allow posting jobs. Please update your profile.");
+        toast.error("Permission denied. Please ensure your account type is set to 'Client' or 'Both'.");
+      } else if (err.code === 'unauthenticated') {
+        setError("You must be logged in to post a job");
+        toast.error("Please log in to post a job");
+        navigate('/login');
+      } else {
+        setError(err.message || "An error occurred while posting the job. Please try again.");
+        toast.error(err.message || "Failed to post job. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -152,20 +175,20 @@ export const PostJobPage: React.FC = () => {
         transition={{ duration: 0.5 }}
       >
         <div className="mb-8">
-          <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+          <h1 className="text-3xl font-bold text-white">
             Post a New Job
           </h1>
-          <p className={`mt-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <p className="mt-2 text-gray-300">
             Find the perfect freelancer for your project
           </p>
         </div>
         
-        <Card className={`${isDarkMode ? 'glass-card' : 'bg-white'} border-none`}>
+        <Card className="glass-card border-none">
           <CardBody className="p-6 md:p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Job Title */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                <label className="block text-sm font-medium mb-2 text-gray-200">
                   Job Title *
                 </label>
                 <Input
@@ -173,14 +196,14 @@ export const PostJobPage: React.FC = () => {
                   value={formData.title}
                   onValueChange={(value) => handleInputChange("title", value)}
                   variant="bordered"
-                  className={isDarkMode ? "bg-white/10" : ""}
+                  className="bg-white/10"
                   isRequired
                 />
               </div>
               
               {/* Description */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                <label className="block text-sm font-medium mb-2 text-gray-200">
                   Job Description *
                 </label>
                 <Textarea
@@ -189,15 +212,15 @@ export const PostJobPage: React.FC = () => {
                   onValueChange={(value) => handleInputChange("description", value)}
                   variant="bordered"
                   minRows={6}
-                  className={isDarkMode ? "bg-white/10" : ""}
+                  className="bg-white/10"
                   isRequired
                 />
               </div>
               
-              {/* Category */}
+              {/* Category and Experience Level */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  <label className="block text-sm font-medium mb-2 text-gray-200">
                     Category *
                   </label>
                   <Select
@@ -205,11 +228,11 @@ export const PostJobPage: React.FC = () => {
                     selectedKeys={formData.category ? [formData.category] : []}
                     onSelectionChange={(keys) => handleInputChange("category", Array.from(keys)[0])}
                     variant="bordered"
-                    className={isDarkMode ? "bg-white/10" : ""}
+                    className="bg-white/10"
                     isRequired
                   >
                     {categories.map(cat => (
-                      <SelectItem key={cat.value}>
+                      <SelectItem key={cat.value} value={cat.value}>
                         {cat.label}
                       </SelectItem>
                     ))}
@@ -217,7 +240,7 @@ export const PostJobPage: React.FC = () => {
                 </div>
                 
                 <div>
-                  <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  <label className="block text-sm font-medium mb-2 text-gray-200">
                     Experience Level *
                   </label>
                   <Select
@@ -225,11 +248,11 @@ export const PostJobPage: React.FC = () => {
                     selectedKeys={formData.experienceLevel ? [formData.experienceLevel] : []}
                     onSelectionChange={(keys) => handleInputChange("experienceLevel", Array.from(keys)[0])}
                     variant="bordered"
-                    className={isDarkMode ? "bg-white/10" : ""}
+                    className="bg-white/10"
                     isRequired
                   >
                     {experienceLevels.map(level => (
-                      <SelectItem key={level.value}>
+                      <SelectItem key={level.value} value={level.value}>
                         {level.label}
                       </SelectItem>
                     ))}
@@ -239,7 +262,7 @@ export const PostJobPage: React.FC = () => {
               
               {/* Skills */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                <label className="block text-sm font-medium mb-2 text-gray-200">
                   Required Skills *
                 </label>
                 <div className="flex gap-2 mb-2">
@@ -247,26 +270,26 @@ export const PostJobPage: React.FC = () => {
                     placeholder="Add a skill..."
                     value={currentSkill}
                     onValueChange={setCurrentSkill}
-                    variant="bordered"
-                    className={isDarkMode ? "bg-white/10" : ""}
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                    variant="bordered"
+                    className="bg-white/10"
                   />
                   <Button
                     type="button"
                     color="secondary"
                     onPress={addSkill}
-                    className="text-beamly-third"
+                    isDisabled={!currentSkill.trim()}
                   >
                     Add
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {formData.skills.map(skill => (
+                  {formData.skills.map((skill, index) => (
                     <Chip
-                      key={skill}
+                      key={index}
                       onClose={() => removeSkill(skill)}
-                      variant="flat"
                       color="secondary"
+                      variant="flat"
                     >
                       {skill}
                     </Chip>
@@ -274,129 +297,121 @@ export const PostJobPage: React.FC = () => {
                 </div>
               </div>
               
-              {/* Budget */}
+              {/* Budget Type */}
               <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                <label className="block text-sm font-medium mb-2 text-gray-200">
                   Budget Type *
                 </label>
-                <div className="flex gap-4 mb-4">
-                  <Button
-                    type="button"
-                    variant={formData.budgetType === "fixed" ? "solid" : "bordered"}
-                    color={formData.budgetType === "fixed" ? "secondary" : "default"}
-                    onPress={() => handleInputChange("budgetType", "fixed")}
-                    className={formData.budgetType === "fixed" ? "text-beamly-third" : ""}
-                  >
-                    Fixed Price
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={formData.budgetType === "hourly" ? "solid" : "bordered"}
-                    color={formData.budgetType === "hourly" ? "secondary" : "default"}
-                    onPress={() => handleInputChange("budgetType", "hourly")}
-                    className={formData.budgetType === "hourly" ? "text-beamly-third" : ""}
-                  >
-                    Hourly Rate
-                  </Button>
-                </div>
-                
-                {formData.budgetType === "fixed" ? (
+                <RadioGroup
+                  value={formData.budgetType}
+                  onValueChange={(value) => handleInputChange("budgetType", value)}
+                  orientation="horizontal"
+                >
+                  <Radio value="fixed">Fixed Price</Radio>
+                  <Radio value="hourly">Hourly Rate</Radio>
+                </RadioGroup>
+              </div>
+              
+              {/* Budget Fields */}
+              {formData.budgetType === "fixed" ? (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-200">
+                    Fixed Price (USD) *
+                  </label>
                   <Input
                     type="number"
                     placeholder="Enter fixed price"
-                    value={formData.fixedPrice}
-                    onValueChange={(value) => handleInputChange("fixedPrice", value)}
+                    value={formData.fixedPrice.toString()}
+                    onValueChange={(value) => handleInputChange("fixedPrice", parseFloat(value) || 0)}
                     variant="bordered"
-                    startContent="$"
-                    className={isDarkMode ? "bg-white/10" : ""}
+                    className="bg-white/10"
+                    startContent={<span className="text-gray-400">$</span>}
                     isRequired
                   />
-                ) : (
-                  <div className="grid grid-cols-2 gap-4">
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-200">
+                      Min Hourly Rate (USD) *
+                    </label>
                     <Input
                       type="number"
-                      placeholder="Min hourly rate"
-                      value={formData.hourlyRateMin}
-                      onValueChange={(value) => handleInputChange("hourlyRateMin", value)}
+                      placeholder="Min rate"
+                      value={formData.budgetMin.toString()}
+                      onValueChange={(value) => handleInputChange("budgetMin", parseFloat(value) || 0)}
                       variant="bordered"
-                      startContent="$"
-                      className={isDarkMode ? "bg-white/10" : ""}
-                      isRequired
-                    />
-                    <Input
-                      type="number"
-                      placeholder="Max hourly rate"
-                      value={formData.hourlyRateMax}
-                      onValueChange={(value) => handleInputChange("hourlyRateMax", value)}
-                      variant="bordered"
-                      startContent="$"
-                      className={isDarkMode ? "bg-white/10" : ""}
+                      className="bg-white/10"
+                      startContent={<span className="text-gray-400">$</span>}
                       isRequired
                     />
                   </div>
-                )}
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-200">
+                      Max Hourly Rate (USD) *
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="Max rate"
+                      value={formData.budgetMax.toString()}
+                      onValueChange={(value) => handleInputChange("budgetMax", parseFloat(value) || 0)}
+                      variant="bordered"
+                      className="bg-white/10"
+                      startContent={<span className="text-gray-400">$</span>}
+                      isRequired
+                    />
+                  </div>
+                </div>
+              )}
               
-              {/* Location */}
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  Location Type *
-                </label>
-                <div className="flex gap-4 mb-4">
-                  <Button
-                    type="button"
-                    variant={formData.locationType === "remote" ? "solid" : "bordered"}
-                    color={formData.locationType === "remote" ? "secondary" : "default"}
-                    onPress={() => handleInputChange("locationType", "remote")}
-                    className={formData.locationType === "remote" ? "text-beamly-third" : ""}
-                  >
-                    Remote
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={formData.locationType === "onsite" ? "solid" : "bordered"}
-                    color={formData.locationType === "onsite" ? "secondary" : "default"}
-                    onPress={() => handleInputChange("locationType", "onsite")}
-                    className={formData.locationType === "onsite" ? "text-beamly-third" : ""}
-                  >
-                    On-site
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={formData.locationType === "hybrid" ? "solid" : "bordered"}
-                    color={formData.locationType === "hybrid" ? "secondary" : "default"}
-                    onPress={() => handleInputChange("locationType", "hybrid")}
-                    className={formData.locationType === "hybrid" ? "text-beamly-third" : ""}
-                  >
-                    Hybrid
-                  </Button>
+              {/* Duration and Location */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-200">
+                    Project Duration *
+                  </label>
+                  <Input
+                    placeholder="e.g., 2 weeks, 3 months"
+                    value={formData.duration}
+                    onValueChange={(value) => handleInputChange("duration", value)}
+                    variant="bordered"
+                    className="bg-white/10"
+                    isRequired
+                  />
                 </div>
                 
-                {formData.locationType !== "remote" && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-200">
+                    Location Type
+                  </label>
+                  <RadioGroup
+                    value={formData.locationType}
+                    onValueChange={(value) => handleInputChange("locationType", value)}
+                    orientation="horizontal"
+                  >
+                    <Radio value="remote">Remote</Radio>
+                    <Radio value="onsite">On-site</Radio>
+                    <Radio value="hybrid">Hybrid</Radio>
+                  </RadioGroup>
+                </div>
+              </div>
+              
+              {/* Location (if not remote) */}
+              {formData.locationType !== "remote" && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-200">
+                    Location *
+                  </label>
                   <Input
-                    placeholder="Enter location"
+                    placeholder="e.g., New York, NY"
                     value={formData.location}
                     onValueChange={(value) => handleInputChange("location", value)}
                     variant="bordered"
-                    className={isDarkMode ? "bg-white/10" : ""}
+                    className="bg-white/10"
                     isRequired
                   />
-                )}
-              </div>
-              
-              {/* Duration */}
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  Project Duration
-                </label>
-                <Input
-                  placeholder="e.g., 2 weeks, 3 months"
-                  value={formData.duration}
-                  onValueChange={(value) => handleInputChange("duration", value)}
-                  variant="bordered"
-                  className={isDarkMode ? "bg-white/10" : ""}
-                />
-              </div>
+                </div>
+              )}
               
               {/* Error Message */}
               {error && (
@@ -415,6 +430,7 @@ export const PostJobPage: React.FC = () => {
                   variant="bordered"
                   onPress={() => navigate(-1)}
                   className="flex-1"
+                  isDisabled={loading}
                 >
                   Cancel
                 </Button>
@@ -425,7 +441,7 @@ export const PostJobPage: React.FC = () => {
                   isLoading={loading}
                   isDisabled={loading}
                 >
-                  Post Job
+                  {loading ? "Posting..." : "Post Job"}
                 </Button>
               </div>
             </form>
