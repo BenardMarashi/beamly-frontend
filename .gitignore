@@ -11,7 +11,19 @@ lerna-debug.log*
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 dist
+# Environment variables
 .env
+.env.local
+.env.*.local
+
+# Never commit these
+*.env
+!.env.example
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
 # Runtime data
 pids
 *.pid
