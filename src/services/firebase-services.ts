@@ -20,24 +20,190 @@ import {
   arrayUnion,
   arrayRemove,
   onSnapshot,
-  QueryConstraint
+  QueryConstraint,
+  DocumentData,
+  FieldValue,
+  Firestore,
+  CollectionReference,
+  DocumentReference
 } from 'firebase/firestore';
 
 import { 
   ref, 
   uploadBytes, 
   getDownloadURL, 
-  deleteObject 
+  deleteObject,
+  FirebaseStorage,
+  StorageReference
 } from 'firebase/storage';
 
-import { db, storage } from '../lib/firebase';
+// Import the firebase instances - we'll handle the types below
+const firebase = require('../lib/firebase');
+const db: Firestore = firebase.db;
+const storage: FirebaseStorage = firebase.storage;
+
+// Type definitions
+interface UserData {
+  uid: string;
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
+  userType: 'freelancer' | 'client' | 'both';
+  createdAt?: Timestamp | FieldValue;
+  updatedAt?: Timestamp | FieldValue;
+  lastActive?: Timestamp | FieldValue;
+  completedProjects: number;
+  completedJobs?: number;
+  rating: number;
+  reviewCount?: number;
+  totalEarnings: number;
+  totalSpent: number;
+  isVerified: boolean;
+  isBlocked: boolean;
+  skills?: string[];
+  hourlyRate?: number;
+  location?: string;
+  isAvailable?: boolean;
+  notifications?: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+  };
+}
+
+interface JobData {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  subcategory?: string;
+  skills: string[];
+  budgetType: 'fixed' | 'hourly';
+  budgetMin: number;
+  budgetMax: number;
+  experienceLevel: string;
+  locationType: string;
+  location?: string;
+  duration?: string;
+  clientId: string;
+  clientName: string;
+  clientPhotoURL: string;
+  status: 'open' | 'in-progress' | 'completed' | 'cancelled';
+  proposalCount: number;
+  invitesSent: number;
+  featured: boolean;
+  urgent: boolean;
+  verified: boolean;
+  createdAt: Timestamp | FieldValue;
+  updatedAt: Timestamp | FieldValue;
+  hiredFreelancerId?: string;
+  hiredAt?: Timestamp | FieldValue;
+}
+
+interface ProposalData {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  clientId: string;
+  clientName: string;
+  freelancerId: string;
+  freelancerName: string;
+  freelancerPhotoURL: string;
+  freelancerRating?: number;
+  freelancerCompletedJobs?: number;
+  coverLetter: string;
+  proposedRate: number;
+  estimatedDuration: string;
+  budgetType: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+  createdAt: Timestamp | FieldValue;
+  updatedAt: Timestamp | FieldValue;
+  respondedAt?: Timestamp | FieldValue;
+}
+
+interface MessageData {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  recipientId: string;
+  text: string;
+  attachments?: string[];
+  status: 'sent' | 'delivered' | 'read';
+  createdAt: Timestamp | FieldValue;
+  readAt?: Timestamp | FieldValue;
+}
+
+interface ConversationData {
+  id: string;
+  participants: string[];
+  lastMessage: string;
+  lastMessageTime: Timestamp | FieldValue;
+  lastMessageSenderId: string;
+  unreadCount?: { [userId: string]: number };
+  createdAt: Timestamp | FieldValue;
+  updatedAt: Timestamp | FieldValue;
+}
+
+interface ContractData {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  proposalId: string;
+  clientId: string;
+  clientName: string;
+  freelancerId: string;
+  freelancerName: string;
+  rate: number;
+  budgetType: 'fixed' | 'hourly';
+  status: 'active' | 'completed' | 'cancelled' | 'disputed';
+  totalPaid: number;
+  totalDue: number;
+  milestones?: MilestoneData[];
+  createdAt: Timestamp | FieldValue;
+  updatedAt: Timestamp | FieldValue;
+}
+
+interface MilestoneData {
+  id: string;
+  title: string;
+  description: string;
+  amount: number;
+  status: 'pending' | 'in-progress' | 'submitted' | 'approved' | 'paid';
+  dueDate: Timestamp;
+  submittedAt?: Timestamp;
+  approvedAt?: Timestamp;
+  paidAt?: Timestamp;
+}
+
+interface NotificationData {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  type: string;
+  actionUrl?: string;
+  actionData?: Record<string, any>;
+  read: boolean;
+  pushSent: boolean;
+  createdAt: Timestamp | FieldValue;
+  readAt?: Timestamp | FieldValue;
+}
+
+// Helper function to map document data
+function mapDocumentData<T>(doc: DocumentSnapshot): T {
+  return {
+    id: doc.id,
+    ...doc.data()
+  } as T;
+}
 
 // User Services
 export const UserService = {
   // Create user profile
-  async createUserProfile(userId: string, userData: any) {
+  async createUserProfile(userId: string, userData: Partial<UserData>) {
     try {
-      const userRef = doc(db, 'users', userId);
+      const userRef: DocumentReference = doc(db, 'users', userId);
       await setDoc(userRef, {
         ...userData,
         uid: userId,
@@ -61,11 +227,11 @@ export const UserService = {
   // Get user profile
   async getUserProfile(userId: string) {
     try {
-      const userRef = doc(db, 'users', userId);
+      const userRef: DocumentReference = doc(db, 'users', userId);
       const userSnap = await getDoc(userRef);
       
       if (userSnap.exists()) {
-        return { success: true, data: userSnap.data() };
+        return { success: true, data: userSnap.data() as UserData };
       } else {
         return { success: false, error: 'User not found' };
       }
@@ -76,13 +242,13 @@ export const UserService = {
   },
 
   // Update user profile
-  async updateUserProfile(userId: string, updates: any) {
+  async updateUserProfile(userId: string, updates: Partial<UserData>) {
     try {
-      const userRef = doc(db, 'users', userId);
+      const userRef: DocumentReference = doc(db, 'users', userId);
       await updateDoc(userRef, {
         ...updates,
         updatedAt: serverTimestamp()
-      });
+      } as any);
       return { success: true };
     } catch (error) {
       console.error('Error updating user profile:', error);
@@ -93,7 +259,7 @@ export const UserService = {
   // Upload profile photo
   async uploadProfilePhoto(userId: string, file: File) {
     try {
-      const storageRef = ref(storage, `users/${userId}/profile.jpg`);
+      const storageRef: StorageReference = ref(storage, `users/${userId}/profile.jpg`);
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
       
@@ -110,10 +276,10 @@ export const UserService = {
 // Job Services
 export const JobService = {
   // Create job
-  async createJob(jobData: any) {
+  async createJob(jobData: Partial<JobData>) {
     try {
-      const jobsRef = collection(db, 'jobs');
-      const newJobRef = doc(jobsRef);
+      const jobsRef: CollectionReference = collection(db, 'jobs');
+      const newJobRef: DocumentReference = doc(jobsRef);
       
       await setDoc(newJobRef, {
         ...jobData,
@@ -172,10 +338,7 @@ export const JobService = {
       const q = query(collection(db, 'jobs'), ...constraints);
       const querySnapshot = await getDocs(q);
       
-      const jobs = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const jobs = querySnapshot.docs.map(doc => mapDocumentData<JobData>(doc));
       
       const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
       
@@ -194,11 +357,11 @@ export const JobService = {
   // Get single job
   async getJob(jobId: string) {
     try {
-      const jobRef = doc(db, 'jobs', jobId);
+      const jobRef: DocumentReference = doc(db, 'jobs', jobId);
       const jobSnap = await getDoc(jobRef);
       
       if (jobSnap.exists()) {
-        return { success: true, job: { id: jobSnap.id, ...jobSnap.data() } };
+        return { success: true, job: mapDocumentData<JobData>(jobSnap) };
       } else {
         return { success: false, error: 'Job not found' };
       }
@@ -209,13 +372,13 @@ export const JobService = {
   },
 
   // Update job
-  async updateJob(jobId: string, updates: any) {
+  async updateJob(jobId: string, updates: Partial<JobData>) {
     try {
-      const jobRef = doc(db, 'jobs', jobId);
+      const jobRef: DocumentReference = doc(db, 'jobs', jobId);
       await updateDoc(jobRef, {
         ...updates,
         updatedAt: serverTimestamp()
-      });
+      } as any);
       return { success: true };
     } catch (error) {
       console.error('Error updating job:', error);
@@ -226,7 +389,7 @@ export const JobService = {
   // Save/unsave job
   async toggleSaveJob(userId: string, jobId: string, save: boolean) {
     try {
-      const savedJobRef = doc(db, 'users', userId, 'savedJobs', jobId);
+      const savedJobRef: DocumentReference = doc(db, 'users', userId, 'savedJobs', jobId);
       
       if (save) {
         await setDoc(savedJobRef, {
@@ -248,10 +411,10 @@ export const JobService = {
 // Proposal Services
 export const ProposalService = {
   // Submit proposal
-  async submitProposal(proposalData: any) {
+  async submitProposal(proposalData: Partial<ProposalData>) {
     try {
-      const proposalsRef = collection(db, 'proposals');
-      const newProposalRef = doc(proposalsRef);
+      const proposalsRef: CollectionReference = collection(db, 'proposals');
+      const newProposalRef: DocumentReference = doc(proposalsRef);
       
       await setDoc(newProposalRef, {
         ...proposalData,
@@ -262,9 +425,11 @@ export const ProposalService = {
       });
       
       // Increment proposal count on job
-      await JobService.updateJob(proposalData.jobId, {
-        proposalCount: increment(1)
-      });
+      if (proposalData.jobId) {
+        await JobService.updateJob(proposalData.jobId, {
+          proposalCount: increment(1) as any
+        });
+      }
       
       return { success: true, proposalId: newProposalRef.id };
     } catch (error) {
@@ -283,10 +448,7 @@ export const ProposalService = {
       );
       
       const querySnapshot = await getDocs(q);
-      const proposals = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const proposals = querySnapshot.docs.map(doc => mapDocumentData<ProposalData>(doc));
       
       return { success: true, proposals };
     } catch (error) {
@@ -305,10 +467,7 @@ export const ProposalService = {
       );
       
       const querySnapshot = await getDocs(q);
-      const proposals = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const proposals = querySnapshot.docs.map(doc => mapDocumentData<ProposalData>(doc));
       
       return { success: true, proposals };
     } catch (error) {
@@ -318,9 +477,9 @@ export const ProposalService = {
   },
 
   // Update proposal status
-  async updateProposalStatus(proposalId: string, status: string) {
+  async updateProposalStatus(proposalId: string, status: ProposalData['status']) {
     try {
-      const proposalRef = doc(db, 'proposals', proposalId);
+      const proposalRef: DocumentReference = doc(db, 'proposals', proposalId);
       await updateDoc(proposalRef, {
         status,
         respondedAt: serverTimestamp(),
@@ -337,10 +496,10 @@ export const ProposalService = {
 // Message Services
 export const MessageService = {
   // Send message
-  async sendMessage(messageData: any) {
+  async sendMessage(messageData: Partial<MessageData>) {
     try {
-      const messagesRef = collection(db, 'messages');
-      const newMessageRef = doc(messagesRef);
+      const messagesRef: CollectionReference = collection(db, 'messages');
+      const newMessageRef: DocumentReference = doc(messagesRef);
       
       await setDoc(newMessageRef, {
         ...messageData,
@@ -350,16 +509,18 @@ export const MessageService = {
       });
       
       // Update conversation
-      const conversationId = this.getConversationId(
-        messageData.senderId,
-        messageData.recipientId
-      );
-      
-      await this.updateConversation(
-        conversationId,
-        messageData.text,
-        messageData.senderId
-      );
+      if (messageData.senderId && messageData.recipientId && messageData.text) {
+        const conversationId = this.getConversationId(
+          messageData.senderId,
+          messageData.recipientId
+        );
+        
+        await this.updateConversation(
+          conversationId,
+          messageData.text,
+          messageData.senderId
+        );
+      }
       
       return { success: true, messageId: newMessageRef.id };
     } catch (error) {
@@ -369,7 +530,7 @@ export const MessageService = {
   },
 
   // Get conversation messages
-  getConversationMessages(conversationId: string, callback: (messages: any[]) => void) {
+  getConversationMessages(conversationId: string, callback: (messages: MessageData[]) => void) {
     const q = query(
       collection(db, 'messages'),
       where('conversationId', '==', conversationId),
@@ -377,10 +538,7 @@ export const MessageService = {
     );
     
     return onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const messages = snapshot.docs.map(doc => mapDocumentData<MessageData>(doc));
       callback(messages);
     });
   },
@@ -395,10 +553,7 @@ export const MessageService = {
       );
       
       const querySnapshot = await getDocs(q);
-      const conversations = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const conversations = querySnapshot.docs.map(doc => mapDocumentData<ConversationData>(doc));
       
       return { success: true, conversations };
     } catch (error) {
@@ -410,7 +565,7 @@ export const MessageService = {
   // Update conversation
   async updateConversation(conversationId: string, lastMessage: string, senderId: string) {
     try {
-      const conversationRef = doc(db, 'conversations', conversationId);
+      const conversationRef: DocumentReference = doc(db, 'conversations', conversationId);
       await updateDoc(conversationRef, {
         lastMessage,
         lastMessageTime: serverTimestamp(),
@@ -448,7 +603,7 @@ export const MessageService = {
       await Promise.all(batch);
       
       // Reset unread count in conversation
-      const conversationRef = doc(db, 'conversations', conversationId);
+      const conversationRef: DocumentReference = doc(db, 'conversations', conversationId);
       await updateDoc(conversationRef, {
         [`unreadCount.${userId}`]: 0
       });
@@ -464,30 +619,34 @@ export const MessageService = {
 // Contract Services
 export const ContractService = {
   // Create contract
-  async createContract(contractData: any) {
+  async createContract(contractData: Partial<ContractData>) {
     try {
-      const contractsRef = collection(db, 'contracts');
-      const newContractRef = doc(contractsRef);
+      const contractsRef: CollectionReference = collection(db, 'contracts');
+      const newContractRef: DocumentReference = doc(contractsRef);
       
       await setDoc(newContractRef, {
         ...contractData,
         id: newContractRef.id,
         status: 'active',
         totalPaid: 0,
-        totalDue: contractData.rate,
+        totalDue: contractData.rate || 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
       
       // Update job status
-      await JobService.updateJob(contractData.jobId, {
-        status: 'in-progress',
-        hiredFreelancerId: contractData.freelancerId,
-        hiredAt: serverTimestamp()
-      });
+      if (contractData.jobId && contractData.freelancerId) {
+        await JobService.updateJob(contractData.jobId, {
+          status: 'in-progress',
+          hiredFreelancerId: contractData.freelancerId,
+          hiredAt: serverTimestamp() as any
+        });
+      }
       
       // Update proposal status
-      await ProposalService.updateProposalStatus(contractData.proposalId, 'accepted');
+      if (contractData.proposalId) {
+        await ProposalService.updateProposalStatus(contractData.proposalId, 'accepted');
+      }
       
       return { success: true, contractId: newContractRef.id };
     } catch (error) {
@@ -507,10 +666,7 @@ export const ContractService = {
       );
       
       const querySnapshot = await getDocs(q);
-      const contracts = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const contracts = querySnapshot.docs.map(doc => mapDocumentData<ContractData>(doc));
       
       return { success: true, contracts };
     } catch (error) {
@@ -520,18 +676,18 @@ export const ContractService = {
   },
 
   // Update milestone
-  async updateMilestone(contractId: string, milestoneId: string, updates: any) {
+  async updateMilestone(contractId: string, milestoneId: string, updates: Partial<MilestoneData>) {
     try {
-      const contractRef = doc(db, 'contracts', contractId);
+      const contractRef: DocumentReference = doc(db, 'contracts', contractId);
       const contractSnap = await getDoc(contractRef);
       
       if (!contractSnap.exists()) {
         return { success: false, error: 'Contract not found' };
       }
       
-      const contract = contractSnap.data();
+      const contract = contractSnap.data() as ContractData;
       const milestones = contract.milestones || [];
-      const milestoneIndex = milestones.findIndex((m: any) => m.id === milestoneId);
+      const milestoneIndex = milestones.findIndex((m) => m.id === milestoneId);
       
       if (milestoneIndex === -1) {
         return { success: false, error: 'Milestone not found' };
@@ -560,8 +716,8 @@ export const ReviewService = {
   // Submit review
   async submitReview(reviewData: any) {
     try {
-      const reviewsRef = collection(db, 'reviews');
-      const newReviewRef = doc(reviewsRef);
+      const reviewsRef: CollectionReference = collection(db, 'reviews');
+      const newReviewRef: DocumentReference = doc(reviewsRef);
       
       await setDoc(newReviewRef, {
         ...reviewData,
@@ -593,12 +749,12 @@ export const ReviewService = {
   // Update user rating
   async updateUserRating(userId: string, newRating: number) {
     try {
-      const userRef = doc(db, 'users', userId);
+      const userRef: DocumentReference = doc(db, 'users', userId);
       const userSnap = await getDoc(userRef);
       
       if (!userSnap.exists()) return;
       
-      const userData = userSnap.data();
+      const userData = userSnap.data() as UserData;
       const currentRating = userData.rating || 0;
       const reviewCount = userData.reviewCount || 0;
       
@@ -634,8 +790,8 @@ export const ReviewService = {
       ]);
       
       const reviews = [
-        ...snapshot1.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-        ...snapshot2.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        ...snapshot1.docs.map(doc => mapDocumentData<any>(doc)),
+        ...snapshot2.docs.map(doc => mapDocumentData<any>(doc))
       ];
       
       return { success: true, reviews };
@@ -649,10 +805,10 @@ export const ReviewService = {
 // Notification Services
 export const NotificationService = {
   // Create notification
-  async createNotification(notificationData: any) {
+  async createNotification(notificationData: Partial<NotificationData>) {
     try {
-      const notificationsRef = collection(db, 'notifications');
-      const newNotificationRef = doc(notificationsRef);
+      const notificationsRef: CollectionReference = collection(db, 'notifications');
+      const newNotificationRef: DocumentReference = doc(notificationsRef);
       
       await setDoc(newNotificationRef, {
         ...notificationData,
@@ -680,10 +836,7 @@ export const NotificationService = {
       );
       
       const querySnapshot = await getDocs(q);
-      const notifications = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const notifications = querySnapshot.docs.map(doc => mapDocumentData<NotificationData>(doc));
       
       return { success: true, notifications };
     } catch (error) {
@@ -695,7 +848,7 @@ export const NotificationService = {
   // Mark notification as read
   async markAsRead(notificationId: string) {
     try {
-      const notificationRef = doc(db, 'notifications', notificationId);
+      const notificationRef: DocumentReference = doc(db, 'notifications', notificationId);
       await updateDoc(notificationRef, {
         read: true,
         readAt: serverTimestamp()
@@ -708,7 +861,7 @@ export const NotificationService = {
   },
 
   // Subscribe to notifications
-  subscribeToNotifications(userId: string, callback: (notifications: any[]) => void) {
+  subscribeToNotifications(userId: string, callback: (notifications: NotificationData[]) => void) {
     const q = query(
       collection(db, 'notifications'),
       where('userId', '==', userId),
@@ -717,10 +870,7 @@ export const NotificationService = {
     );
     
     return onSnapshot(q, (snapshot) => {
-      const notifications = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const notifications = snapshot.docs.map(doc => mapDocumentData<NotificationData>(doc));
       callback(notifications);
     });
   }
@@ -766,15 +916,12 @@ export const SearchService = {
       const q = query(collection(db, 'users'), ...constraints);
       const querySnapshot = await getDocs(q);
       
-      let freelancers = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      let freelancers = querySnapshot.docs.map(doc => mapDocumentData<UserData>(doc));
       
       // Filter by skills in memory (Firestore doesn't support array-contains-any with other queries)
       if (searchParams.skills && searchParams.skills.length > 0) {
         freelancers = freelancers.filter(f => 
-          f.skills && searchParams.skills!.some(skill => f.skills.includes(skill))
+          f.skills && searchParams.skills!.some(skill => f.skills!.includes(skill))
         );
       }
       
@@ -828,8 +975,16 @@ export const AnalyticsService = {
           ContractService.getUserContracts(userId, 'client')
         ]);
         
-        const activeJobs = jobsQuery.docs.filter(doc => doc.data().status === 'open').length;
-        const completedJobs = jobsQuery.docs.filter(doc => doc.data().status === 'completed').length;
+        const activeJobs = jobsQuery.docs.filter(doc => {
+          const data = doc.data() as JobData;
+          return data.status === 'open';
+        }).length;
+        
+        const completedJobs = jobsQuery.docs.filter(doc => {
+          const data = doc.data() as JobData;
+          return data.status === 'completed';
+        }).length;
+        
         const totalSpent = contractsResult.contracts?.reduce((sum, c) => sum + (c.totalPaid || 0), 0) || 0;
         
         return {
@@ -847,17 +1002,4 @@ export const AnalyticsService = {
       return { success: false, error };
     }
   }
-};
-
-// Export all services
-export {
-  UserService,
-  JobService,
-  ProposalService,
-  MessageService,
-  ContractService,
-  ReviewService,
-  NotificationService,
-  SearchService,
-  AnalyticsService
 };
