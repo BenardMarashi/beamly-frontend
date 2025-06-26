@@ -1,396 +1,283 @@
-import React from "react";
-import { ProfileManagementPage } from "../components/profile-management-page";
-import { useTheme } from "../contexts/theme-context";
-import { useTranslation } from "react-i18next";
-import { Card, CardBody, RadioGroup, Radio, Select, SelectItem, Button, Input, Textarea, Avatar } from "@heroui/react";
+// File path: src/pages/settings.tsx
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Card, CardBody, Button, Input, Switch, Divider, Textarea } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
+import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/theme-context";
+import { UserTypeSelector } from "../components/profile/UserTypeSelector";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 export const SettingsPage: React.FC = () => {
-  const { t, i18n } = useTranslation();
-  const { theme, setTheme, isDarkMode } = useTheme();
-  
-  // Add user profile state
-  const [user, setUser] = React.useState({
-    name: "Emma Phillips",
-    email: "emma.phillips@gmail.com",
-    avatar: "https://img.heroui.chat/image/avatar?w=200&h=200&u=emma1",
-    title: "UI/UX Designer",
-    description: "Experienced UI/UX designer with 5+ years of experience creating user-centered designs for web and mobile applications."
+  const { user } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [profileData, setProfileData] = useState({
+    displayName: "",
+    email: "",
+    phone: "",
+    bio: "",
+    emailNotifications: true,
+    pushNotifications: true,
   });
-  
-  // Add form state for profile editing
-  const [editingProfile, setEditingProfile] = React.useState(false);
-  const [editingPassword, setEditingPassword] = React.useState(false);
-  const [formData, setFormData] = React.useState({
-    name: user.name,
-    title: user.title,
-    description: user.description,
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  });
-  
-  // Add file input ref for avatar upload
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  
-  const languages = [
-    { value: "en", label: t('settings.language.english') },
-    { value: "sq", label: t('settings.language.albanian') }
-  ];
 
-  const handleLanguageChange = (value: React.Key) => {
-    i18n.changeLanguage(value as string);
-    localStorage.setItem('lang', value as string);
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    fetchUserProfile();
+  }, [user, navigate]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setProfileData({
+          displayName: data.displayName || user.displayName || "",
+          email: user.email || "",
+          phone: data.phone || "",
+          bio: data.bio || "",
+          emailNotifications: data.emailNotifications ?? true,
+          pushNotifications: data.pushNotifications ?? true,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      toast.error("Failed to load profile");
+    }
   };
-  
-  // Add form change handlers
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+
+  const handleUpdateProfile = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        displayName: profileData.displayName,
+        phone: profileData.phone,
+        bio: profileData.bio,
+        updatedAt: new Date(),
+      });
+      
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  // Add save profile handler
-  const handleSaveProfile = () => {
-    setUser(prev => ({
-      ...prev,
-      name: formData.name,
-      title: formData.title,
-      description: formData.description
-    }));
-    setEditingProfile(false);
-  };
-  
-  // Add save password handler
-  const handleSavePassword = () => {
-    // Here you would typically validate and send to an API
-    console.log("Password changed:", formData.newPassword);
-    setFormData(prev => ({
-      ...prev,
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: ""
-    }));
-    setEditingPassword(false);
-  };
-  
-  // Add avatar change handler
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // In a real app, you would upload this file to your server
-      // For now, we'll just create a local URL
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setUser(prev => ({
-            ...prev,
-            avatar: event.target.result as string
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
+
+  const handleNotificationChange = async (type: 'email' | 'push', value: boolean) => {
+    if (!user) return;
+    
+    const field = type === 'email' ? 'emailNotifications' : 'pushNotifications';
+    setProfileData(prev => ({ ...prev, [field]: value }));
+    
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        [field]: value,
+        updatedAt: new Date(),
+      });
+      toast.success("Notification settings updated");
+    } catch (error) {
+      console.error("Error updating notifications:", error);
+      toast.error("Failed to update notification settings");
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-        {t('settings.title')}
-      </h1>
-      
-      <div className="grid grid-cols-1 gap-6 max-w-3xl">
-        {/* Profile Section - New */}
-        <Card className={`${isDarkMode ? 'glass-effect' : 'bg-white'} border-none`}>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-white">Settings</h1>
+          <Button
+            variant="bordered"
+            startContent={<Icon icon="lucide:arrow-left" />}
+            onPress={() => navigate('/dashboard')}
+          >
+            Back to Dashboard
+          </Button>
+        </div>
+        
+        {/* Account Type Section - IMPORTANT FOR JOB POSTING */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+            <Icon icon="lucide:user-cog" className="text-beamly-primary" />
+            Account Settings
+          </h2>
+          <UserTypeSelector />
+        </div>
+        
+        {/* Profile Information */}
+        <Card className="glass-card mb-8">
           <CardBody className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                {t('settings.profile.title')}
-              </h2>
-              {!editingProfile && (
-                <Button 
-                  variant="light" 
-                  color="primary"
-                  startContent={<Icon icon="lucide:edit-2" />}
-                  onPress={() => setEditingProfile(true)}
-                >
-                  {t('settings.profile.edit')}
-                </Button>
-              )}
-            </div>
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Icon icon="lucide:user" className="text-beamly-primary" />
+              Profile Information
+            </h2>
             
-            <div className="flex flex-col items-center mb-6">
-              <div className="relative mb-4">
-                <Avatar 
-                  src={user.avatar} 
-                  className="w-24 h-24"
-                />
-                <Button
-                  isIconOnly
-                  variant="flat"
-                  color="primary"
-                  size="sm"
-                  className="absolute bottom-0 right-0"
-                  onPress={() => fileInputRef.current?.click()}
-                >
-                  <Icon icon="lucide:camera" />
-                </Button>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/*"
-                  onChange={handleAvatarChange}
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Display Name
+                </label>
+                <Input
+                  value={profileData.displayName}
+                  onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
+                  variant="bordered"
+                  className="bg-white/10"
+                  placeholder="John Doe"
                 />
               </div>
-              {!editingProfile ? (
-                <div className="text-center">
-                  <h3 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                    {user.name}
-                  </h3>
-                  <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    {user.title}
-                  </p>
-                  <p className={`mt-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    {user.description}
-                  </p>
-                </div>
-              ) : (
-                <div className="w-full space-y-4">
-                  <div>
-                    <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                      {t('settings.profile.name')}
-                    </label>
-                    <Input
-                      value={formData.name}
-                      onValueChange={(value) => handleInputChange('name', value)}
-                      className={isDarkMode ? "bg-white/10 border-white/20" : ""}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                      {t('settings.profile.title')}
-                    </label>
-                    <Input
-                      value={formData.title}
-                      onValueChange={(value) => handleInputChange('title', value)}
-                      className={isDarkMode ? "bg-white/10 border-white/20" : ""}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                      {t('settings.profile.description')}
-                    </label>
-                    <Textarea
-                      value={formData.description}
-                      onValueChange={(value) => handleInputChange('description', value)}
-                      className={isDarkMode ? "bg-white/10 border-white/20" : ""}
-                      minRows={3}
-                    />
-                  </div>
-                  
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button
-                      variant="flat"
-                      color="default"
-                      onPress={() => {
-                        setEditingProfile(false);
-                        setFormData(prev => ({
-                          ...prev,
-                          name: user.name,
-                          title: user.title,
-                          description: user.description
-                        }));
-                      }}
-                    >
-                      {t('common.cancel')}
-                    </Button>
-                    <Button
-                      color="primary"
-                      onPress={handleSaveProfile}
-                    >
-                      {t('common.save')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardBody>
-        </Card>
-        
-        {/* Password Section - New */}
-        <Card className={`${isDarkMode ? 'glass-effect' : 'bg-white'} border-none`}>
-          <CardBody className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                {t('settings.password.title')}
-              </h2>
-              {!editingPassword && (
-                <Button 
-                  variant="light" 
-                  color="primary"
-                  startContent={<Icon icon="lucide:lock" />}
-                  onPress={() => setEditingPassword(true)}
-                >
-                  {t('settings.password.change')}
-                </Button>
-              )}
-            </div>
-            
-            {editingPassword ? (
-              <div className="space-y-4">
-                <div>
-                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    {t('settings.password.current')}
-                  </label>
-                  <Input
-                    type="password"
-                    value={formData.currentPassword}
-                    onValueChange={(value) => handleInputChange('currentPassword', value)}
-                    className={isDarkMode ? "bg-white/10 border-white/20" : ""}
-                  />
-                </div>
-                
-                <div>
-                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    {t('settings.password.new')}
-                  </label>
-                  <Input
-                    type="password"
-                    value={formData.newPassword}
-                    onValueChange={(value) => handleInputChange('newPassword', value)}
-                    className={isDarkMode ? "bg-white/10 border-white/20" : ""}
-                  />
-                </div>
-                
-                <div>
-                  <label className={`block text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    {t('settings.password.confirm')}
-                  </label>
-                  <Input
-                    type="password"
-                    value={formData.confirmPassword}
-                    onValueChange={(value) => handleInputChange('confirmPassword', value)}
-                    className={isDarkMode ? "bg-white/10 border-white/20" : ""}
-                  />
-                </div>
-                
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    variant="flat"
-                    color="default"
-                    onPress={() => {
-                      setEditingPassword(false);
-                      setFormData(prev => ({
-                        ...prev,
-                        currentPassword: "",
-                        newPassword: "",
-                        confirmPassword: ""
-                      }));
-                    }}
-                  >
-                    {t('common.cancel')}
-                  </Button>
-                  <Button
-                    color="primary"
-                    onPress={handleSavePassword}
-                    isDisabled={!formData.currentPassword || !formData.newPassword || formData.newPassword !== formData.confirmPassword}
-                  >
-                    {t('common.save')}
-                  </Button>
-                </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Email
+                </label>
+                <Input
+                  value={profileData.email}
+                  variant="bordered"
+                  className="bg-white/10"
+                  isReadOnly
+                  isDisabled
+                  startContent={<Icon icon="lucide:mail" className="text-gray-400" />}
+                />
               </div>
-            ) : (
-              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                {t('settings.password.description')}
-              </p>
-            )}
-          </CardBody>
-        </Card>
-        
-        {/* Appearance Section */}
-        <Card className={`${isDarkMode ? 'glass-effect' : 'bg-white'} border-none`}>
-          <CardBody className="p-6">
-            <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-              {t('settings.appearance.title')}
-            </h2>
-            <RadioGroup
-              value={theme}
-              onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'system')}
-              aria-label={t('settings.appearance.theme')}
-            >
-              <Radio value="light" className={`${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                <div className="flex items-center">
-                  <Icon icon="lucide:sun" className="mr-2" />
-                  {t('settings.appearance.light')}
-                </div>
-              </Radio>
-              <Radio value="dark" className={`${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                <div className="flex items-center">
-                  <Icon icon="lucide:moon" className="mr-2" />
-                  {t('settings.appearance.dark')}
-                </div>
-              </Radio>
-              <Radio value="system" className={`${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                <div className="flex items-center">
-                  <Icon icon="lucide:monitor" className="mr-2" />
-                  {t('settings.appearance.system')}
-                </div>
-              </Radio>
-            </RadioGroup>
-            <p className={`mt-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              {theme === 'system' && t('settings.appearance.systemDescription')}
-            </p>
-          </CardBody>
-        </Card>
-        
-        {/* Language Section */}
-        <Card className={`${isDarkMode ? 'glass-effect' : 'bg-white'} border-none`}>
-          <CardBody className="p-6">
-            <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-              {t('settings.language.title')}
-            </h2>
-            <div className="max-w-xs">
-              <Select
-                items={languages}
-                selectedKeys={[i18n.language]}
-                onSelectionChange={(keys) => handleLanguageChange(Array.from(keys)[0])}
-                aria-label={t('settings.language.select')}
-                className={isDarkMode ? "glass-effect" : ""}
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Phone Number
+                </label>
+                <Input
+                  value={profileData.phone}
+                  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                  variant="bordered"
+                  className="bg-white/10"
+                  placeholder="+1 (555) 123-4567"
+                  startContent={<Icon icon="lucide:phone" className="text-gray-400" />}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Bio
+                </label>
+                <Textarea
+                  value={profileData.bio}
+                  onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                  variant="bordered"
+                  className="bg-white/10"
+                  placeholder="Tell us about yourself..."
+                  minRows={3}
+                />
+              </div>
+              
+              <Button
+                color="secondary"
+                onPress={handleUpdateProfile}
+                isLoading={loading}
+                className="w-full"
+                startContent={<Icon icon="lucide:save" />}
               >
-                {(language) => (
-                  <SelectItem key={language.value} value={language.value}>
-                    {language.label}
-                  </SelectItem>
-                )}
-              </Select>
-            </div>
-          </CardBody>
-        </Card>
-        
-        {/* Account Section */}
-        <Card className={`${isDarkMode ? 'glass-effect' : 'bg-white'} border-none`}>
-          <CardBody className="p-6">
-            <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-              {t('settings.account.title')}
-            </h2>
-            
-            <div className="mt-4 p-4 border border-red-400/20 rounded-lg bg-red-400/5">
-              <h3 className="text-red-400 font-medium">{t('settings.account.dangerZone')}</h3>
-              <p className={`mt-2 mb-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                {t('settings.account.dangerZoneDescription')}
-              </p>
-              <Button 
-                color="danger" 
-                variant="flat"
-                onPress={() => console.log("Delete account button clicked")}
-              >
-                {t('settings.account.deleteAccount')}
+                Update Profile
               </Button>
             </div>
           </CardBody>
         </Card>
-      </div>
+        
+        {/* Notifications */}
+        <Card className="glass-card mb-8">
+          <CardBody className="p-6">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Icon icon="lucide:bell" className="text-beamly-primary" />
+              Notifications
+            </h2>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white">Email Notifications</p>
+                  <p className="text-sm text-gray-400">Receive updates via email</p>
+                </div>
+                <Switch
+                  isSelected={profileData.emailNotifications}
+                  onValueChange={(value) => handleNotificationChange('email', value)}
+                />
+              </div>
+              
+              <Divider className="bg-gray-700" />
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white">Push Notifications</p>
+                  <p className="text-sm text-gray-400">Receive browser notifications</p>
+                </div>
+                <Switch
+                  isSelected={profileData.pushNotifications}
+                  onValueChange={(value) => handleNotificationChange('push', value)}
+                />
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+        
+        {/* Appearance */}
+        <Card className="glass-card mb-8">
+          <CardBody className="p-6">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Icon icon="lucide:palette" className="text-beamly-primary" />
+              Appearance
+            </h2>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white">Dark Mode</p>
+                <p className="text-sm text-gray-400">Toggle dark/light theme</p>
+              </div>
+              <Switch
+                isSelected={isDarkMode}
+                onValueChange={toggleTheme}
+              />
+            </div>
+          </CardBody>
+        </Card>
+        
+        {/* Danger Zone */}
+        <Card className="glass-card border border-red-500/20">
+          <CardBody className="p-6">
+            <h2 className="text-xl font-semibold text-red-500 mb-6 flex items-center gap-2">
+              <Icon icon="lucide:alert-triangle" />
+              Danger Zone
+            </h2>
+            
+            <div className="space-y-4">
+              <p className="text-gray-300">
+                Once you delete your account, there is no going back. Please be certain.
+              </p>
+              <Button
+                color="danger"
+                variant="bordered"
+                startContent={<Icon icon="lucide:trash-2" />}
+              >
+                Delete Account
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      </motion.div>
     </div>
   );
 };
