@@ -5,6 +5,7 @@ import { Icon } from "@iconify/react";
 import { BeamlyLogo } from "./beamly-logo";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/theme-context";
+import { PasswordResetModal } from "./password-reset-modal";
 
 interface LoginPageProps {
   onLogin?: () => void;
@@ -28,6 +29,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [showPassword, setShowPassword] = React.useState(false);
   const { t } = useTranslation();
   const { isDarkMode } = useTheme();
+  const [showResetModal, setShowResetModal] = React.useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,24 +135,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   isRequired
                 />
               </div>
-
               <div>
               <div className="flex items-center justify-between mb-1">
                 <label htmlFor="password" className="block text-sm font-medium text-gray-200 font-outfit">
                   {t('login.password')}
                 </label>
                 <Button
-                  variant="light"
-                  size="sm"
-                  className="text-sm text-beamly-secondary hover:underline font-outfit p-0 h-auto min-w-0"
-                  onPress={() => {
-                    console.log("Forgot password link clicked");
-                    // Later you can implement password reset
-                    // navigate('/forgot-password');
-                  }}
-                >
-                  {t('login.forgotPassword')}
-                </Button>
+                variant="light"
+                size="sm"
+                className="text-sm text-beamly-secondary hover:underline font-outfit p-0 h-auto min-w-0"
+                onPress={() => setShowResetModal(true)}
+              >
+                {t('login.forgotPassword')}
+              </Button>
               </div>
               <Input
                 id="password"
@@ -244,6 +241,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               >
                 {t('login.goBack')}
               </Button>
+            <PasswordResetModal 
+              isOpen={showResetModal}
+              onClose={() => setShowResetModal(false)}
+            />
             </div>
           </div>
         </motion.div>
