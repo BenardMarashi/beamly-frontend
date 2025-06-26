@@ -13,6 +13,7 @@
   "dependencies": {
     "@heroui/react": "2.7.9",
     "@iconify/react": "latest",
+    "@stripe/stripe-js": "^7.4.0",
     "@tanstack/react-query": "^5.80.7",
     "firebase": "10.8",
     "framer-motion": "^11.18.2",

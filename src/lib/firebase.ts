@@ -53,7 +53,7 @@ try {
   throw new Error("Failed to initialize Firebase. Check your configuration.");
 }
 
-// Export typed instances
+// Export typed instances directly
 export { app, auth, db, fns, storage, analytics };
 
 // Helper to get messaging (only works in browser with HTTPS)
