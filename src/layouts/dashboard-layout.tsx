@@ -1,156 +1,281 @@
-import React from "react";
-import { Outlet, Link as RouterLink, useLocation, Navigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Button, Link, Avatar, Badge } from "@heroui/react";
-import { Icon } from "@iconify/react";
-import { BeamlyLogo } from "../components/beamly-logo";
-import { useTheme } from "../contexts/theme-context";
-import { Footer } from "../components/footer";
-import { HamburgerMenu } from "../components/hamburger-menu";
+import React, { useState, useEffect } from 'react';
+import { Outlet, Link as RouterLink, useLocation } from 'react-router-dom';
+import { 
+  Navbar, 
+  NavbarBrand, 
+  NavbarContent, 
+  NavbarItem,
+  Button,
+  Avatar,
+  Badge,
+  User
+} from '@nextui-org/react';
+import { Icon } from '@iconify/react';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../contexts/theme-context';
+import { BeamlyLogo } from '../components/beamly-logo';
+import { useAuth } from '../contexts/AuthContext';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { signOut } from 'firebase/auth';
+import { auth } from '../lib/firebase';
+import { toast } from 'react-hot-toast';
 
-interface DashboardLayoutProps {
-  isLoggedIn: boolean;
-  onLogout: () => void;
-}
-
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ isLoggedIn, onLogout }) => {
-  const [menuOpen, setMenuOpen] = React.useState(false);
-  const location = useLocation();
+const DashboardLayout: React.FC = () => {
   const { t } = useTranslation();
   const { isDarkMode } = useTheme();
+  const location = useLocation();
+  const { user } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [notificationCount, setNotificationCount] = useState(0);
 
-  // Redirect to login if not authenticated
-  if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
-  }
+  useEffect(() => {
+    if (!user) return;
 
-  const sidebarItems = [
-    { key: 'dashboard', label: t('common.dashboard'), icon: 'lucide:layout-dashboard', path: '/dashboard' },
-    { key: 'jobs', label: t('dashboard.jobs'), icon: 'lucide:briefcase', path: '/jobs' },
-    { key: 'messages', label: t('dashboard.messages'), icon: 'lucide:message-square', path: '/chat' },
-    { key: 'notifications', label: t('dashboard.notifications'), icon: 'lucide:bell', path: '/notifications' },
-    { key: 'billing', label: t('dashboard.billing'), icon: 'lucide:credit-card', path: '/billing' },
-    { key: 'settings', label: t('dashboard.settings'), icon: 'lucide:settings', path: '/settings' }
+    // Subscribe to user data changes
+    const unsubscribeUser = onSnapshot(doc(db, 'users', user.uid), (doc) => {
+      if (doc.exists()) {
+        setUserData(doc.data());
+      }
+    });
+
+    // Subscribe to unread notifications count
+    // Note: This assumes a different structure, adjust based on your Firestore schema
+    const unsubscribeNotifications = onSnapshot(
+      doc(db, 'users', user.uid),
+      (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          // Adjust this based on your actual notification structure
+          setNotificationCount(data.unreadNotifications || 0);
+        }
+      }
+    );
+
+    return () => {
+      unsubscribeUser();
+      unsubscribeNotifications();
+    };
+  }, [user]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      toast.success('Signed out successfully');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
+    }
+  };
+
+  const menuItems = [
+    { name: t('navigation.dashboard'), icon: 'lucide:layout-dashboard', path: '/dashboard' },
+    { name: t('navigation.browseJobs') || 'Browse Jobs', icon: 'lucide:briefcase', path: '/jobs' },
+    { name: t('navigation.messages'), icon: 'lucide:message-square', path: '/messages' },
+    { name: t('navigation.proposals') || 'Proposals', icon: 'lucide:file-text', path: '/proposals' },
+    { name: t('navigation.contracts') || 'Contracts', icon: 'lucide:file-check', path: '/contracts' },
+    { name: t('navigation.analytics') || 'Analytics', icon: 'lucide:bar-chart', path: '/analytics' },
+    { name: t('navigation.billing'), icon: 'lucide:credit-card', path: '/billing' },
+    { name: t('navigation.settings'), icon: 'lucide:settings', path: '/settings' },
   ];
 
+  const profilePicture = userData?.photoURL || user?.photoURL || 
+    `https://ui-avatars.com/api/?name=${userData?.displayName || user?.displayName || 'User'}&background=0F43EE&color=fff`;
+
   return (
-    <div className="min-h-screen overflow-hidden">
-      <div className={`relative ${isDarkMode ? 'bg-mesh' : ''}`}>
-        <div className="blue-accent blue-accent-1"></div>
-        <div className="blue-accent blue-accent-2"></div>
-        <div className="yellow-accent yellow-accent-1"></div>
-        <div className="yellow-accent yellow-accent-2"></div>
-        
-        {/* Desktop Nav */}
-        <Navbar maxWidth="xl" className="glass-effect border-none z-40">
-          <NavbarBrand>
-            <RouterLink to="/" className="cursor-pointer">
-              <BeamlyLogo />
-            </RouterLink>
-          </NavbarBrand>
-          <NavbarContent className="gap-4 hidden md:flex" justify="center">
-            <NavbarItem isActive={location.pathname === '/browse-freelancers'}>
-              <Button 
-                as={RouterLink} 
-                to="/jobs/new"
-                color="primary" 
-                variant="flat"
-                startContent={<Icon icon="lucide:plus" />}
-                className="font-medium"
-              >
-                {t('dashboard.postJob')}
-              </Button>
-            </NavbarItem>
-          </NavbarContent>
-          <NavbarContent justify="end">
-            <NavbarItem className="hidden md:flex">
-              <Button
-                isIconOnly
-                variant="light"
-                as={RouterLink}
-                to="/notifications"
-                className={isDarkMode ? "text-white" : "text-gray-800"}
-                aria-label={t('navigation.notifications')}
-              >
-                <Badge content={3} color="secondary" shape="circle">
-                  <Icon icon="lucide:bell" width={20} />
-                </Badge>
-              </Button>
-            </NavbarItem>
-            <NavbarItem className="hidden md:flex">
-              <Avatar 
-                as={RouterLink}
-                to="/settings"
-                src="https://img.heroui.chat/image/avatar?w=100&h=100&u=user1" 
-                className="w-8 h-8 cursor-pointer"
-                aria-label={t('navigation.profile')}
-              />
-            </NavbarItem>
-            <NavbarItem className="md:hidden">
-              <Button
-                isIconOnly
-                variant="light"
-                onPress={() => setMenuOpen(true)}
-                className={isDarkMode ? "text-white" : "text-gray-800"}
-                aria-label={t('navigation.openMenu')}
-              >
-                <Icon icon="lucide:menu" width={24} />
-              </Button>
-            </NavbarItem>
-          </NavbarContent>
-        </Navbar>
-        
-        <div className="flex">
-          {/* Desktop Sidebar */}
-          <div className="hidden md:block w-64 h-[calc(100vh-64px)] glass-effect fixed">
-            <div className="p-4 space-y-2">
-              {sidebarItems.map(item => (
-                <Button
-                  key={item.key}
-                  as={RouterLink}
-                  to={item.path}
-                  variant="light"
-                  startContent={<Icon icon={item.icon} />}
-                  className={`w-full justify-start mb-1 ${
-                    location.pathname.includes(item.path) 
-                      ? 'bg-beamly-secondary/20 text-beamly-secondary'
-                      : isDarkMode ? 'text-white' : 'text-gray-800'
-                  }`}
-                >
-                  {item.label}
-                </Button>
-              ))}
-              
-              <div className="pt-4 mt-4 border-t border-gray-700">
-                <Button
-                  variant="light"
-                  startContent={<Icon icon="lucide:log-out" />}
-                  className={`w-full justify-start ${isDarkMode ? 'text-white' : 'text-gray-800'}`}
-                  onPress={onLogout}
-                >
-                  {t('common.logout')}
-                </Button>
-              </div>
-            </div>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-mesh' : ''}`}>
+      <div className="blue-accent blue-accent-1"></div>
+      <div className="blue-accent blue-accent-2"></div>
+      <div className="yellow-accent yellow-accent-1"></div>
+      <div className="yellow-accent yellow-accent-2"></div>
+      
+      {/* Desktop Nav */}
+      <Navbar maxWidth="xl" className="glass-effect border-none z-40">
+        <NavbarBrand>
+          <RouterLink to="/" className="cursor-pointer">
+            <BeamlyLogo />
+          </RouterLink>
+        </NavbarBrand>
+        <NavbarContent className="gap-4 hidden md:flex" justify="center">
+          <NavbarItem>
+            <Button 
+              as={RouterLink} 
+              to="/jobs/new"
+              color="primary" 
+              variant="flat"
+              startContent={<Icon icon="lucide:plus" />}
+              className="font-medium"
+            >
+              {t('dashboard.postJob')}
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+        <NavbarContent justify="end">
+          <NavbarItem className="hidden md:flex">
+            <Button
+              isIconOnly
+              variant="light"
+              as={RouterLink}
+              to="/notifications"
+              className={isDarkMode ? "text-white" : "text-gray-800"}
+              aria-label={t('navigation.notifications')}
+            >
+              <Badge content={notificationCount > 0 ? notificationCount : undefined} color="secondary" shape="circle">
+                <Icon icon="lucide:bell" width={20} />
+              </Badge>
+            </Button>
+          </NavbarItem>
+          <NavbarItem className="hidden md:flex">
+            <Avatar 
+              as={RouterLink}
+              to="/settings"
+              src={profilePicture} 
+              className="w-8 h-8 cursor-pointer"
+              aria-label={t('navigation.profile')}
+              name={userData?.displayName || user?.displayName || "User"}
+            />
+          </NavbarItem>
+          <NavbarItem className="md:hidden">
+            <Button
+              isIconOnly
+              variant="light"
+              onPress={() => setMenuOpen(true)}
+              className={isDarkMode ? "text-white" : "text-gray-800"}
+            >
+              <Icon icon="lucide:menu" width={24} />
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+      </Navbar>
+      
+      {/* Mobile Menu Overlay */}
+      {menuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+      
+      {/* Mobile Menu Panel */}
+      <div className={`fixed inset-y-0 right-0 w-72 z-50 transform transition-transform duration-300 md:hidden ${
+        menuOpen ? 'translate-x-0' : 'translate-x-full'
+      } ${isDarkMode ? 'bg-beamly-third' : 'bg-white'}`}>
+        <div className="p-4 h-full flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <User
+              name={userData?.displayName || user?.displayName || "User"}
+              description={userData?.userType === 'both' ? 'Freelancer & Client' : userData?.userType || 'Member'}
+              avatarProps={{
+                src: profilePicture,
+                size: "lg"
+              }}
+            />
+            <Button
+              isIconOnly
+              variant="light"
+              onPress={() => setMenuOpen(false)}
+              className={isDarkMode ? "text-white" : "text-gray-800"}
+            >
+              <Icon icon="lucide:x" />
+            </Button>
           </div>
           
-          {/* Main Content */}
-          <div className="w-full md:ml-64 md:pl-4">
-            <main className="py-4 px-4">
-              <Outlet />
-            </main>
+          {/* Menu Items */}
+          <div className="flex-1 space-y-2">
+            {menuItems.map((item) => (
+              <Button
+                key={item.path}
+                as={RouterLink}
+                to={item.path}
+                variant={location.pathname === item.path ? "flat" : "light"}
+                startContent={<Icon icon={item.icon} />}
+                className={`w-full justify-start ${
+                  location.pathname === item.path 
+                    ? "bg-beamly-primary text-white" 
+                    : isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"
+                }`}
+                onPress={() => setMenuOpen(false)}
+              >
+                {item.name}
+              </Button>
+            ))}
+          </div>
+          
+          {/* Footer */}
+          <div className="pt-4 border-t border-white/10">
+            <Button
+              color="danger"
+              variant="flat"
+              startContent={<Icon icon="lucide:log-out" />}
+              onPress={handleSignOut}
+              className="w-full"
+            >
+              {t('navigation.logout')}
+            </Button>
           </div>
         </div>
+      </div>
+      
+      {/* Desktop Sidebar */}
+      <div className="flex">
+        <aside className={`hidden md:block w-64 min-h-[calc(100vh-64px)] ${
+          isDarkMode ? 'bg-black/20' : 'bg-white/80'
+        } backdrop-blur-md border-r ${
+          isDarkMode ? 'border-white/10' : 'border-gray-200'
+        }`}>
+          <div className="p-4">
+            <div className="mb-6">
+              <User
+                name={userData?.displayName || user?.displayName || "User"}
+                description={userData?.userType === 'both' ? 'Freelancer & Client' : userData?.userType || 'Member'}
+                avatarProps={{
+                  src: profilePicture,
+                  size: "sm"
+                }}
+              />
+            </div>
+            <nav className="space-y-1">
+              {menuItems.map((item) => (
+                <Button
+                  key={item.path}
+                  as={RouterLink}
+                  to={item.path}
+                  variant={location.pathname === item.path ? "flat" : "light"}
+                  startContent={<Icon icon={item.icon} />}
+                  className={`w-full justify-start ${
+                    location.pathname === item.path 
+                      ? "bg-beamly-primary text-white" 
+                      : isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"
+                  }`}
+                >
+                  {item.name}
+                </Button>
+              ))}
+            </nav>
+            <div className="mt-8 pt-8 border-t border-white/10">
+              <Button
+                color="danger"
+                variant="light"
+                startContent={<Icon icon="lucide:log-out" />}
+                onPress={handleSignOut}
+                className="w-full justify-start"
+              >
+                {t('navigation.logout')}
+              </Button>
+            </div>
+          </div>
+        </aside>
         
-        {/* Mobile Menu */}
-        <HamburgerMenu 
-          isOpen={menuOpen} 
-          onClose={() => setMenuOpen(false)} 
-          isLoggedIn={isLoggedIn}
-          onLogout={onLogout}
-          isDashboard
-        />
+        {/* Main Content */}
+        <main className="flex-1 min-h-[calc(100vh-64px)]">
+          <Outlet />
+        </main>
       </div>
     </div>
   );
 };
+
+// Make sure to export the component
+export { DashboardLayout };

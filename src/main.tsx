@@ -1,9 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { HeroUIProvider } from "@heroui/react";
+import { NextUIProvider } from "@nextui-org/react";
 import { FirebaseProvider } from "./contexts/firebase-context";
-import App from "./App.tsx";
+import { AuthProvider } from "./contexts/AuthContext";
+import App from "./App";
 import "./i18n"; // Initialize i18n
 import "./index.css";
 
@@ -22,10 +23,11 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
       <FirebaseProvider>
-        <HeroUIProvider>
-          {/* Remove the main wrapper that might be adding background styles */}
-          <App />
-        </HeroUIProvider>
+        <AuthProvider>
+          <NextUIProvider>
+            <App />
+          </NextUIProvider>
+        </AuthProvider>
       </FirebaseProvider>
     </BrowserRouter>
   </React.StrictMode>
