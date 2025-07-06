@@ -1,13 +1,14 @@
-// File path: src/pages/settings.tsx
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Card, CardBody, Button, Input, Switch, Divider, Textarea } from "@nextui-org/react";
+import { Card, CardBody, Button, Input, Switch, Divider, Textarea, Avatar, Chip } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/theme-context";
 import { UserTypeSelector } from "../components/profile/UserTypeSelector";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db, storage } from "../lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { updateProfile } from "firebase/auth";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -16,14 +17,20 @@ export const SettingsPage: React.FC = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [profileData, setProfileData] = useState({
     displayName: "",
     email: "",
     phone: "",
     bio: "",
+    photoURL: "",
+    location: "",
+    skills: [] as string[],
+    hourlyRate: 0,
     emailNotifications: true,
     pushNotifications: true,
   });
+  const [skillInput, setSkillInput] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -45,8 +52,12 @@ export const SettingsPage: React.FC = () => {
           email: user.email || "",
           phone: data.phone || "",
           bio: data.bio || "",
-          emailNotifications: data.emailNotifications ?? true,
-          pushNotifications: data.pushNotifications ?? true,
+          photoURL: data.photoURL || user.photoURL || "",
+          location: data.location || "",
+          skills: data.skills || [],
+          hourlyRate: data.hourlyRate || 0,
+          emailNotifications: data.notifications?.email ?? true,
+          pushNotifications: data.notifications?.push ?? true,
         });
       }
     } catch (error) {
@@ -55,15 +66,66 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      // Upload to Firebase Storage
+      const storageRef = ref(storage, `users/${user.uid}/profile-${Date.now()}.jpg`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      // Update Firebase Auth profile
+      await updateProfile(user, { photoURL: downloadURL });
+
+      // Update Firestore
+      await updateDoc(doc(db, "users", user.uid), {
+        photoURL: downloadURL,
+        updatedAt: new Date(),
+      });
+
+      setProfileData(prev => ({ ...prev, photoURL: downloadURL }));
+      toast.success("Profile picture updated successfully!");
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      toast.error("Failed to upload profile picture");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const handleUpdateProfile = async () => {
     if (!user) return;
     
     setLoading(true);
     try {
+      // Update Firebase Auth display name
+      if (profileData.displayName !== user.displayName) {
+        await updateProfile(user, { displayName: profileData.displayName });
+      }
+
+      // Update Firestore
       await updateDoc(doc(db, "users", user.uid), {
         displayName: profileData.displayName,
         phone: profileData.phone,
         bio: profileData.bio,
+        location: profileData.location,
+        skills: profileData.skills,
+        hourlyRate: profileData.hourlyRate,
         updatedAt: new Date(),
       });
       
@@ -84,7 +146,7 @@ export const SettingsPage: React.FC = () => {
     
     try {
       await updateDoc(doc(db, "users", user.uid), {
-        [field]: value,
+        [`notifications.${type}`]: value,
         updatedAt: new Date(),
       });
       toast.success("Notification settings updated");
@@ -92,6 +154,23 @@ export const SettingsPage: React.FC = () => {
       console.error("Error updating notifications:", error);
       toast.error("Failed to update notification settings");
     }
+  };
+
+  const addSkill = () => {
+    if (skillInput.trim() && !profileData.skills.includes(skillInput.trim())) {
+      setProfileData(prev => ({ 
+        ...prev, 
+        skills: [...prev.skills, skillInput.trim()] 
+      }));
+      setSkillInput("");
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setProfileData(prev => ({ 
+      ...prev, 
+      skills: prev.skills.filter(s => s !== skill) 
+    }));
   };
 
   return (
@@ -112,7 +191,7 @@ export const SettingsPage: React.FC = () => {
           </Button>
         </div>
         
-        {/* Account Type Section - IMPORTANT FOR JOB POSTING */}
+        {/* Account Type Section */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
             <Icon icon="lucide:user-cog" className="text-beamly-primary" />
@@ -128,6 +207,34 @@ export const SettingsPage: React.FC = () => {
               <Icon icon="lucide:user" className="text-beamly-primary" />
               Profile Information
             </h2>
+            
+            {/* Profile Picture */}
+            <div className="flex items-center gap-6 mb-6">
+              <Avatar
+                src={profileData.photoURL || `https://ui-avatars.com/api/?name=${profileData.displayName || 'User'}&background=0F43EE&color=fff`}
+                className="w-24 h-24"
+              />
+              <div>
+                <input
+                  type="file"
+                  id="photo-upload"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  disabled={uploadingPhoto}
+                />
+                <Button
+                  color="secondary"
+                  variant="flat"
+                  onPress={() => document.getElementById('photo-upload')?.click()}
+                  isLoading={uploadingPhoto}
+                  startContent={!uploadingPhoto && <Icon icon="lucide:camera" />}
+                >
+                  {uploadingPhoto ? "Uploading..." : "Change Photo"}
+                </Button>
+                <p className="text-xs text-gray-400 mt-2">Max size: 5MB</p>
+              </div>
+            </div>
             
             <div className="space-y-6">
               <div>
@@ -173,6 +280,70 @@ export const SettingsPage: React.FC = () => {
               
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Location
+                </label>
+                <Input
+                  value={profileData.location}
+                  onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                  variant="bordered"
+                  className="bg-white/10"
+                  placeholder="New York, USA"
+                  startContent={<Icon icon="lucide:map-pin" className="text-gray-400" />}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Hourly Rate ($/hr)
+                </label>
+                <Input
+                  type="number"
+                  value={profileData.hourlyRate.toString()}
+                  onChange={(e) => setProfileData({ ...profileData, hourlyRate: parseFloat(e.target.value) || 0 })}
+                  variant="bordered"
+                  className="bg-white/10"
+                  placeholder="45"
+                  startContent={<Icon icon="lucide:dollar-sign" className="text-gray-400" />}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Skills
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <Input
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                    variant="bordered"
+                    className="bg-white/10"
+                    placeholder="Add a skill"
+                  />
+                  <Button
+                    color="secondary"
+                    onPress={addSkill}
+                    isIconOnly
+                  >
+                    <Icon icon="lucide:plus" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {profileData.skills.map((skill) => (
+                    <Chip
+                      key={skill}
+                      onClose={() => removeSkill(skill)}
+                      variant="flat"
+                      color="secondary"
+                    >
+                      {skill}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Bio
                 </label>
                 <Textarea
@@ -181,20 +352,21 @@ export const SettingsPage: React.FC = () => {
                   variant="bordered"
                   className="bg-white/10"
                   placeholder="Tell us about yourself..."
-                  minRows={3}
+                  minRows={4}
                 />
               </div>
-              
-              <Button
-                color="secondary"
-                onPress={handleUpdateProfile}
-                isLoading={loading}
-                className="w-full"
-                startContent={<Icon icon="lucide:save" />}
-              >
-                Update Profile
-              </Button>
             </div>
+            
+            <Button
+              color="secondary"
+              size="lg"
+              className="w-full mt-6"
+              onPress={handleUpdateProfile}
+              isLoading={loading}
+              isDisabled={loading}
+            >
+              Save Changes
+            </Button>
           </CardBody>
         </Card>
         
@@ -207,27 +379,29 @@ export const SettingsPage: React.FC = () => {
             </h2>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-white">Email Notifications</p>
+                  <h3 className="font-medium text-white">Email Notifications</h3>
                   <p className="text-sm text-gray-400">Receive updates via email</p>
                 </div>
                 <Switch
                   isSelected={profileData.emailNotifications}
                   onValueChange={(value) => handleNotificationChange('email', value)}
+                  color="secondary"
                 />
               </div>
               
-              <Divider className="bg-gray-700" />
+              <Divider className="bg-white/10" />
               
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-white">Push Notifications</p>
-                  <p className="text-sm text-gray-400">Receive browser notifications</p>
+                  <h3 className="font-medium text-white">Push Notifications</h3>
+                  <p className="text-sm text-gray-400">Receive push notifications</p>
                 </div>
                 <Switch
                   isSelected={profileData.pushNotifications}
                   onValueChange={(value) => handleNotificationChange('push', value)}
+                  color="secondary"
                 />
               </div>
             </div>
@@ -235,45 +409,23 @@ export const SettingsPage: React.FC = () => {
         </Card>
         
         {/* Appearance */}
-        <Card className="glass-card mb-8">
+        <Card className="glass-card">
           <CardBody className="p-6">
             <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
               <Icon icon="lucide:palette" className="text-beamly-primary" />
               Appearance
             </h2>
             
-            <div className="flex items-center justify-between">
+            <div className="flex justify-between items-center">
               <div>
-                <p className="text-white">Dark Mode</p>
-                <p className="text-sm text-gray-400">Toggle dark/light theme</p>
+                <h3 className="font-medium text-white">Dark Mode</h3>
+                <p className="text-sm text-gray-400">Toggle dark mode theme</p>
               </div>
               <Switch
                 isSelected={isDarkMode}
                 onValueChange={toggleTheme}
+                color="secondary"
               />
-            </div>
-          </CardBody>
-        </Card>
-        
-        {/* Danger Zone */}
-        <Card className="glass-card border border-red-500/20">
-          <CardBody className="p-6">
-            <h2 className="text-xl font-semibold text-red-500 mb-6 flex items-center gap-2">
-              <Icon icon="lucide:alert-triangle" />
-              Danger Zone
-            </h2>
-            
-            <div className="space-y-4">
-              <p className="text-gray-300">
-                Once you delete your account, there is no going back. Please be certain.
-              </p>
-              <Button
-                color="danger"
-                variant="bordered"
-                startContent={<Icon icon="lucide:trash-2" />}
-              >
-                Delete Account
-              </Button>
             </div>
           </CardBody>
         </Card>
@@ -281,5 +433,3 @@ export const SettingsPage: React.FC = () => {
     </div>
   );
 };
-
-export default SettingsPage;

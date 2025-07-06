@@ -1,7 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Input, Button, Card, CardBody, Avatar, Badge } from "@heroui/react";
+import { Input, Button, Card, CardBody, Avatar, Badge } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
+import { useAuth } from "../contexts/AuthContext";
+import { collection, query, where, orderBy, limit, getDocs, doc, getDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { useNavigate } from "react-router-dom";
 
 interface HomePageProps {
   setCurrentPage: (page: string) => void;
@@ -10,7 +14,74 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode = true }) => {
   const [searchQuery, setSearchQuery] = React.useState("");
-  const userName = "Alexander"; // This would come from user context in a real app
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [userData, setUserData] = useState<any>(null);
+  const [featuredJobs, setFeaturedJobs] = useState<any[]>([]);
+  const [topFreelancers, setTopFreelancers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
+      fetchFeaturedJobs();
+      fetchTopFreelancers();
+    }
+  }, [user]);
+
+  const fetchUserData = async () => {
+    if (!user) return;
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists()) {
+        setUserData(userDoc.data());
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  };
+
+  const fetchFeaturedJobs = async () => {
+    try {
+      const jobsQuery = query(
+        collection(db, "jobs"),
+        where("status", "==", "open"),
+        orderBy("createdAt", "desc"),
+        limit(2)
+      );
+      const snapshot = await getDocs(jobsQuery);
+      const jobs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setFeaturedJobs(jobs);
+    } catch (error) {
+      console.error("Error fetching featured jobs:", error);
+    }
+  };
+
+  const fetchTopFreelancers = async () => {
+    try {
+      const freelancersQuery = query(
+        collection(db, "users"),
+        where("userType", "in", ["freelancer", "both"]),
+        where("rating", ">=", 4.5),
+        orderBy("rating", "desc"),
+        orderBy("completedProjects", "desc"),
+        limit(2)
+      );
+      const snapshot = await getDocs(freelancersQuery);
+      const freelancers = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setTopFreelancers(freelancers);
+    } catch (error) {
+      console.error("Error fetching top freelancers:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const categories = [
     { name: "Design", icon: "lucide:palette", page: "design-jobs" },
@@ -19,45 +90,9 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
     { name: "Marketing", icon: "lucide:megaphone", page: "marketing-jobs" }
   ];
   
-  const featuredJobs = [
-    {
-      id: 1,
-      title: "Senior UI Designer",
-      company: "Apple Inc.",
-      price: "$55K - $80K",
-      image: "https://img.heroui.chat/image/ai?w=400&h=300&u=apple-logo",
-      type: "Full time",
-      location: "Remote"
-    },
-    {
-      id: 2,
-      title: "WordPress Developer",
-      company: "Microsoft",
-      price: "$45K - $60K",
-      image: "https://img.heroui.chat/image/ai?w=400&h=300&u=microsoft-logo",
-      type: "Contract",
-      location: "Hybrid"
-    }
-  ];
-  
-  const topFreelancers = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      title: "UI/UX Designer",
-      avatar: "https://img.heroui.chat/image/avatar?w=100&h=100&u=sarah1",
-      rating: 4.9,
-      projectsCompleted: 124
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      title: "Full Stack Developer",
-      avatar: "https://img.heroui.chat/image/avatar?w=100&h=100&u=michael1",
-      rating: 4.8,
-      projectsCompleted: 98
-    }
-  ];
+  const displayName = userData?.displayName || user?.displayName || "there";
+  const profilePicture = userData?.photoURL || user?.photoURL || 
+    `https://ui-avatars.com/api/?name=${displayName}&background=0F43EE&color=fff`;
   
   return (
     <div className="min-h-[calc(100vh-64px)] pb-16">
@@ -65,17 +100,27 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
       <div className="glass-effect mx-4 mt-4 p-6 rounded-3xl">
         <div className="flex items-center gap-3 mb-6">
           <Avatar 
-            src="https://img.heroui.chat/image/avatar?w=100&h=100&u=user1" 
+            src={profilePicture}
             className="w-12 h-12 border-2 border-beamly-secondary"
+            name={displayName}
           />
           <div>
-            <p className={isDarkMode ? "text-gray-300 text-sm" : "text-gray-600 text-sm"}>Hi, {userName}!</p>
-            <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>What job are you looking for?</h1>
+            <p className={isDarkMode ? "text-gray-300 text-sm" : "text-gray-600 text-sm"}>
+              Hi, {displayName.split(' ')[0]}!
+            </p>
+            <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+              What job are you looking for?
+            </h1>
           </div>
           <div className="ml-auto">
             <Badge content={3} color="secondary" shape="circle">
-              <Button isIconOnly variant="light" className={isDarkMode ? "text-white" : "text-gray-800"}>
-                <Icon icon="lucide:bell" width={24} />
+              <Button 
+                isIconOnly 
+                variant="light" 
+                className={isDarkMode ? "text-white" : "text-gray-800"}
+                onPress={() => navigate('/notifications')}
+              >
+                <Icon icon="lucide:bell" width={20} />
               </Button>
             </Badge>
           </div>
@@ -83,19 +128,31 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
         
         <div className="relative">
           <Input
-            placeholder="Search for jobs or freelancers..."
-            value={searchQuery}
-            onValueChange={setSearchQuery}
             size="lg"
-            radius="lg"
-            className={isDarkMode ? "bg-white/10 border-white/20" : "bg-white border-gray-200"}
+            variant="bordered"
+            placeholder="Search for jobs..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && searchQuery.trim()) {
+                navigate(`/jobs?search=${encodeURIComponent(searchQuery)}`);
+              }
+            }}
+            className="bg-white/10"
             startContent={<Icon icon="lucide:search" className="text-gray-400" />}
             endContent={
-              searchQuery && (
-                <Button isIconOnly size="sm" variant="light" className="text-gray-400" onPress={() => setSearchQuery("")}>
-                  <Icon icon="lucide:x" width={16} />
-                </Button>
-              )
+              <Button 
+                color="secondary" 
+                size="sm"
+                className="font-medium text-beamly-third"
+                onPress={() => {
+                  if (searchQuery.trim()) {
+                    navigate(`/jobs?search=${encodeURIComponent(searchQuery)}`);
+                  }
+                }}
+              >
+                Search
+              </Button>
             }
           />
         </div>
@@ -103,23 +160,31 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
       
       {/* Categories */}
       <div className="px-4 mt-6">
-        <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Job Categories</h2>
-        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+        <h2 className={`text-xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+          Browse by Category
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {categories.map((category, index) => (
             <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
+              key={category.name}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="min-w-[120px]"
             >
-              <Button
-                className={`w-full h-[80px] glass-card flex flex-col gap-2 py-4 ${!isDarkMode && 'border border-gray-200'}`}
-                onPress={() => setCurrentPage(category.page)}
+              <Card 
+                className={`${isDarkMode ? 'glass-card' : 'yellow-glass'} border-none card-hover`}
+                isPressable
+                onPress={() => navigate(`/jobs?category=${category.name.toLowerCase()}`)}
               >
-                <Icon icon={category.icon} className="text-beamly-secondary text-2xl" />
-                <span className={isDarkMode ? "text-white text-sm" : "text-gray-800 text-sm"}>{category.name}</span>
-              </Button>
+                <CardBody className="p-4 text-center">
+                  <Icon 
+                    icon={category.icon} 
+                    className="mx-auto mb-2 text-beamly-secondary" 
+                    width={32} 
+                  />
+                  <p className="font-medium text-white">{category.name}</p>
+                </CardBody>
+              </Card>
             </motion.div>
           ))}
         </div>
@@ -128,236 +193,195 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
       {/* Featured Jobs */}
       <div className="px-4 mt-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Featured Jobs</h2>
-          <Button
-            variant="light"
-            className="text-beamly-secondary p-0"
-            endContent={<Icon icon="lucide:chevron-right" />}
-            onPress={() => setCurrentPage("all-jobs")}
+          <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+            Featured Jobs
+          </h2>
+          <Button 
+            variant="light" 
+            endContent={<Icon icon="lucide:arrow-right" />}
+            className={isDarkMode ? "text-white" : "text-gray-800"}
+            onPress={() => navigate('/jobs')}
           >
-            Explore
+            View All
           </Button>
         </div>
         
-        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-          {featuredJobs.map((job, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 + index * 0.1 }}
-              className="min-w-[220px] max-w-[220px]"
-            >
-              <Card 
-                className={`glass-card border-none card-hover ${!isDarkMode && 'border border-gray-200'}`}
-                isPressable
-                onPress={() => setCurrentPage("job-details")}
+        {loading ? (
+          <div className="text-center py-8">
+            <Icon icon="lucide:loader-2" className="animate-spin mx-auto" width={32} />
+          </div>
+        ) : featuredJobs.length > 0 ? (
+          <div className="grid md:grid-cols-2 gap-4">
+            {featuredJobs.map((job, index) => (
+              <motion.div
+                key={job.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
               >
-                <CardBody className="p-0 overflow-hidden">
-                  <div className="relative">
-                    <div className={`w-full h-32 ${isDarkMode ? 'bg-white/5' : 'bg-gray-50'} flex items-center justify-center`}>
-                      <img 
-                        src={job.image} 
-                        alt={job.company}
-                        className="w-16 h-16 object-contain"
+                <Card 
+                  className={`${isDarkMode ? 'glass-card' : 'yellow-glass'} border-none card-hover`}
+                  isPressable
+                  onPress={() => navigate(`/jobs/${job.id}`)}
+                >
+                  <CardBody className="p-4">
+                    <div className="flex gap-4">
+                      <Avatar
+                        src={job.clientPhotoURL || `https://ui-avatars.com/api/?name=${job.clientName}&background=0F43EE&color=fff`}
+                        className="w-16 h-16"
+                        name={job.clientName}
                       />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white">{job.title}</h3>
+                        <p className="text-gray-400 text-sm">{job.clientName}</p>
+                        <p className="text-beamly-secondary font-bold mt-1">
+                          {job.budgetType === 'fixed' 
+                            ? `$${job.fixedPrice}` 
+                            : `$${job.budgetMin} - $${job.budgetMax}/hr`}
+                        </p>
+                        <div className="flex gap-2 mt-2">
+                          <Badge color="secondary" variant="flat" size="sm">
+                            {job.experienceLevel}
+                          </Badge>
+                          <Badge color="primary" variant="flat" size="sm">
+                            {job.locationType}
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
-                    <div className="absolute top-2 right-2 bg-beamly-secondary text-beamly-third font-medium px-2 py-1 rounded-lg text-xs">
-                      {job.price}
-                    </div>
-                  </div>
-                  <div className="p-3">
-                    <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{job.title}</h3>
-                    <p className="text-gray-400 text-xs">{job.company}</p>
-                    <div className="flex items-center mt-2 text-xs gap-2">
-                      <span className={`${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'} px-2 py-0.5 rounded`}>{job.type}</span>
-                      <span className={`${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'} px-2 py-0.5 rounded`}>{job.location}</span>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+                  </CardBody>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <Card className={`${isDarkMode ? 'glass-card' : 'yellow-glass'} border-none`}>
+            <CardBody className="p-8 text-center">
+              <Icon icon="lucide:briefcase" className="mx-auto mb-4 text-gray-400" width={48} />
+              <p className="text-gray-400">No featured jobs available at the moment</p>
+              <Button 
+                color="secondary" 
+                className="mt-4"
+                onPress={() => navigate('/jobs')}
+              >
+                Browse All Jobs
+              </Button>
+            </CardBody>
+          </Card>
+        )}
       </div>
       
       {/* Top Freelancers */}
       <div className="px-4 mt-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-white">Top Freelancers</h2>
-          <Button
-            variant="light"
-            className="text-beamly-secondary p-0"
-            endContent={<Icon icon="lucide:chevron-right" />}
-            onPress={() => setCurrentPage("freelancers")}
+          <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+            Top Freelancers
+          </h2>
+          <Button 
+            variant="light" 
+            endContent={<Icon icon="lucide:arrow-right" />}
+            className={isDarkMode ? "text-white" : "text-gray-800"}
+            onPress={() => navigate('/freelancers')}
           >
-            See all
+            View All
           </Button>
         </div>
         
-        <div className="flex flex-col gap-3">
-          {topFreelancers.map((freelancer, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
-            >
-              <Card 
-                className={`${index % 2 === 0 ? 'glass-card' : 'yellow-glass'} border-none card-hover`}
-                isPressable
-                onPress={() => setCurrentPage("freelancer-profile")}
+        <div className="space-y-3">
+          {topFreelancers.length > 0 ? (
+            topFreelancers.map((freelancer, index) => (
+              <motion.div
+                key={freelancer.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
               >
-                <CardBody className="p-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar 
-                      src={freelancer.avatar} 
-                      className="w-12 h-12"
-                    />
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-white">{freelancer.name}</h3>
-                      <p className="text-gray-400 text-xs">{freelancer.title}</p>
-                      <div className="flex items-center mt-1 text-xs">
-                        <Icon icon="lucide:star" className="text-beamly-secondary mr-1" />
-                        <span className="text-white">{freelancer.rating}</span>
+                <Card 
+                  className={`${isDarkMode ? 'glass-card' : 'yellow-glass'} border-none card-hover`}
+                  isPressable
+                  onPress={() => navigate(`/freelancers/${freelancer.id}`)}
+                >
+                  <CardBody className="p-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar 
+                        src={freelancer.photoURL || `https://ui-avatars.com/api/?name=${freelancer.displayName}&background=0F43EE&color=fff`}
+                        className="w-12 h-12"
+                        name={freelancer.displayName}
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white">{freelancer.displayName}</h3>
+                        <p className="text-gray-400 text-xs">
+                          {freelancer.skills?.slice(0, 2).join(', ') || 'Freelancer'}
+                        </p>
+                        <div className="flex items-center mt-1 text-xs">
+                          <Icon icon="lucide:star" className="text-beamly-secondary mr-1" />
+                          <span className="text-white">{freelancer.rating?.toFixed(1) || '0.0'}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-beamly-secondary font-semibold">
+                          {freelancer.completedProjects || 0}
+                        </div>
+                        <div className="text-gray-400 text-xs">Projects</div>
+                        <Button 
+                          size="sm" 
+                          color="secondary"
+                          className="mt-1 text-xs font-medium text-beamly-third"
+                          onPress={() => navigate(`/freelancers/${freelancer.id}`)}
+                        >
+                          View
+                        </Button>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-beamly-secondary font-semibold">{freelancer.projectsCompleted}</div>
-                      <div className="text-gray-400 text-xs">Projects</div>
-                      <Button 
-                        size="sm" 
-                        color="secondary"
-                        className="mt-1 text-xs font-medium text-beamly-third"
-                        onPress={() => setCurrentPage("freelancer-profile")}
-                      >
-                        View
-                      </Button>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-            </motion.div>
-          ))}
+                  </CardBody>
+                </Card>
+              </motion.div>
+            ))
+          ) : (
+            <Card className={`${isDarkMode ? 'glass-card' : 'yellow-glass'} border-none`}>
+              <CardBody className="p-6 text-center">
+                <Icon icon="lucide:users" className="mx-auto mb-3 text-gray-400" width={36} />
+                <p className="text-gray-400">No freelancers available yet</p>
+              </CardBody>
+            </Card>
+          )}
         </div>
       </div>
       
       {/* Recent Activity */}
       <div className="px-4 mt-8 mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-white">Recent Activity</h2>
-          <Button
-            variant="light"
-            className="text-beamly-secondary p-0"
-            endContent={<Icon icon="lucide:chevron-right" />}
-            onPress={() => setCurrentPage("dashboard")}
+        <h2 className={`text-xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-3 gap-3">
+          <Button 
+            color="secondary" 
+            variant="flat"
+            className="h-auto py-4 flex-col"
+            onPress={() => navigate('/jobs/new')}
           >
-            View all
+            <Icon icon="lucide:plus-circle" width={24} className="mb-1" />
+            <span className="text-xs">Post Job</span>
+          </Button>
+          <Button 
+            color="primary" 
+            variant="flat"
+            className="h-auto py-4 flex-col"
+            onPress={() => navigate('/jobs')}
+          >
+            <Icon icon="lucide:search" width={24} className="mb-1" />
+            <span className="text-xs">Find Work</span>
+          </Button>
+          <Button 
+            color="secondary" 
+            variant="flat"
+            className="h-auto py-4 flex-col"
+            onPress={() => navigate('/settings')}
+          >
+            <Icon icon="lucide:user" width={24} className="mb-1" />
+            <span className="text-xs">Profile</span>
           </Button>
         </div>
-        
-        <Card className="glass-effect border-none">
-          <CardBody className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Your active projects</h3>
-              <Badge color="secondary" content={2} />
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-beamly-secondary/20 flex items-center justify-center">
-                    <Icon icon="lucide:code" className="text-beamly-secondary" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">Website Redesign</p>
-                    <p className="text-gray-400 text-xs">Due in 3 days</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-beamly-secondary font-medium">75%</p>
-                  <div className="w-16 h-1 bg-white/20 rounded-full mt-1">
-                    <div className="h-full w-3/4 bg-beamly-secondary rounded-full"></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-beamly-primary/20 flex items-center justify-center">
-                    <Icon icon="lucide:image" className="text-beamly-primary" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">Logo Animation</p>
-                    <p className="text-gray-400 text-xs">Due in 5 days</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-beamly-primary font-medium">40%</p>
-                  <div className="w-16 h-1 bg-white/20 rounded-full mt-1">
-                    <div className="h-full w-2/5 bg-beamly-primary rounded-full"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <Button 
-              className="w-full mt-4 bg-white/10 text-white"
-              variant="flat"
-              onPress={() => setCurrentPage("post-job")}
-            >
-              Post a new job
-            </Button>
-          </CardBody>
-        </Card>
-      </div>
-      
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 glass-effect border-t border-white/10 py-2 px-6 flex justify-between items-center">
-        <Button 
-          isIconOnly 
-          variant="light" 
-          className="text-beamly-secondary"
-          onPress={() => setCurrentPage("home")}
-        >
-          <Icon icon="lucide:home" width={24} />
-        </Button>
-        
-        <Button 
-          isIconOnly 
-          variant="light" 
-          className={isDarkMode ? "text-white" : "text-gray-800"}
-          onPress={() => setCurrentPage("messages")}
-        >
-          <Icon icon="lucide:message-circle" width={24} />
-        </Button>
-        
-        <Button 
-          isIconOnly 
-          color="secondary"
-          className="rounded-full w-14 h-14 text-beamly-third shadow-lg"
-          onPress={() => setCurrentPage("post-job")}
-        >
-          <Icon icon="lucide:plus" width={24} />
-        </Button>
-        
-        <Button 
-          isIconOnly 
-          variant="light" 
-          className={isDarkMode ? "text-white" : "text-gray-800"}
-          onPress={() => setCurrentPage("saved-jobs")}
-        >
-          <Icon icon="lucide:bookmark" width={24} />
-        </Button>
-        
-        <Button 
-          isIconOnly 
-          variant="light" 
-          className={isDarkMode ? "text-white" : "text-gray-800"}
-          onPress={() => setCurrentPage("profile")}
-        >
-          <Icon icon="lucide:user" width={24} />
-        </Button>
       </div>
     </div>
   );
