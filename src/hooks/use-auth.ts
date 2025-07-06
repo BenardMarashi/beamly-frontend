@@ -13,7 +13,95 @@ import {
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { useFirebase } from '../contexts/firebase-context';
-import { MessagingService } from '../lib/messaging';
+
+// Helper to create user document with proper fields
+async function createUserDocument(user: User, additionalData?: any) {
+  const userRef = doc(db, 'users', user.uid);
+  
+  // Check if document already exists
+  const userSnap = await getDoc(userRef);
+  if (userSnap.exists()) {
+    console.log('User document already exists');
+    return;
+  }
+  
+  // Determine userType from additionalData or default to 'both'
+  const userType = additionalData?.userType || 'both';
+  
+  const userData = {
+    uid: user.uid,
+    email: user.email || '',
+    displayName: additionalData?.displayName || user.displayName || '',
+    photoURL: user.photoURL || '',
+    userType: userType, // CRITICAL: Ensure userType is set
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    lastActive: serverTimestamp(),
+    completedProjects: 0,
+    rating: 0,
+    totalEarnings: 0,
+    totalSpent: 0,
+    isVerified: false,
+    isBlocked: false,
+    isAvailable: userType === 'freelancer' || userType === 'both',
+    skills: [],
+    bio: '',
+    hourlyRate: 0,
+    location: '',
+    notifications: {
+      email: true,
+      push: true,
+      sms: false
+    },
+    ...additionalData // Spread any additional data
+  };
+  
+  try {
+    await setDoc(userRef, userData);
+    console.log('User document created successfully with type:', userType);
+  } catch (error) {
+    console.error('Error creating user document:', error);
+    throw error;
+  }
+}
+
+// Helper to update FCM token
+async function updateFCMToken(user: User) {
+  try {
+    // TODO: Implement FCM token update when MessagingService is ready
+    console.log('FCM token update skipped - MessagingService not implemented');
+  } catch (error) {
+    console.error('Error updating FCM token:', error);
+  }
+}
+
+// Helper to get auth error messages
+function getAuthErrorMessage(code: string): string {
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'This email is already registered. Please sign in instead.';
+    case 'auth/invalid-email':
+      return 'Invalid email address.';
+    case 'auth/operation-not-allowed':
+      return 'Email/password accounts are not enabled.';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled.';
+    case 'auth/user-not-found':
+      return 'No account found with this email.';
+    case 'auth/wrong-password':
+      return 'Incorrect password.';
+    case 'auth/invalid-credential':
+      return 'Invalid email or password.';
+    case 'auth/popup-closed-by-user':
+      return 'Sign-in popup was closed.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection.';
+    default:
+      return 'An error occurred. Please try again.';
+  }
+}
 
 // Sign In Hook
 export const useSignIn = () => {
@@ -47,12 +135,23 @@ export const useSignIn = () => {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
-      // Check if this is a new user using metadata
-      const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
+      // Check if this is a new user
+      const userRef = doc(db, 'users', result.user.uid);
+      const userSnap = await getDoc(userRef);
       
-      if (isNewUser) {
-        // Create user document
-        await createUserDocument(result.user);
+      if (!userSnap.exists()) {
+        // New user - create with default userType 'both'
+        await createUserDocument(result.user, { userType: 'both' });
+      } else {
+        // Existing user - ensure they have userType
+        const userData = userSnap.data();
+        if (!userData.userType) {
+          await setDoc(userRef, { 
+            ...userData, 
+            userType: 'both',
+            updatedAt: serverTimestamp()
+          });
+        }
       }
       
       await updateFCMToken(result.user);
@@ -81,21 +180,24 @@ export const useSignUp = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (email: string, password: string, displayName: string, userType: 'freelancer' | 'client' | 'both' = 'both') => {
     setLoading(true);
     setError(null);
     
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Update profile
+      // Update profile with display name
       await updateProfile(userCredential.user, { displayName });
       
-      // Create user document
-      await createUserDocument(userCredential.user, { displayName });
+      // Create user document with specified userType
+      await createUserDocument(userCredential.user, { 
+        displayName, 
+        userType // Pass the userType
+      });
       
       await updateFCMToken(userCredential.user);
-      console.log('User signed up:', userCredential.user.uid);
+      console.log('User signed up with type:', userType);
       return userCredential.user;
     } catch (err: any) {
       const errorMessage = getAuthErrorMessage(err.code);
@@ -176,6 +278,7 @@ export const usePasswordReset = () => {
     
     try {
       await confirmPasswordReset(auth, oobCode, newPassword);
+      setSuccess(true);
       console.log('Password reset confirmed');
       return true;
     } catch (err: any) {
@@ -197,93 +300,5 @@ export const usePasswordReset = () => {
   };
 };
 
-// Main Auth Hook
-export const useAuth = () => {
-  const { user, loading, error } = useFirebase();
-  
-  return {
-    user,
-    isAuthenticated: !!user,
-    loading,
-    error
-  };
-};
-
-// Helper Functions
-const createUserDocument = async (user: User, additionalData: any = {}) => {
-  const userRef = doc(db, 'users', user.uid);
-  
-  // Check if user document already exists
-  const userDoc = await getDoc(userRef);
-  if (userDoc.exists()) {
-    console.log('User document already exists');
-    return;
-  }
-  
-  await setDoc(userRef, {
-    uid: user.uid,
-    email: user.email,
-    displayName: user.displayName || additionalData.displayName || '',
-    photoURL: user.photoURL || '',
-    userType: 'both', // Default to both, user can change later
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    notifications: {
-      email: true,
-      push: true,
-      sms: false
-    },
-    completedJobs: 0,
-    rating: 0,
-    fcmTokens: {},
-    ...additionalData
-  });
-  
-  console.log('User document created');
-};
-
-const updateFCMToken = async (user: User) => {
-  try {
-    const token = await MessagingService.getFCMToken();
-    if (token) {
-      await MessagingService.saveFCMToken(user.uid, token);
-      console.log('FCM token saved');
-    }
-  } catch (error) {
-    console.error('Error updating FCM token:', error);
-  }
-};
-
-// Error message helper
-const getAuthErrorMessage = (errorCode: string): string => {
-  switch (errorCode) {
-    case 'auth/email-already-in-use':
-      return 'This email is already registered. Please sign in or use a different email.';
-    case 'auth/invalid-email':
-      return 'Invalid email address. Please check and try again.';
-    case 'auth/operation-not-allowed':
-      return 'Email/password accounts are not enabled. Please contact support.';
-    case 'auth/weak-password':
-      return 'Password is too weak. Please use at least 6 characters.';
-    case 'auth/user-disabled':
-      return 'This account has been disabled. Please contact support.';
-    case 'auth/user-not-found':
-      return 'No account found with this email. Please sign up first.';
-    case 'auth/wrong-password':
-      return 'Incorrect password. Please try again.';
-    case 'auth/invalid-credential':
-      return 'Invalid email or password. Please check and try again.';
-    case 'auth/popup-closed-by-user':
-      return 'Sign in was cancelled. Please try again.';
-    case 'auth/network-request-failed':
-      return 'Network error. Please check your connection and try again.';
-    case 'auth/too-many-requests':
-      return 'Too many failed attempts. Please try again later.';
-    case 'auth/requires-recent-login':
-      return 'This operation requires recent authentication. Please sign in again.';
-    case 'auth/popup-blocked':
-      return 'Popup was blocked by your browser. Please allow popups and try again.';
-    default:
-      return 'An error occurred. Please try again.';
-  }
-};
+// Export auth instance for direct use if needed
+export { auth };
