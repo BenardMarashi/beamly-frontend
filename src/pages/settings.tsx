@@ -12,6 +12,7 @@ import { updateProfile } from "firebase/auth";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
+
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();

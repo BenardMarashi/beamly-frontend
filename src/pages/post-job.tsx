@@ -4,8 +4,9 @@ import { Input, Textarea, Select, SelectItem, Button, Card, CardBody, Chip, Radi
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { httpsCallable } from 'firebase/functions';
-import { fns } from '../lib/firebase';
+import { JobService } from '../services/firebase-services';
+import { collection, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 
 export const PostJobPage: React.FC = () => {
@@ -48,6 +49,21 @@ export const PostJobPage: React.FC = () => {
     { value: "entry", label: "Entry Level" },
     { value: "intermediate", label: "Intermediate" },
     { value: "expert", label: "Expert" }
+  ];
+
+  const durations = [
+    { value: "less-than-week", label: "Less than a week" },
+    { value: "1-2-weeks", label: "1-2 weeks" },
+    { value: "1-month", label: "1 month" },
+    { value: "1-3-months", label: "1-3 months" },
+    { value: "3-6-months", label: "3-6 months" },
+    { value: "more-than-6-months", label: "More than 6 months" }
+  ];
+
+  const projectSizes = [
+    { value: "small", label: "Small" },
+    { value: "medium", label: "Medium" },
+    { value: "large", label: "Large" }
   ];
   
   const handleInputChange = (field: string, value: any) => {
@@ -115,14 +131,47 @@ export const PostJobPage: React.FC = () => {
     setError(null);
     
     try {
-      // Prepare the data for the Cloud Function
-      const jobData = {
+      // Get user profile to verify permissions
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
+      
+      if (!userData) {
+        throw new Error('User profile not found. Please complete your profile first.');
+      }
+      
+      if (userData.userType !== 'client' && userData.userType !== 'both') {
+        throw new Error('Only clients can post jobs. Please update your account type in settings.');
+      }
+
+      // Prepare the job data
+      // Prepare the job data with proper typing
+      const jobData: {
+        title: string;
+        description: string;
+        category: string;
+        subcategory: string;
+        skills: string[];
+        budgetType: 'fixed' | 'hourly';
+        budgetMin: number;
+        budgetMax: number;
+        fixedPrice: number;
+        hourlyRateMin: number;
+        hourlyRateMax: number;
+        duration: string;
+        experienceLevel: string;
+        locationType: string;
+        location: string;
+        projectSize: string;
+        clientId: string;
+        clientName: string;
+        clientPhotoURL: string;
+      } = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
         subcategory: formData.subcategory || "",
         skills: formData.skills,
-        budgetType: formData.budgetType,
+        budgetType: formData.budgetType as 'fixed' | 'hourly', // Type assertion here
         budgetMin: formData.budgetType === "hourly" ? formData.budgetMin : formData.fixedPrice,
         budgetMax: formData.budgetType === "hourly" ? formData.budgetMax : formData.fixedPrice,
         fixedPrice: formData.budgetType === "fixed" ? formData.fixedPrice : 0,
@@ -132,177 +181,157 @@ export const PostJobPage: React.FC = () => {
         experienceLevel: formData.experienceLevel,
         locationType: formData.locationType,
         location: formData.location,
-        projectSize: formData.projectSize
+        projectSize: formData.projectSize,
+        clientId: user.uid,
+        clientName: userData.displayName || user.displayName || 'Anonymous',
+        clientPhotoURL: userData.photoURL || user.photoURL || '',
       };
       
       console.log('Submitting job data:', jobData);
       
-      // Call the Cloud Function
-      const createJob = httpsCallable(fns, 'createJob');
-      const result = await createJob(jobData);
+      // Use the JobService to create the job
+      const result = await JobService.createJob(jobData);
       
-      if ((result.data as any).success) {
+      if (result.success && result.jobId) {
+        const jobId = result.jobId;
         toast.success('Job posted successfully!');
-        navigate(`/jobs/${(result.data as any).jobId}`);
+        navigate(`/jobs/${jobId}`);
       } else {
-        throw new Error('Failed to create job');
+        throw new Error(result.error || 'Failed to create job');
       }
     } catch (err: any) {
       console.error("Error posting job:", err);
-      
-      // Handle specific error cases
-      if (err.code === 'permission-denied') {
-        setError("Your account type doesn't allow posting jobs. Please update your profile.");
-        toast.error("Permission denied. Please ensure your account type is set to 'Client' or 'Both'.");
-      } else if (err.code === 'unauthenticated') {
-        setError("You must be logged in to post a job");
-        toast.error("Please log in to post a job");
-        navigate('/login');
-      } else {
-        setError(err.message || "An error occurred while posting the job. Please try again.");
-        toast.error(err.message || "Failed to post job. Please try again.");
-      }
+      setError(err.message || "Failed to post job. Please try again.");
+      toast.error(err.message || "Failed to post job");
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            Post a New Job
-          </h1>
-          <p className="mt-2 text-gray-300">
-            Find the perfect freelancer for your project
-          </p>
-        </div>
-        
-        <Card className="glass-card border-none">
-          <CardBody className="p-6 md:p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Job Title */}
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-200">
-                  Job Title *
-                </label>
+    <div className="min-h-screen bg-gradient-to-br from-background to-background/50 py-8">
+      <div className="container mx-auto max-w-4xl px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-8"
+        >
+          <div className="text-center">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Post a New Job
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Find the perfect freelancer for your project
+            </p>
+          </div>
+
+          <Card className="border-none shadow-lg">
+            <CardBody className="p-8">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {error && (
+                  <div className="bg-danger/10 border border-danger/20 rounded-lg p-4 text-danger">
+                    <p className="text-sm">{error}</p>
+                  </div>
+                )}
+
+                {/* Job Title */}
                 <Input
-                  placeholder="e.g., Build a WordPress website"
+                  label="Job Title"
+                  placeholder="e.g., Build a React Native app"
                   value={formData.title}
-                  onValueChange={(value) => handleInputChange("title", value)}
-                  variant="bordered"
-                  className="bg-white/10"
+                  onChange={(e) => handleInputChange("title", e.target.value)}
                   isRequired
+                  startContent={<Icon icon="solar:document-text-bold" className="text-default-400" />}
                 />
-              </div>
-              
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-200">
-                  Job Description *
-                </label>
+
+                {/* Description */}
                 <Textarea
+                  label="Job Description"
                   placeholder="Describe your project in detail..."
                   value={formData.description}
-                  onValueChange={(value) => handleInputChange("description", value)}
-                  variant="bordered"
-                  minRows={6}
-                  className="bg-white/10"
+                  onChange={(e) => handleInputChange("description", e.target.value)}
                   isRequired
+                  minRows={5}
+                  classNames={{
+                    inputWrapper: "min-h-[150px]"
+                  }}
                 />
-              </div>
-              
-              {/* Category and Experience Level */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-200">
-                    Category *
-                  </label>
+
+                {/* Category and Experience Level */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Select
-                    placeholder="Select category"
-                    selectedKeys={formData.category ? [formData.category] : []}
-                    onSelectionChange={(keys) => handleInputChange("category", Array.from(keys)[0])}
-                    variant="bordered"
-                    className="bg-white/10"
+                    label="Category"
+                    placeholder="Select a category"
+                    value={formData.category}
+                    onChange={(e) => handleInputChange("category", e.target.value)}
                     isRequired
+                    aria-label="Job Category"
                   >
-                    {categories.map(cat => (
+                    {categories.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
                         {cat.label}
                       </SelectItem>
                     ))}
                   </Select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-200">
-                    Experience Level *
-                  </label>
+
                   <Select
+                    label="Experience Level"
                     placeholder="Select experience level"
-                    selectedKeys={formData.experienceLevel ? [formData.experienceLevel] : []}
-                    onSelectionChange={(keys) => handleInputChange("experienceLevel", Array.from(keys)[0])}
-                    variant="bordered"
-                    className="bg-white/10"
+                    value={formData.experienceLevel}
+                    onChange={(e) => handleInputChange("experienceLevel", e.target.value)}
                     isRequired
+                    aria-label="Experience Level Required"
                   >
-                    {experienceLevels.map(level => (
+                    {experienceLevels.map((level) => (
                       <SelectItem key={level.value} value={level.value}>
                         {level.label}
                       </SelectItem>
                     ))}
                   </Select>
                 </div>
-              </div>
-              
-              {/* Skills */}
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-200">
-                  Required Skills *
-                </label>
-                <div className="flex gap-2 mb-2">
-                  <Input
-                    placeholder="Add a skill..."
-                    value={currentSkill}
-                    onValueChange={setCurrentSkill}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                    variant="bordered"
-                    className="bg-white/10"
-                  />
-                  <Button
-                    type="button"
-                    color="secondary"
-                    onPress={addSkill}
-                    isDisabled={!currentSkill.trim()}
-                  >
-                    Add
-                  </Button>
+
+                {/* Skills */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Required Skills</label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a skill"
+                      value={currentSkill}
+                      onChange={(e) => setCurrentSkill(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addSkill();
+                        }
+                      }}
+                      endContent={
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          onPress={addSkill}
+                          isIconOnly
+                        >
+                          <Icon icon="solar:add-circle-bold" />
+                        </Button>
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.skills.map((skill) => (
+                      <Chip
+                        key={skill}
+                        onClose={() => removeSkill(skill)}
+                        variant="flat"
+                      >
+                        {skill}
+                      </Chip>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {formData.skills.map((skill, index) => (
-                    <Chip
-                      key={index}
-                      onClose={() => removeSkill(skill)}
-                      color="secondary"
-                      variant="flat"
-                    >
-                      {skill}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Budget Type */}
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-200">
-                  Budget Type *
-                </label>
+
+                {/* Budget Type */}
                 <RadioGroup
+                  label="Budget Type"
                   value={formData.budgetType}
                   onValueChange={(value) => handleInputChange("budgetType", value)}
                   orientation="horizontal"
@@ -310,146 +339,121 @@ export const PostJobPage: React.FC = () => {
                   <Radio value="fixed">Fixed Price</Radio>
                   <Radio value="hourly">Hourly Rate</Radio>
                 </RadioGroup>
-              </div>
-              
-              {/* Budget Fields */}
-              {formData.budgetType === "fixed" ? (
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-200">
-                    Fixed Price (USD) *
-                  </label>
+
+                {/* Budget Input */}
+                {formData.budgetType === "fixed" ? (
                   <Input
                     type="number"
-                    placeholder="Enter fixed price"
+                    label="Fixed Price"
+                    placeholder="Enter amount"
                     value={formData.fixedPrice.toString()}
-                    onValueChange={(value) => handleInputChange("fixedPrice", parseFloat(value) || 0)}
-                    variant="bordered"
-                    className="bg-white/10"
-                    startContent={<span className="text-gray-400">$</span>}
+                    onChange={(e) => handleInputChange("fixedPrice", parseFloat(e.target.value) || 0)}
+                    startContent={<span className="text-default-400">$</span>}
                     isRequired
                   />
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-200">
-                      Min Hourly Rate (USD) *
-                    </label>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
                     <Input
                       type="number"
-                      placeholder="Min rate"
+                      label="Min Hourly Rate"
+                      placeholder="Minimum"
                       value={formData.budgetMin.toString()}
-                      onValueChange={(value) => handleInputChange("budgetMin", parseFloat(value) || 0)}
-                      variant="bordered"
-                      className="bg-white/10"
-                      startContent={<span className="text-gray-400">$</span>}
+                      onChange={(e) => handleInputChange("budgetMin", parseFloat(e.target.value) || 0)}
+                      startContent={<span className="text-default-400">$</span>}
                       isRequired
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-200">
-                      Max Hourly Rate (USD) *
-                    </label>
                     <Input
                       type="number"
-                      placeholder="Max rate"
+                      label="Max Hourly Rate"
+                      placeholder="Maximum"
                       value={formData.budgetMax.toString()}
-                      onValueChange={(value) => handleInputChange("budgetMax", parseFloat(value) || 0)}
-                      variant="bordered"
-                      className="bg-white/10"
-                      startContent={<span className="text-gray-400">$</span>}
+                      onChange={(e) => handleInputChange("budgetMax", parseFloat(e.target.value) || 0)}
+                      startContent={<span className="text-default-400">$</span>}
                       isRequired
                     />
                   </div>
-                </div>
-              )}
-              
-              {/* Duration and Location */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-200">
-                    Project Duration *
-                  </label>
-                  <Input
-                    placeholder="e.g., 2 weeks, 3 months"
+                )}
+
+                {/* Duration and Project Size */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select
+                    label="Project Duration"
+                    placeholder="Select duration"
                     value={formData.duration}
-                    onValueChange={(value) => handleInputChange("duration", value)}
-                    variant="bordered"
-                    className="bg-white/10"
+                    onChange={(e) => handleInputChange("duration", e.target.value)}
                     isRequired
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-200">
-                    Location Type
-                  </label>
-                  <RadioGroup
-                    value={formData.locationType}
-                    onValueChange={(value) => handleInputChange("locationType", value)}
-                    orientation="horizontal"
+                    aria-label="Project Duration"
                   >
-                    <Radio value="remote">Remote</Radio>
-                    <Radio value="onsite">On-site</Radio>
-                    <Radio value="hybrid">Hybrid</Radio>
-                  </RadioGroup>
+                    {durations.map((duration) => (
+                      <SelectItem key={duration.value} value={duration.value}>
+                        {duration.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
+
+                  <Select
+                    label="Project Size"
+                    placeholder="Select size"
+                    value={formData.projectSize}
+                    onChange={(e) => handleInputChange("projectSize", e.target.value)}
+                    aria-label="Project Size"
+                  >
+                    {projectSizes.map((size) => (
+                      <SelectItem key={size.value} value={size.value}>
+                        {size.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
                 </div>
-              </div>
-              
-              {/* Location (if not remote) */}
-              {formData.locationType !== "remote" && (
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-200">
-                    Location *
-                  </label>
+
+                {/* Location Type */}
+                <RadioGroup
+                  label="Location Type"
+                  value={formData.locationType}
+                  onValueChange={(value) => handleInputChange("locationType", value)}
+                  orientation="horizontal"
+                >
+                  <Radio value="remote">Remote</Radio>
+                  <Radio value="onsite">On-site</Radio>
+                  <Radio value="hybrid">Hybrid</Radio>
+                </RadioGroup>
+
+                {formData.locationType !== "remote" && (
                   <Input
-                    placeholder="e.g., New York, NY"
+                    label="Location"
+                    placeholder="City, Country"
                     value={formData.location}
-                    onValueChange={(value) => handleInputChange("location", value)}
-                    variant="bordered"
-                    className="bg-white/10"
+                    onChange={(e) => handleInputChange("location", e.target.value)}
                     isRequired
+                    startContent={<Icon icon="solar:map-point-bold" className="text-default-400" />}
                   />
+                )}
+
+                {/* Submit Buttons */}
+                <div className="flex gap-4 pt-4">
+                  <Button
+                    type="submit"
+                    color="primary"
+                    size="lg"
+                    isLoading={loading}
+                    className="flex-1"
+                  >
+                    Post Job
+                  </Button>
+                  <Button
+                    variant="flat"
+                    size="lg"
+                    onPress={() => navigate(-1)}
+                    isDisabled={loading}
+                  >
+                    Cancel
+                  </Button>
                 </div>
-              )}
-              
-              {/* Error Message */}
-              {error && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                  <p className="text-red-500 text-sm flex items-center gap-2">
-                    <Icon icon="lucide:alert-circle" />
-                    {error}
-                  </p>
-                </div>
-              )}
-              
-              {/* Submit Buttons */}
-              <div className="flex gap-4 pt-4">
-                <Button
-                  type="button"
-                  variant="bordered"
-                  onPress={() => navigate(-1)}
-                  className="flex-1"
-                  isDisabled={loading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  color="secondary"
-                  className="flex-1 text-beamly-third"
-                  isLoading={loading}
-                  isDisabled={loading}
-                >
-                  {loading ? "Posting..." : "Post Job"}
-                </Button>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-      </motion.div>
+              </form>
+            </CardBody>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 };
-
-export default PostJobPage;
