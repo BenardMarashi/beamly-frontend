@@ -1,9 +1,9 @@
 // src/lib/firebase.ts
 import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getFunctions, Functions } from 'firebase/functions';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFunctions, Functions, connectFunctionsEmulator } from 'firebase/functions';
+import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
 import { getMessaging, isSupported, Messaging } from 'firebase/messaging';
 import { getAnalytics, Analytics } from 'firebase/analytics';
 
@@ -26,6 +26,9 @@ let fns: Functions;
 let storage: FirebaseStorage;
 let analytics: Analytics | null = null;
 let messaging: Messaging | null = null;
+
+// Keep track of emulator connection state
+let emulatorsConnected = false;
 
 try {
   // Initialize Firebase
@@ -53,6 +56,37 @@ try {
   throw new Error("Failed to initialize Firebase. Check your configuration.");
 }
 
+// Connect to emulators in development
+// Check environment variable to determine if we should use emulators
+const useEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
+
+if (import.meta.env.DEV && useEmulators && !emulatorsConnected) {
+  try {
+    // Only connect if we haven't already
+    if (!window.location.hostname.includes('firebaseapp.com')) {
+      // Auth emulator
+      connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+      
+      // Firestore emulator (using custom port 8081)
+      connectFirestoreEmulator(db, 'localhost', 8081);
+      
+      // Storage emulator
+      connectStorageEmulator(storage, 'localhost', 9199);
+      
+      // Functions emulator
+      connectFunctionsEmulator(fns, 'localhost', 5001);
+      
+      emulatorsConnected = true;
+      console.log('🔧 Connected to Firebase emulators');
+    }
+  } catch (error) {
+    console.warn('⚠️ Failed to connect to emulators:', error);
+    console.log('📡 Using production Firebase services');
+  }
+} else if (import.meta.env.DEV) {
+  console.log('📡 Using production Firebase services (emulators disabled)');
+}
+
 // Export typed instances directly
 export { app, auth, db, fns, storage, analytics };
 
@@ -74,4 +108,9 @@ export const getMessagingIfSupported = async (): Promise<Messaging | null> => {
 // Helper to check if Firebase is properly initialized
 export const isFirebaseInitialized = (): boolean => {
   return !!(app && auth && db && storage);
+};
+
+// Helper to check if emulators are connected
+export const areEmulatorsConnected = (): boolean => {
+  return emulatorsConnected;
 };

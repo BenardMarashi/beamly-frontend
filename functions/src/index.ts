@@ -1,3 +1,4 @@
+// functions/src/index.ts
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
@@ -169,47 +170,422 @@ export const onNewMessage = onDocumentCreated("messages/{messageId}", async (eve
   }
 });
 
-// HTTP Function: Process Stripe payment webhook
-export const stripeWebhook = onRequest(async (req, res) => {
-  const sig = req.headers["stripe-signature"] as string;
-
-  try {
-    // TODO: Verify webhook signature with Stripe SDK
-    // const event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
-    console.log("Stripe signature:", sig); // Use the sig variable
-
-    // Handle different event types
-    const event = req.body; // Simplified for example
-
-    switch (event.type) {
-    case "checkout.session.completed": {
-      // Handle successful subscription payment
-      const session = event.data.object;
-      await handleSuccessfulSubscription(session);
-      break;
+// HTTP Function: Create Job
+export const createJob = onCall(
+  {
+    cors: true, // Enable CORS
+    maxInstances: 10,
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
     }
 
-    case "invoice.payment_succeeded": {
-      // Handle recurring subscription payment
-      const invoice = event.data.object;
-      await handleRecurringPayment(invoice);
-      break;
-    }
+    const { data } = request;
 
-    case "customer.subscription.deleted": {
-      // Handle subscription cancellation
-      const subscription = event.data.object;
-      await handleSubscriptionCancellation(subscription);
-      break;
-    }
-    }
+    try {
+      // Validate user is a client
+      const userDoc = await db.doc(`users/${request.auth.uid}`).get();
+      const userData = userDoc.data();
 
-    res.json({ received: true });
-  } catch (error) {
-    console.error("Error in stripeWebhook:", error);
-    res.status(400).send(`Webhook Error: ${error}`);
+      if (!userData) {
+        throw new HttpsError("not-found", "User profile not found");
+      }
+
+      if (userData.userType !== "client" && userData.userType !== "both") {
+        throw new HttpsError("permission-denied", "Only clients can post jobs");
+      }
+
+      // Create job document
+      const jobRef = db.collection("jobs").doc();
+      const now = admin.firestore.FieldValue.serverTimestamp();
+
+      const jobData = {
+        id: jobRef.id,
+        clientId: request.auth.uid,
+        clientName: userData.displayName || "Anonymous",
+        clientPhotoURL: userData.photoURL || "",
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        subcategory: data.subcategory || "",
+        skills: data.skills || [],
+        budgetType: data.budgetType,
+        budgetMin: data.budgetMin || 0,
+        budgetMax: data.budgetMax || 0,
+        fixedPrice: data.fixedPrice || 0,
+        hourlyRateMin: data.hourlyRateMin || 0,
+        hourlyRateMax: data.hourlyRateMax || 0,
+        duration: data.duration,
+        experienceLevel: data.experienceLevel,
+        locationType: data.locationType,
+        location: data.location || "",
+        projectSize: data.projectSize,
+        status: "open",
+        proposalCount: 0,
+        invitesSent: 0,
+        featured: false,
+        viewCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await jobRef.set(jobData);
+
+      // Send notifications to relevant freelancers
+      await notifyFreelancersAboutNewJob(jobData);
+
+      return { success: true, jobId: jobRef.id };
+    } catch (error: any) {
+      console.error("Error creating job:", error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError("internal", "Failed to create job");
+    }
   }
-});
+);
+
+// Helper function: Notify freelancers about new job
+async function notifyFreelancersAboutNewJob(job: any) {
+  try {
+    // Query freelancers with matching skills
+    const freelancersSnapshot = await db.collection("users")
+      .where("userType", "in", ["freelancer", "both"])
+      .where("skills", "array-contains-any", job.skills.slice(0, 10))
+      .where("isAvailable", "==", true)
+      .limit(50)
+      .get();
+
+    const batch = db.batch();
+    const now = admin.firestore.FieldValue.serverTimestamp();
+
+    freelancersSnapshot.docs.forEach((doc) => {
+      const notificationRef = db.collection("notifications").doc();
+      batch.set(notificationRef, {
+        id: notificationRef.id,
+        userId: doc.id,
+        title: "New Job Match",
+        body: `New ${job.category} job: "${job.title}"`,
+        type: "new-job",
+        actionUrl: `/jobs/${job.id}`,
+        actionData: { jobId: job.id },
+        read: false,
+        pushSent: false,
+        createdAt: now,
+      });
+    });
+
+    await batch.commit();
+  } catch (error) {
+    console.error("Error notifying freelancers:", error);
+    // Don't throw - this is not critical for job creation
+  }
+}
+
+// HTTP Function: Submit Proposal
+export const submitProposal = onCall(
+  {
+    cors: true,
+    maxInstances: 10,
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { data } = request;
+    const freelancerId = request.auth.uid;
+
+    try {
+      // Validate required fields
+      if (!data.jobId || !data.coverLetter || !data.proposedRate) {
+        throw new HttpsError("invalid-argument", "Missing required fields");
+      }
+
+      // Get freelancer data
+      const freelancerDoc = await db.doc(`users/${freelancerId}`).get();
+      const freelancerData = freelancerDoc.data();
+
+      if (!freelancerData) {
+        throw new HttpsError("not-found", "Freelancer profile not found");
+      }
+
+      if (freelancerData.userType !== "freelancer" && freelancerData.userType !== "both") {
+        throw new HttpsError("permission-denied", "Only freelancers can submit proposals");
+      }
+
+      // Get job data
+      const jobDoc = await db.doc(`jobs/${data.jobId}`).get();
+      const jobData = jobDoc.data();
+
+      if (!jobDoc.exists || !jobData) {
+        throw new HttpsError("not-found", "Job not found");
+      }
+
+      if (jobData.status !== "open") {
+        throw new HttpsError("failed-precondition", "Job is not accepting proposals");
+      }
+
+      // Check if freelancer already applied
+      const existingProposal = await db.collection("proposals")
+        .where("jobId", "==", data.jobId)
+        .where("freelancerId", "==", freelancerId)
+        .get();
+
+      if (!existingProposal.empty) {
+        throw new HttpsError("already-exists", "You have already submitted a proposal for this job");
+      }
+
+      // Create proposal
+      const proposalRef = db.collection("proposals").doc();
+      const now = admin.firestore.FieldValue.serverTimestamp();
+
+      const proposalData = {
+        id: proposalRef.id,
+        jobId: data.jobId,
+        jobTitle: jobData.title,
+        clientId: jobData.clientId,
+        clientName: jobData.clientName,
+        freelancerId: freelancerId,
+        freelancerName: freelancerData.displayName || "Anonymous",
+        freelancerPhotoURL: freelancerData.photoURL || "",
+        freelancerRating: freelancerData.rating || 0,
+        freelancerCompletedJobs: freelancerData.completedProjects || 0,
+        coverLetter: data.coverLetter,
+        proposedRate: data.proposedRate,
+        estimatedDuration: data.estimatedDuration || "",
+        budgetType: jobData.budgetType,
+        attachments: data.attachments || [],
+        status: "pending",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Use a transaction to ensure consistency
+      await db.runTransaction(async (transaction) => {
+        // Create proposal
+        transaction.set(proposalRef, proposalData);
+
+        // Increment proposal count on job
+        const jobRef = db.doc(`jobs/${data.jobId}`);
+        transaction.update(jobRef, {
+          proposalCount: admin.firestore.FieldValue.increment(1),
+          updatedAt: now,
+        });
+      });
+
+      // Trigger will handle notification creation
+
+      return { success: true, proposalId: proposalRef.id };
+    } catch (error: any) {
+      console.error("Error submitting proposal:", error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError("internal", "Failed to submit proposal");
+    }
+  }
+);
+
+// HTTP Function: Create Contract
+export const createContract = onCall(
+  {
+    cors: true,
+    maxInstances: 10,
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { data } = request;
+    const clientId = request.auth.uid;
+
+    try {
+      // Validate required fields
+      if (!data.proposalId || !data.jobId) {
+        throw new HttpsError("invalid-argument", "Missing required fields");
+      }
+
+      // Get proposal data
+      const proposalDoc = await db.doc(`proposals/${data.proposalId}`).get();
+      const proposalData = proposalDoc.data();
+
+      if (!proposalDoc.exists || !proposalData) {
+        throw new HttpsError("not-found", "Proposal not found");
+      }
+
+      // Verify the client owns the job
+      if (proposalData.clientId !== clientId) {
+        throw new HttpsError("permission-denied", "You can only accept proposals for your own jobs");
+      }
+
+      // Check proposal status
+      if (proposalData.status !== "pending") {
+        throw new HttpsError("failed-precondition", "Proposal has already been processed");
+      }
+
+      // Create contract
+      const contractRef = db.collection("contracts").doc();
+      const now = admin.firestore.FieldValue.serverTimestamp();
+
+      const contractData = {
+        id: contractRef.id,
+        jobId: proposalData.jobId,
+        jobTitle: proposalData.jobTitle,
+        proposalId: data.proposalId,
+        clientId: clientId,
+        clientName: proposalData.clientName,
+        freelancerId: proposalData.freelancerId,
+        freelancerName: proposalData.freelancerName,
+        rate: proposalData.proposedRate,
+        budgetType: proposalData.budgetType,
+        status: "active",
+        totalPaid: 0,
+        totalDue: proposalData.proposedRate,
+        milestones: data.milestones || [],
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Use a transaction to ensure consistency
+      await db.runTransaction(async (transaction) => {
+        // Create contract
+        transaction.set(contractRef, contractData);
+
+        // Update proposal status
+        const proposalRef = db.doc(`proposals/${data.proposalId}`);
+        transaction.update(proposalRef, {
+          status: "accepted",
+          respondedAt: now,
+          updatedAt: now,
+        });
+
+        // Update job status
+        const jobRef = db.doc(`jobs/${proposalData.jobId}`);
+        transaction.update(jobRef, {
+          status: "in-progress",
+          hiredFreelancerId: proposalData.freelancerId,
+          hiredAt: now,
+          updatedAt: now,
+        });
+
+        // Reject other proposals for this job
+        const otherProposals = await db.collection("proposals")
+          .where("jobId", "==", proposalData.jobId)
+          .where("status", "==", "pending")
+          .get();
+
+        otherProposals.docs.forEach((doc) => {
+          if (doc.id !== data.proposalId) {
+            transaction.update(doc.ref, {
+              status: "rejected",
+              respondedAt: now,
+              updatedAt: now,
+            });
+          }
+        });
+      });
+
+      // Trigger will handle notification creation
+
+      return { success: true, contractId: contractRef.id };
+    } catch (error: any) {
+      console.error("Error creating contract:", error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError("internal", "Failed to create contract");
+    }
+  }
+);
+
+// HTTP Function: Process Stripe payment webhook
+export const stripeWebhook = onRequest(
+  {
+    cors: true,
+  },
+  async (req, res) => {
+    const sig = req.headers["stripe-signature"] as string;
+
+    try {
+      // TODO: Verify webhook signature with Stripe SDK
+      // const event = stripe.webhooks.constructEvent(req.rawBody, sig, webhookSecret);
+      console.log("Stripe signature:", sig); // Use the sig variable
+
+      // Handle different event types
+      const event = req.body; // Simplified for example
+
+      switch (event.type) {
+      case "checkout.session.completed": {
+        // Handle successful subscription payment
+        const session = event.data.object;
+        await handleSuccessfulSubscription(session);
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        // Handle recurring subscription payment
+        const invoice = event.data.object;
+        await handleRecurringPayment(invoice);
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        // Handle subscription cancellation
+        const subscription = event.data.object;
+        await handleSubscriptionCancellation(subscription);
+        break;
+      }
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Error in stripeWebhook:", error);
+      res.status(400).send(`Webhook Error: ${error}`);
+    }
+  }
+);
+
+// HTTP Function: Create Stripe Checkout Session
+export const createStripeCheckoutSession = onCall(
+  {
+    cors: true,
+    maxInstances: 10,
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { planId: _planId } = request.data; // TODO: Implement when Stripe is ready
+
+    try {
+      // TODO: Implement Stripe checkout session creation
+      // const session = await stripe.checkout.sessions.create({...});
+
+      // For now, return a mock response
+      return {
+        success: true,
+        sessionId: "mock_session_id",
+        url: "https://checkout.stripe.com/mock",
+      };
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      throw new HttpsError("internal", "Failed to create checkout session");
+    }
+  }
+);
 
 // Helper function: Handle successful subscription
 async function handleSuccessfulSubscription(session: any) {
