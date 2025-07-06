@@ -9,30 +9,30 @@ export const createJob = onCall(async (request) => {
 
   const { data } = request;
   const db = admin.firestore();
-  
+
   try {
     // Validate user is a client
     const userDoc = await db.doc(`users/${request.auth.uid}`).get();
     const userData = userDoc.data();
-    
-    if (!userData || (userData.userType !== 'client' && userData.userType !== 'both')) {
+
+    if (!userData || (userData.userType !== "client" && userData.userType !== "both")) {
       throw new HttpsError("permission-denied", "Only clients can post jobs");
     }
 
     // Create job document
-    const jobRef = db.collection('jobs').doc();
+    const jobRef = db.collection("jobs").doc();
     const jobData = {
       id: jobRef.id,
       clientId: request.auth.uid,
-      clientName: userData.displayName || 'Anonymous',
-      clientPhotoURL: userData.photoURL || '',
+      clientName: userData.displayName || "Anonymous",
+      clientPhotoURL: userData.photoURL || "",
       ...data,
-      status: 'open',
+      status: "open",
       proposalCount: 0,
       invitesSent: 0,
       featured: false,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     await jobRef.set(jobData);
@@ -49,29 +49,29 @@ export const createJob = onCall(async (request) => {
 
 async function notifyFreelancersAboutNewJob(job: any) {
   const db = admin.firestore();
-  
+
   // Query freelancers with matching skills
-  const freelancersSnapshot = await db.collection('users')
-    .where('userType', 'in', ['freelancer', 'both'])
-    .where('skills', 'array-contains-any', job.skills.slice(0, 10))
-    .where('isAvailable', '==', true)
+  const freelancersSnapshot = await db.collection("users")
+    .where("userType", "in", ["freelancer", "both"])
+    .where("skills", "array-contains-any", job.skills.slice(0, 10))
+    .where("isAvailable", "==", true)
     .limit(50)
     .get();
 
   const batch = db.batch();
-  
-  freelancersSnapshot.docs.forEach(doc => {
-    const notificationRef = db.collection('notifications').doc();
+
+  freelancersSnapshot.docs.forEach((doc) => {
+    const notificationRef = db.collection("notifications").doc();
     batch.set(notificationRef, {
       userId: doc.id,
-      title: 'New Job Match',
+      title: "New Job Match",
       body: `New ${job.category} job: "${job.title}"`,
-      type: 'new-job',
+      type: "new-job",
       actionUrl: `/jobs/${job.id}`,
       actionData: { jobId: job.id },
       read: false,
       pushSent: false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   });
 

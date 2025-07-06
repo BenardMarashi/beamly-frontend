@@ -37,10 +37,8 @@ import {
   StorageReference
 } from 'firebase/storage';
 
-// Import the firebase instances - we'll handle the types below
-const firebase = require('../lib/firebase');
-const db: Firestore = firebase.db;
-const storage: FirebaseStorage = firebase.storage;
+// Import from the lib/firebase.ts file
+import { db, storage } from '../lib/firebase';
 
 // Type definitions
 interface UserData {
@@ -64,6 +62,7 @@ interface UserData {
   hourlyRate?: number;
   location?: string;
   isAvailable?: boolean;
+  bio?: string;
   notifications?: {
     email: boolean;
     push: boolean;
@@ -85,6 +84,7 @@ interface JobData {
   locationType: string;
   location?: string;
   duration?: string;
+  projectSize?: string;
   clientId: string;
   clientName: string;
   clientPhotoURL: string;
@@ -98,6 +98,8 @@ interface JobData {
   updatedAt: Timestamp | FieldValue;
   hiredFreelancerId?: string;
   hiredAt?: Timestamp | FieldValue;
+  completedAt?: Timestamp | FieldValue;
+  viewCount?: number;
 }
 
 interface ProposalData {
@@ -119,6 +121,7 @@ interface ProposalData {
   createdAt: Timestamp | FieldValue;
   updatedAt: Timestamp | FieldValue;
   respondedAt?: Timestamp | FieldValue;
+  attachments?: string[];
 }
 
 interface MessageData {
