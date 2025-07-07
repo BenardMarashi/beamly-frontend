@@ -1,13 +1,17 @@
-// src/lib/firebase.ts
 import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
+import { 
+  getAuth, 
+  Auth, 
+  connectAuthEmulator,
+  setPersistence,
+  browserLocalPersistence 
+} from 'firebase/auth';
 import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, Functions, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
-import { getMessaging, isSupported, Messaging } from 'firebase/messaging';
 import { getAnalytics, Analytics } from 'firebase/analytics';
 
-// Firebase configuration using environment variables
+// Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -18,99 +22,49 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase with proper types
+// Initialize Firebase
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
-let fns: Functions;
+let functions: Functions;
 let storage: FirebaseStorage;
 let analytics: Analytics | null = null;
-let messaging: Messaging | null = null;
-
-// Keep track of emulator connection state
-let emulatorsConnected = false;
 
 try {
-  // Initialize Firebase
   app = initializeApp(firebaseConfig);
   
   // Initialize services
   auth = getAuth(app);
   db = getFirestore(app);
-  fns = getFunctions(app, 'europe-west1'); // Match your firebase.json region
+  functions = getFunctions(app, 'us-central1');
   storage = getStorage(app);
   
-  // Analytics - only in production and in browser
-  if (typeof window !== 'undefined' && import.meta.env.PROD) {
-    try {
-      analytics = getAnalytics(app);
-    } catch (e) {
-      console.log("Analytics not available:", e);
-    }
+  // Set auth persistence to LOCAL (persists even after browser close)
+  setPersistence(auth, browserLocalPersistence).catch(console.error);
+  
+  // Analytics - only in production
+  if (import.meta.env.PROD && typeof window !== 'undefined') {
+    analytics = getAnalytics(app);
   }
   
-  console.log("✅ Firebase initialized successfully");
-  
-} catch (error) {
-  console.error("❌ Firebase initialization error:", error);
-  throw new Error("Failed to initialize Firebase. Check your configuration.");
-}
-
-// Connect to emulators in development
-// Check environment variable to determine if we should use emulators
-const useEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
-
-if (import.meta.env.DEV && useEmulators && !emulatorsConnected) {
-  try {
-    // Only connect if we haven't already
-    if (!window.location.hostname.includes('firebaseapp.com')) {
-      // Auth emulator
+  // Connect to emulators in development
+  if (import.meta.env.DEV) {
+    const shouldUseEmulator = localStorage.getItem('useEmulator') === 'true';
+    
+    if (shouldUseEmulator) {
       connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-      
-      // Firestore emulator (using custom port 8081)
-      connectFirestoreEmulator(db, 'localhost', 8081);
-      
-      // Storage emulator
+      connectFirestoreEmulator(db, 'localhost', 8080);
+      connectFunctionsEmulator(functions, 'localhost', 5001);
       connectStorageEmulator(storage, 'localhost', 9199);
-      
-      // Functions emulator
-      connectFunctionsEmulator(fns, 'localhost', 5001);
-      
-      emulatorsConnected = true;
       console.log('🔧 Connected to Firebase emulators');
     }
-  } catch (error) {
-    console.warn('⚠️ Failed to connect to emulators:', error);
-    console.log('📡 Using production Firebase services');
   }
-} else if (import.meta.env.DEV) {
-  console.log('📡 Using production Firebase services (emulators disabled)');
+  
+  console.log('✅ Firebase initialized successfully');
+  
+} catch (error) {
+  console.error('❌ Firebase initialization error:', error);
+  throw error;
 }
 
-// Export typed instances directly
-export { app, auth, db, fns, storage, analytics };
-
-// Helper to get messaging (only works in browser with HTTPS)
-export const getMessagingIfSupported = async (): Promise<Messaging | null> => {
-  try {
-    if (typeof window !== 'undefined' && await isSupported()) {
-      if (!messaging) {
-        messaging = getMessaging(app);
-      }
-      return messaging;
-    }
-  } catch (error) {
-    console.error("Firebase messaging not supported:", error);
-  }
-  return null;
-};
-
-// Helper to check if Firebase is properly initialized
-export const isFirebaseInitialized = (): boolean => {
-  return !!(app && auth && db && storage);
-};
-
-// Helper to check if emulators are connected
-export const areEmulatorsConnected = (): boolean => {
-  return emulatorsConnected;
-};
+export { app, auth, db, functions, storage, analytics };
