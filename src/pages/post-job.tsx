@@ -143,7 +143,6 @@ export const PostJobPage: React.FC = () => {
         throw new Error('Only clients can post jobs. Please update your account type in settings.');
       }
 
-      // Prepare the job data
       // Prepare the job data with proper typing
       const jobData: {
         title: string;
@@ -171,7 +170,7 @@ export const PostJobPage: React.FC = () => {
         category: formData.category,
         subcategory: formData.subcategory || "",
         skills: formData.skills,
-        budgetType: formData.budgetType as 'fixed' | 'hourly', // Type assertion here
+        budgetType: formData.budgetType as 'fixed' | 'hourly',
         budgetMin: formData.budgetType === "hourly" ? formData.budgetMin : formData.fixedPrice,
         budgetMax: formData.budgetType === "hourly" ? formData.budgetMax : formData.fixedPrice,
         fixedPrice: formData.budgetType === "fixed" ? formData.fixedPrice : 0,

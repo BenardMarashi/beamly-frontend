@@ -12,7 +12,7 @@ import {
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { ProposalService } from "../services/firebase-services";
-import { useAuth } from "../hooks/use-auth";
+import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/theme-context";
 
 interface JobApplicationModalProps {
