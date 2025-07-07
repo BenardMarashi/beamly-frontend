@@ -26,6 +26,30 @@ service cloud.firestore {
       return isAuthenticated() && getUserData().userType == 'both';
     }
     
+    // New helper functions for profile completion
+    function hasCompleteProfile() {
+      return isAuthenticated() && 
+             getUserData().profileCompleted == true;
+    }
+    
+    function hasBasicProfile() {
+      return isAuthenticated() && 
+             getUserData().displayName != null &&
+             getUserData().bio != null &&
+             getUserData().location != null;
+    }
+    
+    function hasFreelancerProfile() {
+      return hasBasicProfile() &&
+             getUserData().skills.size() > 0 &&
+             getUserData().hourlyRate > 0;
+    }
+    
+    function isVerified() {
+      return isAuthenticated() && 
+             getUserData().verificationStatus == 'verified';
+    }
+    
     // Users collection
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -33,12 +57,20 @@ service cloud.firestore {
       allow update: if isOwner(userId) || 
                       (isAuthenticated() && request.resource.data.keys().hasOnly(['lastActive']));
       allow delete: if false; // Users cannot be deleted
+      
+      // Prevent changing userType for freelancers
+      allow update: if isOwner(userId) && (
+        !resource.data.keys().hasAll(['userType']) || 
+        resource.data.userType == request.resource.data.userType ||
+        resource.data.userType != 'freelancer'
+      );
     }
     
-    // Jobs collection
+    // Jobs collection - Updated with profile completion check
     match /jobs/{jobId} {
       allow read: if isAuthenticated();
       allow create: if isClient() && 
+                      hasCompleteProfile() &&
                       request.auth.uid == request.resource.data.clientId;
       allow update: if isAuthenticated() && 
                       resource.data.clientId == request.auth.uid;
@@ -46,12 +78,14 @@ service cloud.firestore {
                       resource.data.clientId == request.auth.uid;
     }
     
-    // Proposals collection
+    // Proposals collection - Updated with profile completion check
     match /proposals/{proposalId} {
       allow read: if isAuthenticated() && 
                     (resource.data.freelancerId == request.auth.uid || 
                      resource.data.clientId == request.auth.uid);
       allow create: if isFreelancer() && 
+                      hasCompleteProfile() &&
+                      hasFreelancerProfile() &&
                       request.auth.uid == request.resource.data.freelancerId;
       allow update: if isAuthenticated() && 
                       (resource.data.freelancerId == request.auth.uid || 
@@ -66,6 +100,7 @@ service cloud.firestore {
                     (resource.data.freelancerId == request.auth.uid || 
                      resource.data.clientId == request.auth.uid);
       allow create: if isClient() && 
+                      hasCompleteProfile() &&
                       request.auth.uid == request.resource.data.clientId;
       allow update: if isAuthenticated() && 
                       (resource.data.freelancerId == request.auth.uid || 
@@ -113,6 +148,7 @@ service cloud.firestore {
     match /reviews/{reviewId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && 
+                      hasCompleteProfile() &&
                       request.auth.uid == request.resource.data.reviewerId;
       allow update: if false; // Reviews cannot be edited
       allow delete: if false; // Reviews cannot be deleted
@@ -149,9 +185,16 @@ service cloud.firestore {
     // Freelancer profiles subcollection (if using separate collection)
     match /freelancers/{freelancerId} {
       allow read: if isAuthenticated();
-      allow create: if isOwner(freelancerId) && isFreelancer();
+      allow create: if isOwner(freelancerId) && isFreelancer() && hasCompleteProfile();
       allow update: if isOwner(freelancerId) && isFreelancer();
       allow delete: if false;
+    }
+    
+    // Verification documents metadata (read-only for users)
+    match /verifications/{userId} {
+      allow read: if isOwner(userId) || 
+                    (isAuthenticated() && getUserData().isAdmin == true);
+      allow write: if false; // Only Cloud Functions can write
     }
   }
 }

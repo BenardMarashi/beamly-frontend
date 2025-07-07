@@ -9,6 +9,13 @@ import { collection, doc, setDoc, getDoc, serverTimestamp } from 'firebase/fires
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 
+// Type definition for JobService result
+interface JobServiceResult {
+  success: boolean;
+  jobId?: string;
+  error?: any;
+}
+
 export const PostJobPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -131,40 +138,46 @@ export const PostJobPage: React.FC = () => {
     setError(null);
     
     try {
-      // Get user profile to verify permissions
+      // Get user profile to verify permissions and profile completion
+      console.log("Checking user profile for job posting...");
       const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = userDoc.data();
       
-      if (!userData) {
-        throw new Error('User profile not found. Please complete your profile first.');
+      if (!userDoc.exists()) {
+        console.error("User document not found in Firestore");
+        throw new Error('User profile not found. Please complete your profile setup first.');
+      }
+      
+      const userData = userDoc.data();
+      console.log("User data from Firestore:", {
+        userType: userData.userType,
+        profileCompleted: userData.profileCompleted,
+        hasDisplayName: !!userData.displayName,
+        hasBio: !!userData.bio,
+        hasLocation: !!userData.location
+      });
+      
+      // Check user type
+      if (!userData.userType) {
+        throw new Error('Account type not set. Please complete your profile setup.');
       }
       
       if (userData.userType !== 'client' && userData.userType !== 'both') {
-        throw new Error('Only clients can post jobs. Please update your account type in settings.');
+        throw new Error('Only clients can post jobs. Your account type is: ' + userData.userType);
+      }
+      
+      // Check if profile is completed
+      const requiredFields = [];
+      if (!userData.displayName?.trim()) requiredFields.push('Display Name');
+      if (!userData.bio?.trim()) requiredFields.push('Bio');
+      if (!userData.location?.trim()) requiredFields.push('Location');
+      
+      if (requiredFields.length > 0) {
+        console.log("Missing required fields:", requiredFields);
+        throw new Error(`Please complete your profile before posting jobs. Missing: ${requiredFields.join(', ')}`);
       }
 
       // Prepare the job data with proper typing
-      const jobData: {
-        title: string;
-        description: string;
-        category: string;
-        subcategory: string;
-        skills: string[];
-        budgetType: 'fixed' | 'hourly';
-        budgetMin: number;
-        budgetMax: number;
-        fixedPrice: number;
-        hourlyRateMin: number;
-        hourlyRateMax: number;
-        duration: string;
-        experienceLevel: string;
-        locationType: string;
-        location: string;
-        projectSize: string;
-        clientId: string;
-        clientName: string;
-        clientPhotoURL: string;
-      } = {
+      const jobData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
@@ -189,19 +202,30 @@ export const PostJobPage: React.FC = () => {
       console.log('Submitting job data:', jobData);
       
       // Use the JobService to create the job
-      const result = await JobService.createJob(jobData);
+      const result: JobServiceResult = await JobService.createJob(jobData);
       
       if (result.success && result.jobId) {
-        const jobId = result.jobId;
         toast.success('Job posted successfully!');
-        navigate(`/jobs/${jobId}`);
+        // Navigate to the job details page - use singular 'job' not 'jobs'
+        navigate(`/job/${result.jobId}`);
       } else {
-        throw new Error(result.error || 'Failed to create job');
+        const errorMessage = result && typeof result === 'object' && 'error' in result 
+          ? String(result.error) 
+          : 'Failed to create job';
+        throw new Error(errorMessage);
       }
     } catch (err: any) {
       console.error("Error posting job:", err);
-      setError(err.message || "Failed to post job. Please try again.");
-      toast.error(err.message || "Failed to post job");
+      const errorMessage = err?.message || "Failed to post job. Please try again.";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // If profile is incomplete, navigate to settings
+      if (errorMessage.includes('complete your profile')) {
+        setTimeout(() => {
+          navigate('/settings');
+        }, 2000);
+      }
     } finally {
       setLoading(false);
     }
@@ -213,6 +237,7 @@ export const PostJobPage: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
           className="space-y-8"
         >
           <div className="text-center">
@@ -249,14 +274,11 @@ export const PostJobPage: React.FC = () => {
                   placeholder="Describe your project in detail..."
                   value={formData.description}
                   onChange={(e) => handleInputChange("description", e.target.value)}
+                  minRows={6}
                   isRequired
-                  minRows={5}
-                  classNames={{
-                    inputWrapper: "min-h-[150px]"
-                  }}
                 />
 
-                {/* Category and Experience Level */}
+                {/* Category and Subcategory */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Select
                     label="Category"
@@ -264,7 +286,7 @@ export const PostJobPage: React.FC = () => {
                     value={formData.category}
                     onChange={(e) => handleInputChange("category", e.target.value)}
                     isRequired
-                    aria-label="Job Category"
+                    aria-label="Category"
                   >
                     {categories.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
@@ -273,28 +295,22 @@ export const PostJobPage: React.FC = () => {
                     ))}
                   </Select>
 
-                  <Select
-                    label="Experience Level"
-                    placeholder="Select experience level"
-                    value={formData.experienceLevel}
-                    onChange={(e) => handleInputChange("experienceLevel", e.target.value)}
-                    isRequired
-                    aria-label="Experience Level Required"
-                  >
-                    {experienceLevels.map((level) => (
-                      <SelectItem key={level.value} value={level.value}>
-                        {level.label}
-                      </SelectItem>
-                    ))}
-                  </Select>
+                  <Input
+                    label="Subcategory (Optional)"
+                    placeholder="e.g., Mobile App Development"
+                    value={formData.subcategory}
+                    onChange={(e) => handleInputChange("subcategory", e.target.value)}
+                  />
                 </div>
 
                 {/* Skills */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Required Skills</label>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Required Skills
+                  </label>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Add a skill"
+                      placeholder="Add a skill and press Enter"
                       value={currentSkill}
                       onChange={(e) => setCurrentSkill(e.target.value)}
                       onKeyPress={(e) => {
@@ -306,26 +322,29 @@ export const PostJobPage: React.FC = () => {
                       endContent={
                         <Button
                           size="sm"
-                          variant="flat"
-                          onPress={addSkill}
                           isIconOnly
+                          onPress={addSkill}
+                          isDisabled={!currentSkill.trim()}
                         >
                           <Icon icon="solar:add-circle-bold" />
                         </Button>
                       }
                     />
                   </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.skills.map((skill) => (
-                      <Chip
-                        key={skill}
-                        onClose={() => removeSkill(skill)}
-                        variant="flat"
-                      >
-                        {skill}
-                      </Chip>
-                    ))}
-                  </div>
+                  {formData.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {formData.skills.map((skill) => (
+                        <Chip
+                          key={skill}
+                          onClose={() => removeSkill(skill)}
+                          variant="flat"
+                          color="primary"
+                        >
+                          {skill}
+                        </Chip>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Budget Type */}
@@ -339,39 +358,57 @@ export const PostJobPage: React.FC = () => {
                   <Radio value="hourly">Hourly Rate</Radio>
                 </RadioGroup>
 
-                {/* Budget Input */}
+                {/* Budget Inputs */}
                 {formData.budgetType === "fixed" ? (
                   <Input
                     type="number"
                     label="Fixed Price"
                     placeholder="Enter amount"
                     value={formData.fixedPrice.toString()}
-                    onChange={(e) => handleInputChange("fixedPrice", parseFloat(e.target.value) || 0)}
-                    startContent={<span className="text-default-400">$</span>}
+                    onChange={(e) => handleInputChange("fixedPrice", Number(e.target.value))}
+                    startContent="$"
                     isRequired
                   />
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <Input
                       type="number"
-                      label="Min Hourly Rate"
-                      placeholder="Minimum"
+                      label="Minimum Hourly Rate"
+                      placeholder="Min"
                       value={formData.budgetMin.toString()}
-                      onChange={(e) => handleInputChange("budgetMin", parseFloat(e.target.value) || 0)}
-                      startContent={<span className="text-default-400">$</span>}
+                      onChange={(e) => handleInputChange("budgetMin", Number(e.target.value))}
+                      startContent="$"
+                      endContent="/hr"
                       isRequired
                     />
                     <Input
                       type="number"
-                      label="Max Hourly Rate"
-                      placeholder="Maximum"
+                      label="Maximum Hourly Rate"
+                      placeholder="Max"
                       value={formData.budgetMax.toString()}
-                      onChange={(e) => handleInputChange("budgetMax", parseFloat(e.target.value) || 0)}
-                      startContent={<span className="text-default-400">$</span>}
+                      onChange={(e) => handleInputChange("budgetMax", Number(e.target.value))}
+                      startContent="$"
+                      endContent="/hr"
                       isRequired
                     />
                   </div>
                 )}
+
+                {/* Experience Level */}
+                <Select
+                  label="Experience Level"
+                  placeholder="Select experience level"
+                  value={formData.experienceLevel}
+                  onChange={(e) => handleInputChange("experienceLevel", e.target.value)}
+                  isRequired
+                  aria-label="Experience Level"
+                >
+                  {experienceLevels.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </Select>
 
                 {/* Duration and Project Size */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

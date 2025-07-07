@@ -2,7 +2,7 @@ import React from "react";
 import { Route, Routes, useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { lazy, Suspense } from "react";
-import { Spinner } from "@heroui/react";
+import { Spinner } from "@nextui-org/react";
 
 // Layouts
 import { MainLayout } from "./layouts/main-layout";
@@ -121,9 +121,7 @@ const App: React.FC = () => {
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute isLoggedIn={isLoggedIn} />}>
-          <Route 
-            element={<DashboardLayout isLoggedIn={isLoggedIn} onLogout={handleLogout} />}
-          >
+          <Route element={<DashboardLayout />}>
             {/* Add HomePage as a protected route */}
             <Route path="/home" element={<HomePage />} />
             <Route path="/dashboard" element={
