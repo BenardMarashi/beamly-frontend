@@ -4,7 +4,6 @@ import { useSignUp, useSignIn } from '../hooks/use-auth';
 import { useNavigate } from 'react-router-dom';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { UserService } from '../services/firebase-services';
 
 interface SignupPageProps {
   onSignup?: () => void;
@@ -22,20 +21,21 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
     accountType: string,
     additionalData?: any
   ) => {
-    const user = await signUp(email, password, fullName);
+    // Map account type from form to database userType
+    const userType = accountType === 'freelancer' ? 'freelancer' : 
+                    accountType === 'company' ? 'client' : 
+                    'both';
+    
+    const user = await signUp(email, password, fullName, userType);
     if (user) {
       try {
-        // Create complete user profile with correct userType
-        const userType = accountType === 'freelancer' ? 'freelancer' : 
-                        accountType === 'company' ? 'client' : 
-                        'both'; // Default to 'both' if unclear
-        
+        // Create complete user profile
         const userProfileData = {
           uid: user.uid,
           email: user.email || '',
           displayName: fullName,
           photoURL: user.photoURL || '',
-          userType: userType, // CRITICAL: Set correct userType
+          userType: userType,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           lastActive: serverTimestamp(),
@@ -52,6 +52,7 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
           location: additionalData?.location || '',
           companyName: additionalData?.companyName || '',
           industry: additionalData?.industry || '',
+          profileCompleted: false,
           notifications: {
             email: true,
             push: true,
@@ -68,13 +69,12 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
         navigate('/dashboard');
       } catch (error) {
         console.error('Error creating user profile:', error);
-        // User is created but profile failed - still navigate but show warning
         navigate('/profile-setup');
       }
     }
   };
   
-  const handleGoogleSignup = async (accountType?: string) => {
+  const handleGoogleSignup = async (accountType: string) => {
     const user = await signInWithGoogle();
     if (user) {
       try {
@@ -105,6 +105,12 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
             isBlocked: false,
             isAvailable: true,
             skills: [],
+            bio: '',
+            hourlyRate: 0,
+            location: '',
+            companyName: '',
+            industry: '',
+            profileCompleted: false,
             notifications: {
               email: true,
               push: true,

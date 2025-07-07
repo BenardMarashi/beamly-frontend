@@ -6,100 +6,86 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
-  sendPasswordResetEmail,
-  confirmPasswordReset,
-  User
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
-import { useFirebase } from '../contexts/firebase-context';
+import { toast } from 'react-hot-toast';
 
-// Helper to create user document with proper fields
-async function createUserDocument(user: User, additionalData?: any) {
+// Updated Google Auth configuration
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account' // Always prompt for account selection
+});
+
+// Helper to create/update user document
+async function createOrUpdateUserDocument(user: any, additionalData?: any) {
   const userRef = doc(db, 'users', user.uid);
   
-  // Check if document already exists
-  const userSnap = await getDoc(userRef);
-  if (userSnap.exists()) {
-    console.log('User document already exists');
-    return;
-  }
-  
-  // Determine userType from additionalData or default to 'both'
-  const userType = additionalData?.userType || 'both';
-  
-  const userData = {
-    uid: user.uid,
-    email: user.email || '',
-    displayName: additionalData?.displayName || user.displayName || '',
-    photoURL: user.photoURL || '',
-    userType: userType, // CRITICAL: Ensure userType is set
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    lastActive: serverTimestamp(),
-    completedProjects: 0,
-    rating: 0,
-    totalEarnings: 0,
-    totalSpent: 0,
-    isVerified: false,
-    isBlocked: false,
-    isAvailable: userType === 'freelancer' || userType === 'both',
-    skills: [],
-    bio: '',
-    hourlyRate: 0,
-    location: '',
-    notifications: {
-      email: true,
-      push: true,
-      sms: false
-    },
-    ...additionalData // Spread any additional data
-  };
-  
   try {
-    await setDoc(userRef, userData);
-    console.log('User document created successfully with type:', userType);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+      // New user - create complete profile
+      const userData = {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: additionalData?.displayName || user.displayName || '',
+        photoURL: user.photoURL || '',
+        userType: additionalData?.userType || 'both',
+        profileCompleted: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastActive: serverTimestamp(),
+        
+        // Initialize all fields
+        bio: '',
+        skills: [],
+        hourlyRate: 0,
+        location: '',
+        companyName: '',
+        industry: '',
+        
+        // System fields
+        completedProjects: 0,
+        rating: 0,
+        totalEarnings: 0,
+        totalSpent: 0,
+        isVerified: false,
+        isBlocked: false,
+        isAvailable: true,
+        
+        // Notification preferences
+        notifications: {
+          email: true,
+          push: true,
+          sms: false
+        },
+        
+        ...additionalData
+      };
+      
+      await setDoc(userRef, userData);
+      console.log('User document created with type:', userData.userType);
+    } else {
+      // Existing user - update last active
+      const updates: any = {
+        lastActive: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      // If userType is missing, add it
+      const existingData = userSnap.data();
+      if (!existingData.userType) {
+        updates.userType = additionalData?.userType || 'both';
+      }
+      
+      await setDoc(userRef, updates, { merge: true });
+    }
   } catch (error) {
-    console.error('Error creating user document:', error);
+    console.error('Error creating/updating user document:', error);
     throw error;
-  }
-}
-
-// Helper to update FCM token
-async function updateFCMToken(user: User) {
-  try {
-    // TODO: Implement FCM token update when MessagingService is ready
-    console.log('FCM token update skipped - MessagingService not implemented');
-  } catch (error) {
-    console.error('Error updating FCM token:', error);
-  }
-}
-
-// Helper to get auth error messages
-function getAuthErrorMessage(code: string): string {
-  switch (code) {
-    case 'auth/email-already-in-use':
-      return 'This email is already registered. Please sign in instead.';
-    case 'auth/invalid-email':
-      return 'Invalid email address.';
-    case 'auth/operation-not-allowed':
-      return 'Email/password accounts are not enabled.';
-    case 'auth/weak-password':
-      return 'Password should be at least 6 characters.';
-    case 'auth/user-disabled':
-      return 'This account has been disabled.';
-    case 'auth/user-not-found':
-      return 'No account found with this email.';
-    case 'auth/wrong-password':
-      return 'Incorrect password.';
-    case 'auth/invalid-credential':
-      return 'Invalid email or password.';
-    case 'auth/popup-closed-by-user':
-      return 'Sign-in popup was closed.';
-    case 'auth/network-request-failed':
-      return 'Network error. Please check your connection.';
-    default:
-      return 'An error occurred. Please try again.';
   }
 }
 
@@ -113,14 +99,17 @@ export const useSignIn = () => {
     setError(null);
     
     try {
+      await setPersistence(auth, browserLocalPersistence);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await updateFCMToken(userCredential.user);
-      console.log('User signed in:', userCredential.user.uid);
+      
+      // Update last active
+      await createOrUpdateUserDocument(userCredential.user);
+      
       return userCredential.user;
     } catch (err: any) {
       const errorMessage = getAuthErrorMessage(err.code);
       setError(errorMessage);
-      console.error('Sign in error:', err);
+      toast.error(errorMessage);
       return null;
     } finally {
       setLoading(false);
@@ -132,35 +121,19 @@ export const useSignIn = () => {
     setError(null);
     
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+      await setPersistence(auth, browserLocalPersistence);
+      const result = await signInWithPopup(auth, googleProvider);
       
-      // Check if this is a new user
-      const userRef = doc(db, 'users', result.user.uid);
-      const userSnap = await getDoc(userRef);
+      // Create or update user document
+      await createOrUpdateUserDocument(result.user);
       
-      if (!userSnap.exists()) {
-        // New user - create with default userType 'both'
-        await createUserDocument(result.user, { userType: 'both' });
-      } else {
-        // Existing user - ensure they have userType
-        const userData = userSnap.data();
-        if (!userData.userType) {
-          await setDoc(userRef, { 
-            ...userData, 
-            userType: 'both',
-            updatedAt: serverTimestamp()
-          });
-        }
-      }
-      
-      await updateFCMToken(result.user);
-      console.log('User signed in with Google:', result.user.uid);
       return result.user;
     } catch (err: any) {
-      const errorMessage = getAuthErrorMessage(err.code);
-      setError(errorMessage);
-      console.error('Google sign in error:', err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        const errorMessage = getAuthErrorMessage(err.code);
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
       return null;
     } finally {
       setLoading(false);
@@ -180,29 +153,33 @@ export const useSignUp = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const signUp = async (email: string, password: string, displayName: string, userType: 'freelancer' | 'client' | 'both' = 'both') => {
+  const signUp = async (
+    email: string, 
+    password: string, 
+    displayName: string, 
+    userType: 'freelancer' | 'client' | 'both' = 'both'
+  ) => {
     setLoading(true);
     setError(null);
     
     try {
+      await setPersistence(auth, browserLocalPersistence);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Update profile with display name
+      // Update display name
       await updateProfile(userCredential.user, { displayName });
       
-      // Create user document with specified userType
-      await createUserDocument(userCredential.user, { 
+      // Create user document with correct type
+      await createOrUpdateUserDocument(userCredential.user, { 
         displayName, 
-        userType // Pass the userType
+        userType
       });
       
-      await updateFCMToken(userCredential.user);
-      console.log('User signed up with type:', userType);
       return userCredential.user;
     } catch (err: any) {
       const errorMessage = getAuthErrorMessage(err.code);
       setError(errorMessage);
-      console.error('Sign up error:', err);
+      toast.error(errorMessage);
       return null;
     } finally {
       setLoading(false);
@@ -228,12 +205,10 @@ export const useSignOut = () => {
     try {
       await firebaseSignOut(auth);
       console.log('User signed out');
-      return true;
     } catch (err: any) {
       const errorMessage = getAuthErrorMessage(err.code);
       setError(errorMessage);
-      console.error('Sign out error:', err);
-      return false;
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -246,59 +221,21 @@ export const useSignOut = () => {
   };
 };
 
-// Password Reset Hook
-export const usePasswordReset = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  
-  const sendResetEmail = async (email: string) => {
-    setLoading(true);
-    setError(null);
-    setSuccess(false);
-    
-    try {
-      await sendPasswordResetEmail(auth, email);
-      setSuccess(true);
-      console.log('Password reset email sent');
-      return true;
-    } catch (err: any) {
-      const errorMessage = getAuthErrorMessage(err.code);
-      setError(errorMessage);
-      console.error('Password reset error:', err);
-      return false;
-    } finally {
-      setLoading(false);
-    }
+// Error message helper
+function getAuthErrorMessage(code: string): string {
+  const errorMap: { [key: string]: string } = {
+    'auth/email-already-in-use': 'This email is already registered.',
+    'auth/invalid-email': 'Invalid email address.',
+    'auth/operation-not-allowed': 'Email/password accounts are not enabled.',
+    'auth/weak-password': 'Password should be at least 6 characters.',
+    'auth/user-disabled': 'This account has been disabled.',
+    'auth/user-not-found': 'No account found with this email.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/invalid-credential': 'Invalid email or password.',
+    'auth/popup-closed-by-user': 'Sign-in was cancelled.',
+    'auth/network-request-failed': 'Network error. Please check your connection.',
+    'auth/too-many-requests': 'Too many failed attempts. Please try again later.'
   };
   
-  const confirmReset = async (oobCode: string, newPassword: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      await confirmPasswordReset(auth, oobCode, newPassword);
-      setSuccess(true);
-      console.log('Password reset confirmed');
-      return true;
-    } catch (err: any) {
-      const errorMessage = getAuthErrorMessage(err.code);
-      setError(errorMessage);
-      console.error('Password reset confirmation error:', err);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  return {
-    sendResetEmail,
-    confirmReset,
-    loading,
-    error,
-    success
-  };
-};
-
-// Export auth instance for direct use if needed
-export { auth };
+  return errorMap[code] || 'An error occurred. Please try again.';
+}
