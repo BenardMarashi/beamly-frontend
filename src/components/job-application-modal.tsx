@@ -9,11 +9,15 @@ import {
   Input,
   Textarea,
   Chip
-} from "@heroui/react";
+} from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { ProposalService } from "../services/firebase-services";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/theme-context";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 interface JobApplicationModalProps {
   isOpen: boolean;
@@ -38,6 +42,7 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
 }) => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -95,24 +100,47 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
     setError(null);
     
     try {
+      // Get user profile data
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
+      
+      if (!userData) {
+        throw new Error('User profile not found. Please complete your profile first.');
+      }
+      
+      // Validate freelancer profile
+      if (userData.userType === 'freelancer' || userData.userType === 'both') {
+        const missingFields = [];
+        if (!userData.displayName?.trim()) missingFields.push('Display Name');
+        if (!userData.bio?.trim()) missingFields.push('Bio');
+        if (!userData.location?.trim()) missingFields.push('Location');
+        if (!userData.skills || userData.skills.length === 0) missingFields.push('Skills');
+        if (!userData.hourlyRate || userData.hourlyRate <= 0) missingFields.push('Hourly Rate');
+        
+        if (missingFields.length > 0) {
+          throw new Error(`Please complete your profile before applying. Missing: ${missingFields.join(', ')}`);
+        }
+      }
+      
       const proposalData = {
         jobId: job.id,
         jobTitle: job.title,
         clientId: job.clientId,
         clientName: job.clientName,
         freelancerId: user.uid,
-        freelancerName: user.displayName || "Anonymous",
-        freelancerPhotoURL: user.photoURL || "",
+        freelancerName: userData.displayName || user.displayName || "Anonymous",
+        freelancerPhotoURL: userData.photoURL || user.photoURL || "",
         coverLetter: formData.coverLetter,
         proposedRate: parseFloat(formData.proposedRate),
         estimatedDuration: formData.estimatedDuration,
         budgetType: job.budgetType,
-        status: "pending"
+        status: "pending" as const
       };
       
       const result = await ProposalService.submitProposal(proposalData);
       
       if (result.success) {
+        toast.success("Application submitted successfully!");
         onSuccess?.();
         onClose();
         // Reset form
@@ -125,9 +153,19 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
       } else {
         setError("Failed to submit application. Please try again.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error submitting application:", err);
-      setError("An error occurred while submitting your application.");
+      const errorMessage = err.message || "An error occurred while submitting your application.";
+      setError(errorMessage);
+      
+      // If profile is incomplete, navigate to settings after a delay
+      if (errorMessage.includes('complete your profile')) {
+        setTimeout(() => {
+          onClose();
+          navigate('/settings');
+          toast.error("Please complete your profile first");
+        }, 2000);
+      }
     } finally {
       setLoading(false);
     }
