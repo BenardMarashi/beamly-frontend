@@ -2,7 +2,9 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
+import { getMessaging, isSupported } from 'firebase/messaging';
 import { getAnalytics } from 'firebase/analytics';
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -15,7 +17,7 @@ const firebaseConfig = {
 };
 
 // Validate config
-const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'] as const;
 const missingFields = requiredFields.filter(field => !firebaseConfig[field as keyof typeof firebaseConfig]);
 
 if (missingFields.length > 0) {
@@ -24,8 +26,9 @@ if (missingFields.length > 0) {
 }
 
 // Initialize Firebase
-let app;
-let analytics;
+let app: any;
+let analytics: any;
+let messaging: any;
 
 try {
   app = initializeApp(firebaseConfig);
@@ -49,6 +52,26 @@ try {
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const functions = getFunctions(app);
+
+// Initialize messaging with browser support check
+export const getMessagingIfSupported = async () => {
+  try {
+    const isSupportedBrowser = await isSupported();
+    if (isSupportedBrowser && 'Notification' in window) {
+      if (!messaging) {
+        messaging = getMessaging(app);
+        console.log('✅ Firebase Messaging initialized');
+      }
+      return messaging;
+    }
+    console.log('⚠️ Firebase Messaging not supported in this browser');
+    return null;
+  } catch (error) {
+    console.error('❌ Failed to initialize Firebase Messaging:', error);
+    return null;
+  }
+};
 
 // Connect to emulators if in development
 if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
@@ -68,11 +91,17 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true'
       connectStorageEmulator(storage, 'localhost', 9199);
     }
     
+    // Connect Functions emulator
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+    
     console.log('✅ Connected to Firebase emulators');
   } catch (error) {
     console.warn('⚠️ Failed to connect to Firebase emulators:', error);
   }
 }
 
-export { app, analytics };
+// Export for backward compatibility
+export const fns = functions;
+
+export { app, analytics, messaging };
 export default app;

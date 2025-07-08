@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Button, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Badge } from "@nextui-org/react";
+import { Outlet, Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
+import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Button, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Badge, NavbarMenuToggle, NavbarMenu, NavbarMenuItem } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { BeamlyLogo } from "../components/beamly-logo";
 import { Footer } from "../components/footer";
 import { useAuth } from "../contexts/AuthContext";
 import { useSignOut } from "../hooks/use-auth";
+import { useTheme } from "../contexts/theme-context";
 
 interface MainLayoutProps {
   isLoggedIn: boolean;
@@ -17,6 +18,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
   const navigate = useNavigate();
   const { user, userData } = useAuth();
   const { signOut } = useSignOut();
+  const { isDarkMode } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   
   const handleLogout = async () => {
@@ -43,22 +45,28 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
         <div className="yellow-accent yellow-accent-2"></div>
         
         {/* Desktop Nav */}
-        <Navbar maxWidth="xl" className="glass-effect border-none">
-          <NavbarBrand>
-            <Link to="/" className="cursor-pointer">
-              <BeamlyLogo />
-            </Link>
-          </NavbarBrand>
+        <Navbar maxWidth="xl" className="glass-effect border-none" isMenuOpen={menuOpen} onMenuOpenChange={setMenuOpen}>
+          <NavbarContent>
+            <NavbarMenuToggle
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              className="sm:hidden"
+            />
+            <NavbarBrand>
+              <RouterLink to="/" className="cursor-pointer">
+                <BeamlyLogo />
+              </RouterLink>
+            </NavbarBrand>
+          </NavbarContent>
           
           <NavbarContent className="hidden sm:flex gap-4" justify="center">
             {navItems.map((item) => (
               <NavbarItem key={item.path} isActive={location.pathname === item.path}>
-                <Link 
+                <RouterLink 
                   to={item.path}
-                  className="text-white hover:text-beamly-secondary"
+                  className={`${isDarkMode ? 'text-white' : 'text-gray-800'} hover:text-beamly-secondary`}
                 >
                   {item.label}
-                </Link>
+                </RouterLink>
               </NavbarItem>
             ))}
           </NavbarContent>
@@ -67,87 +75,58 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
             {isLoggedIn ? (
               <>
                 <NavbarItem className="hidden lg:flex">
-                  <Button
-                    as={Link}
-                    to="/notifications"
-                    isIconOnly
-                    variant="light"
-                    className="text-white"
-                  >
+                  <RouterLink to="/notifications" className="flex items-center gap-1">
                     <Badge content="2" color="danger" size="sm">
-                      <Icon icon="lucide:bell" width={20} />
+                      <Icon icon="lucide:bell" className={`text-xl ${isDarkMode ? 'text-white' : 'text-gray-800'}`} />
                     </Badge>
-                  </Button>
+                  </RouterLink>
                 </NavbarItem>
                 
                 <NavbarItem className="hidden lg:flex">
-                  <Button
-                    as={Link}
-                    to="/chat"
-                    isIconOnly
-                    variant="light"
-                    className="text-white"
-                  >
-                    <Icon icon="lucide:message-square" width={20} />
-                  </Button>
+                  <RouterLink to="/chat">
+                    <Icon icon="lucide:message-square" className={`text-xl ${isDarkMode ? 'text-white' : 'text-gray-800'}`} />
+                  </RouterLink>
                 </NavbarItem>
                 
                 <Dropdown placement="bottom-end">
                   <DropdownTrigger>
                     <Avatar
+                      isBordered
                       as="button"
                       className="transition-transform"
-                      src={profilePicture}
-                      name={userData?.displayName || user?.displayName || 'User'}
+                      color="secondary"
+                      name={userData?.displayName || user?.displayName || "User"}
                       size="sm"
+                      src={profilePicture}
                     />
                   </DropdownTrigger>
-                  <DropdownMenu 
-                    aria-label="Profile Actions" 
-                    variant="flat"
-                    onAction={(key) => {
-                      switch (key) {
-                        case 'dashboard':
-                          navigate('/dashboard');
-                          break;
-                        case 'settings':
-                          navigate('/settings');
-                          break;
-                        case 'billing':
-                          navigate('/billing');
-                          break;
-                        case 'logout':
-                          handleLogout();
-                          break;
-                      }
-                    }}
-                  >
+                  <DropdownMenu aria-label="Profile Actions" variant="flat">
                     <DropdownItem key="profile" className="h-14 gap-2">
                       <p className="font-semibold">Signed in as</p>
-                      <p className="font-semibold">{user?.email}</p>
+                      <p className="font-semibold">{userData?.email || user?.email}</p>
                     </DropdownItem>
                     <DropdownItem 
-                      key="dashboard"
-                      startContent={<Icon icon="lucide:layout-dashboard" />}
+                      key="dashboard" 
+                      onPress={() => navigate('/dashboard')}
                     >
                       Dashboard
                     </DropdownItem>
                     <DropdownItem 
-                      key="settings"
-                      startContent={<Icon icon="lucide:settings" />}
+                      key="settings" 
+                      onPress={() => navigate('/settings')}
                     >
                       Settings
                     </DropdownItem>
                     <DropdownItem 
-                      key="billing"
-                      startContent={<Icon icon="lucide:credit-card" />}
+                      key="analytics" 
+                      onPress={() => navigate('/analytics')}
                     >
-                      Billing
+                      Analytics
                     </DropdownItem>
                     <DropdownItem 
                       key="logout" 
-                      color="danger"
-                      startContent={<Icon icon="lucide:log-out" />}
+                      color="danger" 
+                      onPress={handleLogout}
                     >
                       Log Out
                     </DropdownItem>
@@ -157,74 +136,55 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
             ) : (
               <>
                 <NavbarItem className="hidden lg:flex">
-                  <Link to="/login" className="text-white">
+                  <RouterLink to="/login" className={isDarkMode ? 'text-white' : 'text-gray-800'}>
                     Login
-                  </Link>
+                  </RouterLink>
                 </NavbarItem>
                 <NavbarItem>
-                  <Button 
-                    as={Link} 
-                    to="/signup" 
-                    color="primary" 
-                    variant="flat"
-                  >
+                  <Button as={RouterLink} to="/signup" color="secondary" variant="flat">
                     Sign Up
                   </Button>
                 </NavbarItem>
               </>
             )}
-            
-            {/* Mobile menu button */}
-            <NavbarItem className="lg:hidden">
-              <Button
-                isIconOnly
-                variant="light"
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="text-white"
-              >
-                <Icon icon={menuOpen ? "lucide:x" : "lucide:menu"} width={24} />
-              </Button>
-            </NavbarItem>
           </NavbarContent>
-        </Navbar>
-        
-        {/* Mobile Menu */}
-        {menuOpen && (
-          <div className="lg:hidden absolute top-16 left-0 right-0 bg-black/95 backdrop-blur-md z-50">
-            <div className="p-4 space-y-2">
-              {navItems.map((item) => (
-                <Button
-                  key={item.path}
-                  as={Link}
+          
+          {/* Mobile Menu */}
+          <NavbarMenu className={`${isDarkMode ? 'bg-beamly-third/95' : 'bg-white/95'} backdrop-blur-md`}>
+            {navItems.map((item, index) => (
+              <NavbarMenuItem key={`${item.path}-${index}`}>
+                <RouterLink
+                  className={`w-full ${isDarkMode ? 'text-white' : 'text-gray-800'} ${
+                    location.pathname === item.path ? 'text-beamly-secondary' : ''
+                  }`}
                   to={item.path}
-                  variant="light"
-                  fullWidth
-                  className="justify-start text-white"
                   onClick={() => setMenuOpen(false)}
                 >
                   {item.label}
-                </Button>
-              ))}
-              
+                </RouterLink>
+              </NavbarMenuItem>
+            ))}
+            
+            <div className="mt-8 space-y-2">
               {isLoggedIn ? (
                 <>
                   <Button
-                    as={Link}
+                    as={RouterLink}
                     to="/dashboard"
                     variant="light"
                     fullWidth
-                    className="justify-start text-white"
+                    className={`justify-start ${isDarkMode ? 'text-white' : 'text-gray-800'}`}
                     startContent={<Icon icon="lucide:layout-dashboard" />}
                     onClick={() => setMenuOpen(false)}
                   >
                     Dashboard
                   </Button>
                   <Button
-                    as={Link}
+                    as={RouterLink}
                     to="/notifications"
                     variant="light"
                     fullWidth
-                    className="justify-start text-white"
+                    className={`justify-start ${isDarkMode ? 'text-white' : 'text-gray-800'}`}
                     startContent={
                       <Badge content="2" color="danger" size="sm">
                         <Icon icon="lucide:bell" />
@@ -235,11 +195,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
                     Notifications
                   </Button>
                   <Button
-                    as={Link}
+                    as={RouterLink}
                     to="/chat"
                     variant="light"
                     fullWidth
-                    className="justify-start text-white"
+                    className={`justify-start ${isDarkMode ? 'text-white' : 'text-gray-800'}`}
                     startContent={<Icon icon="lucide:message-square" />}
                     onClick={() => setMenuOpen(false)}
                   >
@@ -262,19 +222,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
               ) : (
                 <>
                   <Button
-                    as={Link}
+                    as={RouterLink}
                     to="/login"
                     variant="light"
                     fullWidth
-                    className="justify-start text-white"
+                    className={`justify-start ${isDarkMode ? 'text-white' : 'text-gray-800'}`}
                     onClick={() => setMenuOpen(false)}
                   >
                     Login
                   </Button>
                   <Button
-                    as={Link}
+                    as={RouterLink}
                     to="/signup"
-                    color="primary"
+                    color="secondary"
                     variant="flat"
                     fullWidth
                     onClick={() => setMenuOpen(false)}
@@ -284,8 +244,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
                 </>
               )}
             </div>
-          </div>
-        )}
+          </NavbarMenu>
+        </Navbar>
         
         {/* Main Content */}
         <main className="relative z-10">

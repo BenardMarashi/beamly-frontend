@@ -1,5 +1,3 @@
-// Update your src/contexts/theme-context.tsx with this fix
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
