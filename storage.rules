@@ -1,33 +1,104 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    function isImageFile() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isDocumentFile() {
+      return request.resource.contentType in [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain'
+      ];
+    }
+    
+    function isValidFileSize() {
+      return request.resource.size < 10 * 1024 * 1024; // 10MB limit
+    }
+
     // User profile images
-    match /users/{userId}/{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    match /users/{userId}/profile/{fileName} {
+      allow read: if true; // Public profile images
+      allow write: if isOwner(userId) && 
+                     isImageFile() && 
+                     isValidFileSize();
+      allow delete: if isOwner(userId);
     }
     
+    // User portfolio items
+    match /users/{userId}/portfolio/{portfolioId}/{fileName} {
+      allow read: if true; // Public portfolio
+      allow write: if isOwner(userId) && 
+                     isValidFileSize() &&
+                     (isImageFile() || isDocumentFile());
+      allow delete: if isOwner(userId);
+    }
+
     // Job attachments
-    match /jobs/{jobId}/{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+    match /jobs/{jobId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+                     isValidFileSize() &&
+                     isDocumentFile();
+      allow delete: if isAuthenticated();
+    }
+
+    // Proposal attachments
+    match /proposals/{proposalId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+                     isValidFileSize() &&
+                     isDocumentFile();
+      allow delete: if isAuthenticated();
     }
     
-    // Proposal attachments
-    match /proposals/{proposalId}/{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+    // Message attachments
+    match /messages/{conversationId}/{messageId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+                     isValidFileSize();
+      allow delete: if false; // Messages should not be deleted
     }
-        // Secure ID verification documents
+    
+    // Contract documents
+    match /contracts/{contractId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+                     isValidFileSize() &&
+                     isDocumentFile();
+      allow delete: if false; // Contract documents should not be deleted
+    }
+    
+    // Secure ID verification documents
     match /verification/{userId}/{document} {
       // Only the user and admin can read
       allow read: if request.auth != null && 
-        (request.auth.uid == userId || 
-         request.auth.token.admin == true);
+                    (request.auth.uid == userId || 
+                     request.auth.token.admin == true);
       // Only the user can upload
-      allow write: if request.auth != null && 
-        request.auth.uid == userId &&
-        request.resource.size < 10 * 1024 * 1024; // 10MB limit
+      allow write: if isOwner(userId) &&
+                     isValidFileSize() &&
+                     (isImageFile() || isDocumentFile());
+      allow delete: if false; // Verification documents should not be deleted
+    }
+    
+    // Temporary uploads (for file processing)
+    match /temp/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && 
+                     isValidFileSize();
+      allow delete: if isOwner(userId);
     }
   }
 }

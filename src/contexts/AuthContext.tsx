@@ -2,21 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged, User, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
-
-interface UserData {
-  uid: string;
-  email: string;
-  displayName: string;
-  photoURL?: string;
-  userType: 'freelancer' | 'client' | 'both';
-  profileCompleted?: boolean;
-  bio?: string;
-  skills?: string[];
-  hourlyRate?: number;
-  location?: string;
-  companyName?: string;
-  isAvailable?: boolean;
-}
+import { UserData } from '../types/user.types';
 
 interface AuthContextType {
   user: User | null;
@@ -68,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const unsubscribeUserData = onSnapshot(userDocRef, (doc) => {
         if (doc.exists()) {
-          const data = doc.data() as UserData;
+          const data = doc.data();
           setUserData({
             uid: firebaseUser.uid,
             email: firebaseUser.email || '',
@@ -82,6 +68,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             location: data.location || '',
             companyName: data.companyName || '',
             isAvailable: data.isAvailable !== undefined ? data.isAvailable : true,
+            portfolio: data.portfolio || '',
+            experienceLevel: data.experienceLevel || 'intermediate',
+            languages: data.languages || ['English'],
+            rating: data.rating || 0,
+            completedProjects: data.completedProjects || 0,
+            totalEarnings: data.totalEarnings || 0,
+            totalSpent: data.totalSpent || 0,
+            activeJobs: data.activeJobs || 0,
+            industry: data.industry || '',
+            createdAt: data.createdAt?.toDate() || new Date(),
+            updatedAt: data.updatedAt?.toDate() || new Date(),
+            lastActive: data.lastActive?.toDate() || new Date(),
+            isVerified: data.isVerified || false,
+            isBlocked: data.isBlocked || false,
+            notifications: data.notifications || {
+              email: true,
+              push: true,
+              sms: false
+            },
+            subscription: data.subscription
           });
         }
         setLoading(false);

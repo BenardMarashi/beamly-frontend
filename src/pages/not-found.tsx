@@ -1,31 +1,80 @@
-import React from "react";
-import { Button } from "@heroui/react";
-import { Icon } from "@iconify/react";
-import { Link } from "react-router-dom";
-import { BeamlyLogo } from "../components/beamly-logo"; // Add missing BeamlyLogo import
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Button } from '@nextui-org/react';
+import { Icon } from '@iconify/react';
+import { useNavigate } from 'react-router-dom';
 
 export const NotFoundPage: React.FC = () => {
+  const navigate = useNavigate();
+  
   return (
-    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center px-4 py-12">
-      <div className="glass-effect p-8 max-w-md w-full text-center">
-        <Icon icon="lucide:file-question" className="mx-auto mb-6 text-6xl text-beamly-secondary" />
-        <h1 className="text-3xl font-bold text-white mb-2">404</h1>
-        <h2 className="text-xl font-semibold text-white mb-4">Page Not Found</h2>
-        <p className="text-gray-300 mb-6">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <Button
-          as={Link}
-          to="/"
-          color="secondary"
-          className="text-beamly-third font-medium"
-          startContent={<Icon icon="lucide:home" />}
+    <div className="min-h-screen bg-mesh flex items-center justify-center px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center max-w-2xl mx-auto"
+      >
+        <motion.div
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mb-8"
         >
-          Go Back Home
-        </Button>
-      </div>
+          <Icon 
+            icon="lucide:file-x" 
+            className="text-gray-400 mx-auto mb-4" 
+            width={120} 
+          />
+          <h1 className="text-8xl font-bold text-white mb-4">404</h1>
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <h2 className="text-3xl font-semibold text-white mb-4">
+            Page Not Found
+          </h2>
+          <p className="text-gray-400 mb-8 text-lg">
+            Oops! The page you're looking for doesn't exist. It might have been moved or deleted.
+          </p>
+          
+          <div className="flex gap-4 justify-center">
+            <Button
+              color="primary"
+              size="lg"
+              startContent={<Icon icon="lucide:home" />}
+              onClick={() => navigate('/')}
+            >
+              Go Home
+            </Button>
+            <Button
+              variant="bordered"
+              size="lg"
+              startContent={<Icon icon="lucide:arrow-left" />}
+              onClick={() => navigate(-1)}
+            >
+              Go Back
+            </Button>
+          </div>
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="mt-12"
+        >
+          <p className="text-gray-500 text-sm">
+            If you believe this is an error, please{' '}
+            <a href="/contact" className="text-primary hover:underline">
+              contact support
+            </a>
+          </p>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };
-
-export default NotFoundPage;
