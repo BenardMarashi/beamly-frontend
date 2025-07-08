@@ -1,17 +1,8 @@
-import { initializeApp, FirebaseApp } from 'firebase/app';
-import { 
-  getAuth, 
-  Auth, 
-  connectAuthEmulator,
-  setPersistence,
-  browserLocalPersistence 
-} from 'firebase/auth';
-import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getFunctions, Functions, connectFunctionsEmulator } from 'firebase/functions';
-import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
-import { getAnalytics, Analytics } from 'firebase/analytics';
+import { initializeApp } from 'firebase/app';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
-// Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -22,49 +13,52 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
-let functions: Functions;
-let storage: FirebaseStorage;
-let analytics: Analytics | null = null;
+// Validate config
+const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+const missingFields = requiredFields.filter(field => !firebaseConfig[field as keyof typeof firebaseConfig]);
 
+if (missingFields.length > 0) {
+  console.error('Missing Firebase configuration fields:', missingFields);
+  console.error('Make sure your .env file contains all required VITE_FIREBASE_* variables');
+}
+
+// Initialize Firebase
+let app;
 try {
   app = initializeApp(firebaseConfig);
-  
-  // Initialize services
-  auth = getAuth(app);
-  db = getFirestore(app);
-  functions = getFunctions(app, 'us-central1');
-  storage = getStorage(app);
-  
-  // Set auth persistence to LOCAL (persists even after browser close)
-  setPersistence(auth, browserLocalPersistence).catch(console.error);
-  
-  // Analytics - only in production
-  if (import.meta.env.PROD && typeof window !== 'undefined') {
-    analytics = getAnalytics(app);
-  }
-  
-  // Connect to emulators in development
-  if (import.meta.env.DEV) {
-    const shouldUseEmulator = localStorage.getItem('useEmulator') === 'true';
-    
-    if (shouldUseEmulator) {
-      connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-      connectFirestoreEmulator(db, 'localhost', 8080);
-      connectFunctionsEmulator(functions, 'localhost', 5001);
-      connectStorageEmulator(storage, 'localhost', 9199);
-      console.log('🔧 Connected to Firebase emulators');
-    }
-  }
-  
   console.log('✅ Firebase initialized successfully');
-  
 } catch (error) {
-  console.error('❌ Firebase initialization error:', error);
+  console.error('❌ Failed to initialize Firebase:', error);
   throw error;
 }
 
-export { app, auth, db, functions, storage, analytics };
+// Initialize services
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+
+// Connect to emulators if in development
+if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
+  try {
+    // Check if emulators are already connected
+    if (!auth.emulatorConfig) {
+      connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    }
+    
+    // @ts-ignore - Firestore doesn't expose emulator connection status
+    if (!db._settings?.host?.includes('localhost:8080')) {
+      connectFirestoreEmulator(db, 'localhost', 8080);
+    }
+    
+    // @ts-ignore - Storage doesn't expose emulator connection status
+    if (!storage._delegate?._host?.includes('localhost:9199')) {
+      connectStorageEmulator(storage, 'localhost', 9199);
+    }
+    
+    console.log('✅ Connected to Firebase emulators');
+  } catch (error) {
+    console.warn('⚠️ Failed to connect to Firebase emulators:', error);
+  }
+}
+
+export default app;

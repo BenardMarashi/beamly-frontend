@@ -1,113 +1,52 @@
 import { useState } from 'react';
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut as firebaseSignOut,
-  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
   signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
   updateProfile,
-  setPersistence,
-  browserLocalPersistence
+  User
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 
-// Updated Google Auth configuration
+// Initialize Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({
-  prompt: 'select_account' // Always prompt for account selection
-});
 
-// Helper to create/update user document
-async function createOrUpdateUserDocument(user: any, additionalData?: any) {
-  const userRef = doc(db, 'users', user.uid);
-  
-  try {
-    const userSnap = await getDoc(userRef);
-    
-    if (!userSnap.exists()) {
-      // New user - create complete profile
-      const userData = {
-        uid: user.uid,
-        email: user.email || '',
-        displayName: additionalData?.displayName || user.displayName || '',
-        photoURL: user.photoURL || '',
-        userType: additionalData?.userType || 'both',
-        profileCompleted: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        lastActive: serverTimestamp(),
-        
-        // Initialize all fields
-        bio: '',
-        skills: [],
-        hourlyRate: 0,
-        location: '',
-        companyName: '',
-        industry: '',
-        
-        // System fields
-        completedProjects: 0,
-        rating: 0,
-        totalEarnings: 0,
-        totalSpent: 0,
-        isVerified: false,
-        isBlocked: false,
-        isAvailable: true,
-        
-        // Notification preferences
-        notifications: {
-          email: true,
-          push: true,
-          sms: false
-        },
-        
-        ...additionalData
-      };
-      
-      await setDoc(userRef, userData);
-      console.log('User document created with type:', userData.userType);
-    } else {
-      // Existing user - update last active
-      const updates: any = {
-        lastActive: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-      
-      // If userType is missing, add it
-      const existingData = userSnap.data();
-      if (!existingData.userType) {
-        updates.userType = additionalData?.userType || 'both';
-      }
-      
-      await setDoc(userRef, updates, { merge: true });
-    }
-  } catch (error) {
-    console.error('Error creating/updating user document:', error);
-    throw error;
-  }
-}
-
-// Sign In Hook
 export const useSignIn = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const signInWithEmail = async (email: string, password: string) => {
+  const signInWithEmail = async (email: string, password: string): Promise<User | null> => {
     setLoading(true);
     setError(null);
     
     try {
-      await setPersistence(auth, browserLocalPersistence);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Update last active
-      await createOrUpdateUserDocument(userCredential.user);
+      // Update last active timestamp
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        lastActive: serverTimestamp()
+      }, { merge: true });
       
+      toast.success('Successfully signed in!');
       return userCredential.user;
     } catch (err: any) {
-      const errorMessage = getAuthErrorMessage(err.code);
+      console.error('Sign in error:', err);
+      let errorMessage = 'Failed to sign in';
+      
+      if (err.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email';
+      } else if (err.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later';
+      }
+      
       setError(errorMessage);
       toast.error(errorMessage);
       return null;
@@ -116,39 +55,75 @@ export const useSignIn = () => {
     }
   };
   
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (): Promise<User | null> => {
     setLoading(true);
     setError(null);
     
     try {
-      await setPersistence(auth, browserLocalPersistence);
       const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
       
-      // Create or update user document
-      await createOrUpdateUserDocument(result.user);
+      // Check if user exists in database
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
       
-      return result.user;
-    } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        const errorMessage = getAuthErrorMessage(err.code);
-        setError(errorMessage);
-        toast.error(errorMessage);
+      if (!userDoc.exists()) {
+        // New user - create profile
+        await setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || '',
+          userType: 'both', // Default to both for new Google users
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          lastActive: serverTimestamp(),
+          profileCompleted: false,
+          isVerified: user.emailVerified || false,
+          completedProjects: 0,
+          rating: 0,
+          totalEarnings: 0,
+          totalSpent: 0,
+          isBlocked: false,
+          notifications: {
+            email: true,
+            push: true,
+            sms: false
+          }
+        });
+        toast.success('Account created successfully!');
+      } else {
+        // Existing user - update last active
+        await setDoc(doc(db, 'users', user.uid), {
+          lastActive: serverTimestamp(),
+          photoURL: user.photoURL || userDoc.data().photoURL // Update photo if changed
+        }, { merge: true });
+        toast.success('Welcome back!');
       }
+      
+      return user;
+    } catch (err: any) {
+      console.error('Google sign in error:', err);
+      let errorMessage = 'Failed to sign in with Google';
+      
+      if (err.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign in cancelled';
+      } else if (err.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup blocked by browser. Please allow popups for this site';
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        errorMessage = 'Another popup is already open';
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
       return null;
     } finally {
       setLoading(false);
     }
   };
   
-  return {
-    signInWithEmail,
-    signInWithGoogle,
-    loading,
-    error
-  };
+  return { signInWithEmail, signInWithGoogle, loading, error };
 };
 
-// Sign Up Hook
 export const useSignUp = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -157,27 +132,57 @@ export const useSignUp = () => {
     email: string, 
     password: string, 
     displayName: string, 
-    userType: 'freelancer' | 'client' | 'both' = 'both'
-  ) => {
+    userType: 'freelancer' | 'client' | 'both'
+  ): Promise<User | null> => {
     setLoading(true);
     setError(null);
     
     try {
-      await setPersistence(auth, browserLocalPersistence);
+      // Create user account
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
       
       // Update display name
-      await updateProfile(userCredential.user, { displayName });
+      await updateProfile(user, { displayName });
       
-      // Create user document with correct type
-      await createOrUpdateUserDocument(userCredential.user, { 
-        displayName, 
-        userType
+      // Create user document in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        email: user.email,
+        displayName,
+        photoURL: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0F43EE&color=fff`,
+        userType,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastActive: serverTimestamp(),
+        profileCompleted: false,
+        isVerified: false,
+        completedProjects: 0,
+        rating: 0,
+        totalEarnings: 0,
+        totalSpent: 0,
+        isBlocked: false,
+        notifications: {
+          email: true,
+          push: true,
+          sms: false
+        }
       });
       
-      return userCredential.user;
+      toast.success('Account created successfully!');
+      return user;
     } catch (err: any) {
-      const errorMessage = getAuthErrorMessage(err.code);
+      console.error('Sign up error:', err);
+      let errorMessage = 'Failed to create account';
+      
+      if (err.code === 'auth/email-already-in-use') {
+        errorMessage = 'An account with this email already exists';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (err.code === 'auth/weak-password') {
+        errorMessage = 'Password should be at least 6 characters';
+      }
+      
       setError(errorMessage);
       toast.error(errorMessage);
       return null;
@@ -186,56 +191,25 @@ export const useSignUp = () => {
     }
   };
   
-  return {
-    signUp,
-    loading,
-    error
-  };
+  return { signUp, loading, error };
 };
 
-// Sign Out Hook
 export const useSignOut = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   
-  const signOut = async () => {
+  const signOutUser = async () => {
     setLoading(true);
-    setError(null);
     
     try {
-      await firebaseSignOut(auth);
-      console.log('User signed out');
-    } catch (err: any) {
-      const errorMessage = getAuthErrorMessage(err.code);
-      setError(errorMessage);
-      toast.error(errorMessage);
+      await signOut(auth);
+      toast.success('Signed out successfully');
+    } catch (err) {
+      console.error('Sign out error:', err);
+      toast.error('Failed to sign out');
     } finally {
       setLoading(false);
     }
   };
   
-  return {
-    signOut,
-    loading,
-    error
-  };
+  return { signOut: signOutUser, loading };
 };
-
-// Error message helper
-function getAuthErrorMessage(code: string): string {
-  const errorMap: { [key: string]: string } = {
-    'auth/email-already-in-use': 'This email is already registered.',
-    'auth/invalid-email': 'Invalid email address.',
-    'auth/operation-not-allowed': 'Email/password accounts are not enabled.',
-    'auth/weak-password': 'Password should be at least 6 characters.',
-    'auth/user-disabled': 'This account has been disabled.',
-    'auth/user-not-found': 'No account found with this email.',
-    'auth/wrong-password': 'Incorrect password.',
-    'auth/invalid-credential': 'Invalid email or password.',
-    'auth/popup-closed-by-user': 'Sign-in was cancelled.',
-    'auth/network-request-failed': 'Network error. Please check your connection.',
-    'auth/too-many-requests': 'Too many failed attempts. Please try again later.'
-  };
-  
-  return errorMap[code] || 'An error occurred. Please try again.';
-}

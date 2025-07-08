@@ -1,155 +1,157 @@
-import React from "react";
-import { Route, Routes, useNavigate, useLocation } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { lazy, Suspense } from "react";
-import { Spinner } from "@nextui-org/react";
+import React, { Suspense, lazy, useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { NextUIProvider } from '@nextui-org/react';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/theme-context';
+import { MainLayout } from './layouts/main-layout';
+import { ProtectedRoute } from './components/protected-route';
+import { NotFoundPage } from './pages/not-found';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './lib/firebase';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
-// Layouts
-import { MainLayout } from "./layouts/main-layout";
-import { DashboardLayout } from "./layouts/dashboard-layout";
+// Direct imports for pages that export as default
+import HomePage from './pages/home';
+import DashboardPage from './pages/dashboard';
+import LoginPage from './pages/login';
+import SignupPage from './pages/signup';
+import ForgotPasswordPage from './pages/forgot-password';
 
-// Add missing ProtectedRoute import
-import { ProtectedRoute } from "./components/protected-route";
-
-// Pages
-import { HomePage } from "./pages/home";
-import { LoginPage } from "./pages/login";
-import { SignupPage } from "./pages/signup";
-import { BrowseFreelancersPage } from "./pages/browse-freelancers";
-import { LookingForWorkPage } from "./pages/looking-for-work";
-import { JobDetailsPage } from "./pages/job-details";
-import { FreelancerProfilePage } from "./pages/freelancer-profile";
-import { NotFoundPage } from "./pages/not-found";
-import { MenuPage } from "./pages/menu";
-import { ContactPage } from "./pages/contact";
-import { HelpPage } from "./pages/help";
-import { PrivacyPolicyPage } from "./pages/privacy";
-import { TermsOfServicePage } from "./pages/terms";
-import { LandingPage } from "./components/landing-page";
-
-// Theme
-import { ThemeProvider } from "./contexts/theme-context";
-
-// Optimize routing with lazy loading for better performance
-const DashboardPage = lazy(() => import('./pages/dashboard').then(mod => ({ default: mod.DashboardPage })));
-const PostJobPage = lazy(() => import('./pages/post-job').then(mod => ({ default: mod.PostJobPage })));
-const ChatPage = lazy(() => import('./pages/chat').then(mod => ({ default: mod.ChatPage })));
-const NotificationsPage = lazy(() => import('./pages/notifications').then(mod => ({ default: mod.NotificationsPage })));
-const BillingPage = lazy(() => import('./pages/billing').then(mod => ({ default: mod.BillingPage })));
-const SettingsPage = lazy(() => import('./pages/settings').then(mod => ({ default: mod.SettingsPage })));
+// Lazy imports for pages with named exports
+const BrowseFreelancersPage = lazy(() => import('./pages/browse-freelancers').then(m => ({ default: m.BrowseFreelancersPage })));
+const LookingForWorkPage = lazy(() => import('./pages/looking-for-work').then(m => ({ default: m.LookingForWorkPage })));
+const JobDetailsPage = lazy(() => import('./pages/job-details').then(m => ({ default: m.JobDetailsPage })));
+const PostJobPage = lazy(() => import('./pages/post-job').then(m => ({ default: m.PostJobPage })));
+const CreateProfilePage = lazy(() => import('./pages/create-profile').then(m => ({ default: m.CreateProfilePage })));
+const EditProfilePage = lazy(() => import('./pages/profile/edit').then(m => ({ default: m.EditProfilePage })));
+const ManageJobsPage = lazy(() => import('./pages/jobs/manage').then(m => ({ default: m.ManageJobsPage })));
+const ProposalsPage = lazy(() => import('./pages/proposals'));
+const ContractsPage = lazy(() => import('./pages/contracts'));
+const AnalyticsPage = lazy(() => import('./pages/analytics'));
+const ChatPage = lazy(() => import('./pages/chat'));
+const NotificationsPage = lazy(() => import('./pages/notifications'));
+const BillingPage = lazy(() => import('./pages/billing'));
+const SettingsPage = lazy(() => import('./pages/settings'));
 
 const LoadingFallback = () => (
-  <div className="flex justify-center items-center h-screen">
-    <Spinner color="secondary" size="lg" />
+  <div className="flex justify-center items-center h-screen bg-mesh">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+      <p className="text-gray-400">Loading...</p>
+    </div>
   </div>
 );
 
-const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const { i18n } = useTranslation();
-  const navigate = useNavigate();
-  const location = useLocation();
+const AppContent: React.FC = () => {
+  const { user, loading } = useAuth();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Simulate initial loading
-  React.useEffect(() => {
-    console.log('App component mounted');
-    
-    // Check if user is logged in (you can add Firebase auth check here)
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
+    });
+    return unsubscribe;
   }, []);
 
-  // Handle login/logout
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-    navigate("/dashboard");
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    navigate("/");
-  };
-
-  // Apply theme class based on stored preference
-  React.useEffect(() => {
-    const storedTheme = localStorage.getItem('theme');
-    if (storedTheme) {
-      if (storedTheme === 'dark') {
-        document.body.className = 'dark-mode';
-      } else if (storedTheme === 'light') {
-        document.body.className = 'light-mode';
-      } else if (storedTheme === 'system') {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.body.className = prefersDark ? 'dark-mode' : 'light-mode';
-      }
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      setIsLoggedIn(false);
+    } catch (error) {
+      console.error('Logout error:', error);
     }
-  }, []);
+  };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Spinner color="secondary" size="lg" />
-      </div>
-    );
+  if (loading) {
+    return <LoadingFallback />;
   }
 
   return (
-    <ThemeProvider>
+    <Router>
       <Routes>
         {/* Public routes */}
-        <Route element={<MainLayout isLoggedIn={isLoggedIn} onLogout={handleLogout} />}>
-          {/* Make landing page the root and move home to protected routes */}
-          <Route path="/" element={<LandingPage setCurrentPage={(page) => navigate(`/${page}`)} />} />
-          <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
-          <Route path="/signup" element={<SignupPage onSignup={handleLogin} />} />
-          <Route path="/browse-freelancers" element={<BrowseFreelancersPage />} />
-          <Route path="/looking-for-work" element={<LookingForWorkPage />} />
-          <Route path="/job/:id" element={<JobDetailsPage />} />
-          <Route path="/freelancer/:id" element={<FreelancerProfilePage />} />
-          <Route path="/menu" element={<MenuPage isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
-          
-          {/* Footer pages */}
-          <Route path="/contact-us" element={<ContactPage />} />
-          <Route path="/help-support" element={<HelpPage />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-          <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+        <Route path="/" element={<MainLayout isLoggedIn={isLoggedIn} onLogout={handleLogout} />}>
+          <Route index element={
+            <Suspense fallback={<LoadingFallback />}>
+              <HomePage />
+            </Suspense>
+          } />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="signup" element={<SignupPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="browse-freelancers" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <BrowseFreelancersPage />
+            </Suspense>
+          } />
+          <Route path="looking-for-work" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <LookingForWorkPage />
+            </Suspense>
+          } />
+          <Route path="jobs/:id" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <JobDetailsPage />
+            </Suspense>
+          } />
         </Route>
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute isLoggedIn={isLoggedIn} />}>
-          <Route element={<DashboardLayout />}>
-            {/* Add HomePage as a protected route */}
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/dashboard" element={
-              <Suspense fallback={<LoadingFallback />}>
-                <DashboardPage />
-              </Suspense>
-            } />
-            <Route path="/jobs/new" element={
+          <Route element={<MainLayout isLoggedIn={isLoggedIn} onLogout={handleLogout} />}>
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="post-job" element={
               <Suspense fallback={<LoadingFallback />}>
                 <PostJobPage />
               </Suspense>
             } />
-            <Route path="/chat/:conversationId" element={
+            <Route path="create-profile" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <CreateProfilePage />
+              </Suspense>
+            } />
+            <Route path="profile/edit" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <EditProfilePage />
+              </Suspense>
+            } />
+            <Route path="jobs/manage" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ManageJobsPage />
+              </Suspense>
+            } />
+            <Route path="proposals" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ProposalsPage />
+              </Suspense>
+            } />
+            <Route path="contracts" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <ContractsPage />
+              </Suspense>
+            } />
+            <Route path="analytics" element={
+              <Suspense fallback={<LoadingFallback />}>
+                <AnalyticsPage />
+              </Suspense>
+            } />
+            <Route path="chat" element={
               <Suspense fallback={<LoadingFallback />}>
                 <ChatPage />
               </Suspense>
             } />
-            <Route path="/notifications" element={
+            <Route path="notifications" element={
               <Suspense fallback={<LoadingFallback />}>
                 <NotificationsPage />
               </Suspense>
             } />
-            <Route path="/billing" element={
+            <Route path="billing" element={
               <Suspense fallback={<LoadingFallback />}>
                 <BillingPage />
               </Suspense>
             } />
-            <Route path="/settings" element={
+            <Route path="settings" element={
               <Suspense fallback={<LoadingFallback />}>
                 <SettingsPage />
               </Suspense>
@@ -157,10 +159,37 @@ const App: React.FC = () => {
           </Route>
         </Route>
 
-        {/* 404 fallback */}
+        {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-    </ThemeProvider>
+    </Router>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <NextUIProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Suspense fallback={<LoadingFallback />}>
+              <AppContent />
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#1f2937',
+                    color: '#fff',
+                    border: '1px solid #374151',
+                  },
+                }}
+              />
+            </Suspense>
+          </AuthProvider>
+        </ThemeProvider>
+      </NextUIProvider>
+    </ErrorBoundary>
   );
 };
 

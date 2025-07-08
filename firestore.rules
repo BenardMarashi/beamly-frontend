@@ -1,34 +1,53 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
+    // ========================================
+    // HELPER FUNCTIONS
+    // ========================================
+    
+    // Basic authentication check
     function isAuthenticated() {
       return request.auth != null;
     }
     
+    // Check if user owns the resource
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
+    // Get current user's data
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
     
+    // Check if user exists
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+    
+    // User type checks
     function isFreelancer() {
-      return isAuthenticated() && getUserData().userType in ['freelancer', 'both'];
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             getUserData().userType in ['freelancer', 'both'];
     }
     
     function isClient() {
-      return isAuthenticated() && getUserData().userType in ['client', 'both'];
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             getUserData().userType in ['client', 'both'];
     }
     
     function isBoth() {
-      return isAuthenticated() && getUserData().userType == 'both';
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             getUserData().userType == 'both';
     }
     
-    // New helper functions for profile completion
+    // Profile completion checks
     function hasCompleteProfile() {
       return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              getUserData().profileCompleted == true;
     }
     
@@ -45,156 +64,352 @@ service cloud.firestore {
              getUserData().hourlyRate > 0;
     }
     
+    function hasClientProfile() {
+      return hasBasicProfile() &&
+             (getUserData().companyName != null || getUserData().userType == 'both');
+    }
+    
+    // Verification and trust checks
     function isVerified() {
       return isAuthenticated() && 
-             getUserData().verificationStatus == 'verified';
+             getUserData().isVerified == true;
     }
     
-    // Users collection
+    function isNotBlocked() {
+      return isAuthenticated() && 
+             (getUserData().isBlocked == false || 
+              getUserData().isBlocked == null);
+    }
+    
+    // Job validation
+    function isValidJob(data) {
+      return data.title != null && data.title.size() >= 10 &&
+             data.description != null && data.description.size() >= 50 &&
+             data.category != null &&
+             data.skills.size() > 0 &&
+             data.budgetMin > 0 &&
+             data.budgetMax >= data.budgetMin &&
+             data.clientId == request.auth.uid;
+    }
+    
+    // Proposal validation
+    function isValidProposal(data) {
+      return data.coverLetter != null && data.coverLetter.size() >= 50 &&
+             data.proposedRate > 0 &&
+             data.freelancerId == request.auth.uid &&
+             exists(/databases/$(database)/documents/jobs/$(data.jobId));
+    }
+    
+    // Check if user already proposed to a job
+    function hasNotProposed(jobId) {
+      return !exists(/databases/$(database)/documents/proposals/$(jobId + '_' + request.auth.uid));
+    }
+    
+    // ========================================
+    // USERS COLLECTION
+    // ========================================
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || 
-                      (isAuthenticated() && request.resource.data.keys().hasOnly(['lastActive']));
-      allow delete: if false; // Users cannot be deleted
+      // Anyone can read public profile info
+      allow read: if true;
       
-      // Prevent changing userType for freelancers
-      allow update: if isOwner(userId) && (
-        !resource.data.keys().hasAll(['userType']) || 
-        resource.data.userType == request.resource.data.userType ||
-        resource.data.userType != 'freelancer'
+      // Only the user can create their own profile
+      allow create: if isOwner(userId) &&
+                      request.resource.data.email == request.auth.token.email &&
+                      request.resource.data.userType in ['freelancer', 'client', 'both'];
+      
+      // Users can update their own profile with restrictions
+      allow update: if isOwner(userId) && isNotBlocked() && (
+        // Prevent changing critical fields
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'email', 'createdAt'])) &&
+        // Freelancers cannot change to client-only
+        (resource.data.userType != 'freelancer' || request.resource.data.userType != 'client') &&
+        // Clients cannot change to freelancer-only
+        (resource.data.userType != 'client' || request.resource.data.userType != 'freelancer')
       );
+      
+      // Allow other users to update lastMessageTime for chat
+      allow update: if isAuthenticated() && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessageTime']);
+      
+      // Users cannot be deleted
+      allow delete: if false;
     }
     
-    // Jobs collection - Updated with profile completion check
+    // ========================================
+    // JOBS COLLECTION
+    // ========================================
     match /jobs/{jobId} {
+      // Anyone authenticated can read jobs
       allow read: if isAuthenticated();
+      
+      // Only clients with complete profiles can create jobs
       allow create: if isClient() && 
                       hasCompleteProfile() &&
-                      request.auth.uid == request.resource.data.clientId;
+                      hasClientProfile() &&
+                      isNotBlocked() &&
+                      isValidJob(request.resource.data) &&
+                      request.resource.data.status == 'open';
+      
+      // Only job owner can update
       allow update: if isAuthenticated() && 
-                      resource.data.clientId == request.auth.uid;
+                      resource.data.clientId == request.auth.uid && (
+        // Prevent changing ownership
+        request.resource.data.clientId == resource.data.clientId &&
+        // Validate status transitions
+        (
+          (resource.data.status == 'open' && request.resource.data.status in ['open', 'in-progress', 'cancelled']) ||
+          (resource.data.status == 'in-progress' && request.resource.data.status in ['in-progress', 'completed', 'disputed']) ||
+          (resource.data.status == 'completed' && request.resource.data.status == 'completed') ||
+          (resource.data.status == 'cancelled' && request.resource.data.status == 'cancelled')
+        )
+      );
+      
+      // Only job owner can delete (soft delete preferred)
       allow delete: if isAuthenticated() && 
-                      resource.data.clientId == request.auth.uid;
+                      resource.data.clientId == request.auth.uid &&
+                      resource.data.status in ['open', 'cancelled'];
     }
     
-    // Proposals collection - Updated with profile completion check
+    // ========================================
+    // PROPOSALS COLLECTION
+    // ========================================
     match /proposals/{proposalId} {
+      // Freelancer and client can read
       allow read: if isAuthenticated() && 
                     (resource.data.freelancerId == request.auth.uid || 
                      resource.data.clientId == request.auth.uid);
+      
+      // Only freelancers with complete profiles can create proposals
       allow create: if isFreelancer() && 
                       hasCompleteProfile() &&
                       hasFreelancerProfile() &&
-                      request.auth.uid == request.resource.data.freelancerId;
-      allow update: if isAuthenticated() && 
-                      (resource.data.freelancerId == request.auth.uid || 
-                       resource.data.clientId == request.auth.uid);
+                      isNotBlocked() &&
+                      isValidProposal(request.resource.data) &&
+                      hasNotProposed(request.resource.data.jobId) &&
+                      request.resource.data.status == 'pending';
+      
+      // Freelancer can update their proposal, client can accept/reject
+      allow update: if isAuthenticated() && isNotBlocked() && (
+        // Freelancer can withdraw
+        (resource.data.freelancerId == request.auth.uid && 
+         resource.data.status == 'pending' &&
+         request.resource.data.status == 'withdrawn') ||
+        // Client can accept/reject
+        (resource.data.clientId == request.auth.uid &&
+         resource.data.status == 'pending' &&
+         request.resource.data.status in ['accepted', 'rejected'])
+      );
+      
+      // Only freelancer can delete their pending proposal
       allow delete: if isAuthenticated() && 
-                      resource.data.freelancerId == request.auth.uid;
+                      resource.data.freelancerId == request.auth.uid &&
+                      resource.data.status == 'pending';
     }
     
-    // Contracts collection
+    // ========================================
+    // CONTRACTS COLLECTION
+    // ========================================
     match /contracts/{contractId} {
+      // Parties can read their contracts
       allow read: if isAuthenticated() && 
                     (resource.data.freelancerId == request.auth.uid || 
                      resource.data.clientId == request.auth.uid);
+      
+      // Only clients can create contracts
       allow create: if isClient() && 
                       hasCompleteProfile() &&
-                      request.auth.uid == request.resource.data.clientId;
-      allow update: if isAuthenticated() && 
-                      (resource.data.freelancerId == request.auth.uid || 
-                       resource.data.clientId == request.auth.uid);
-      allow delete: if false; // Contracts cannot be deleted
+                      isNotBlocked() &&
+                      request.auth.uid == request.resource.data.clientId &&
+                      userExists(request.resource.data.freelancerId) &&
+                      request.resource.data.status == 'active';
+      
+      // Both parties can update certain fields
+      allow update: if isAuthenticated() && isNotBlocked() && (
+        // Client can update contract details
+        (resource.data.clientId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status', 'endDate', 'totalAmount', 'updatedAt'])) ||
+        // Freelancer can update their acceptance
+        (resource.data.freelancerId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['freelancerAccepted', 'updatedAt']))
+      );
+      
+      // Contracts cannot be deleted
+      allow delete: if false;
     }
     
-    // Messages collection
-    match /messages/{messageId} {
-      allow read: if isAuthenticated() && 
-                    (resource.data.senderId == request.auth.uid || 
-                     resource.data.recipientId == request.auth.uid);
-      allow create: if isAuthenticated() && 
-                      request.auth.uid == request.resource.data.senderId;
-      allow update: if isAuthenticated() && 
-                      resource.data.recipientId == request.auth.uid && 
-                      request.resource.data.keys().hasOnly(['status', 'readAt']);
-      allow delete: if false; // Messages cannot be deleted
-    }
-    
-    // Conversations collection
+    // ========================================
+    // CONVERSATIONS COLLECTION
+    // ========================================
     match /conversations/{conversationId} {
+      // Participants can read
       allow read: if isAuthenticated() && 
                     request.auth.uid in resource.data.participants;
+      
+      // Authenticated users can create conversations
       allow create: if isAuthenticated() && 
-                      request.auth.uid in request.resource.data.participants;
+                      hasCompleteProfile() &&
+                      isNotBlocked() &&
+                      request.auth.uid in request.resource.data.participants &&
+                      request.resource.data.participants.size() == 2;
+      
+      // Participants can update last message info
       allow update: if isAuthenticated() && 
-                      request.auth.uid in resource.data.participants;
-      allow delete: if false; // Conversations cannot be deleted
+                      request.auth.uid in resource.data.participants &&
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['lastMessage', 'lastMessageTime', 'unreadCount']);
+      
+      // Conversations cannot be deleted
+      allow delete: if false;
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Participants can read messages
+        allow read: if isAuthenticated() && 
+                      request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        
+        // Participants can send messages
+        allow create: if isAuthenticated() && 
+                        isNotBlocked() &&
+                        request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+                        request.auth.uid == request.resource.data.senderId;
+        
+        // Only recipient can mark as read
+        allow update: if isAuthenticated() && 
+                        request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+                        request.auth.uid != resource.data.senderId &&
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+        
+        // Messages cannot be deleted
+        allow delete: if false;
+      }
     }
     
-    // Notifications collection
+    // ========================================
+    // NOTIFICATIONS COLLECTION
+    // ========================================
     match /notifications/{notificationId} {
+      // Users can read their own notifications
       allow read: if isAuthenticated() && 
                     resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated();
+      
+      // System can create notifications (in practice, use Cloud Functions)
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId != null &&
+                      userExists(request.resource.data.userId);
+      
+      // Users can mark their notifications as read
       allow update: if isAuthenticated() && 
-                      resource.data.userId == request.auth.uid && 
-                      request.resource.data.keys().hasOnly(['read', 'readAt']);
+                      resource.data.userId == request.auth.uid &&
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['read', 'readAt']);
+      
+      // Users can delete their notifications
       allow delete: if isAuthenticated() && 
                       resource.data.userId == request.auth.uid;
     }
     
-    // Reviews collection
+    // ========================================
+    // REVIEWS COLLECTION
+    // ========================================
     match /reviews/{reviewId} {
-      allow read: if isAuthenticated();
+      // Public can read reviews
+      allow read: if true;
+      
+      // Only users who completed a contract can review
       allow create: if isAuthenticated() && 
                       hasCompleteProfile() &&
-                      request.auth.uid == request.resource.data.reviewerId;
-      allow update: if false; // Reviews cannot be edited
-      allow delete: if false; // Reviews cannot be deleted
-    }
-    
-    // Transactions collection
-    match /transactions/{transactionId} {
-      allow read: if isAuthenticated() && 
-                    (resource.data.fromUserId == request.auth.uid || 
-                     resource.data.toUserId == request.auth.uid);
-      allow create: if false; // Only Cloud Functions can create transactions
-      allow update: if false; // Only Cloud Functions can update transactions
-      allow delete: if false; // Transactions cannot be deleted
-    }
-    
-    // Categories collection (public read)
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if false; // Only admins via console
-    }
-    
-    // Skills collection (public read)
-    match /skills/{skillId} {
-      allow read: if true;
-      allow write: if false; // Only admins via console
-    }
-    
-    // SavedJobs subcollection under users
-    match /users/{userId}/savedJobs/{savedJobId} {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId);
-    }
-    
-    // Freelancer profiles subcollection (if using separate collection)
-    match /freelancers/{freelancerId} {
-      allow read: if isAuthenticated();
-      allow create: if isOwner(freelancerId) && isFreelancer() && hasCompleteProfile();
-      allow update: if isOwner(freelancerId) && isFreelancer();
+                      isNotBlocked() &&
+                      request.auth.uid == request.resource.data.reviewerId &&
+                      exists(/databases/$(database)/documents/contracts/$(request.resource.data.contractId)) &&
+                      get(/databases/$(database)/documents/contracts/$(request.resource.data.contractId)).data.status == 'completed' &&
+                      (
+                        get(/databases/$(database)/documents/contracts/$(request.resource.data.contractId)).data.clientId == request.auth.uid ||
+                        get(/databases/$(database)/documents/contracts/$(request.resource.data.contractId)).data.freelancerId == request.auth.uid
+                      );
+      
+      // Reviews cannot be edited or deleted
+      allow update: if false;
       allow delete: if false;
     }
     
-    // Verification documents metadata (read-only for users)
-    match /verifications/{userId} {
-      allow read: if isOwner(userId) || 
-                    (isAuthenticated() && getUserData().isAdmin == true);
-      allow write: if false; // Only Cloud Functions can write
+    // ========================================
+    // TRANSACTIONS COLLECTION
+    // ========================================
+    match /transactions/{transactionId} {
+      // Parties can read their transactions
+      allow read: if isAuthenticated() && 
+                    (resource.data.freelancerId == request.auth.uid || 
+                     resource.data.clientId == request.auth.uid);
+      
+      // Only Cloud Functions can create/update transactions
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+    
+    // ========================================
+    // CATEGORIES COLLECTION
+    // ========================================
+    match /categories/{categoryId} {
+      // Public read access
+      allow read: if true;
+      // Only admin through console
+      allow write: if false;
+    }
+    
+    // ========================================
+    // SKILLS COLLECTION
+    // ========================================
+    match /skills/{skillId} {
+      // Public read access
+      allow read: if true;
+      // Only admin through console
+      allow write: if false;
+    }
+    
+    // ========================================
+    // SAVED ITEMS (Subcollections)
+    // ========================================
+    match /users/{userId}/savedJobs/{savedJobId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && 
+                     exists(/databases/$(database)/documents/jobs/$(savedJobId));
+      allow delete: if isOwner(userId);
+    }
+    
+    match /users/{userId}/savedFreelancers/{savedFreelancerId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isClient() &&
+                     exists(/databases/$(database)/documents/users/$(savedFreelancerId));
+      allow delete: if isOwner(userId);
+    }
+    
+    // ========================================
+    // ANALYTICS/STATS (Read-only for users)
+    // ========================================
+    match /analytics/{docId} {
+      allow read: if isAuthenticated() && 
+                    (docId == request.auth.uid || 
+                     docId == 'platform');
+      allow write: if false; // Only Cloud Functions
+    }
+    
+    // ========================================
+    // REPORTS/FLAGS
+    // ========================================
+    match /reports/{reportId} {
+      // Users can create reports
+      allow create: if isAuthenticated() && 
+                      hasCompleteProfile() &&
+                      request.auth.uid == request.resource.data.reporterId &&
+                      request.resource.data.status == 'pending';
+      
+      // Only admins can read/update (implement admin check)
+      allow read: if false;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }

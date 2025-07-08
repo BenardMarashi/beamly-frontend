@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardBody, Button, Input, Textarea, Select, SelectItem, Chip } from '@heroui/react';
+import { Card, CardBody, Button, Input, Textarea, Select, SelectItem, Chip } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 
@@ -25,6 +25,13 @@ export const CreateProfilePage: React.FC = () => {
   });
   
   const [currentSkill, setCurrentSkill] = useState('');
+  const [currentLanguage, setCurrentLanguage] = useState('');
+  
+  const experienceLevels = [
+    { value: 'entry', label: 'Entry Level' },
+    { value: 'intermediate', label: 'Intermediate' },
+    { value: 'expert', label: 'Expert' }
+  ];
   
   useEffect(() => {
     if (!user) {
@@ -34,6 +41,42 @@ export const CreateProfilePage: React.FC = () => {
       navigate('/dashboard');
     }
   }, [user, isFreelancer, navigate]);
+  
+  const handleAddSkill = () => {
+    if (currentSkill.trim() && formData.skills.length < 10) {
+      setFormData({ 
+        ...formData, 
+        skills: [...formData.skills, currentSkill.trim()] 
+      });
+      setCurrentSkill('');
+    }
+  };
+  
+  const handleRemoveSkill = (skillToRemove: string) => {
+    setFormData({
+      ...formData,
+      skills: formData.skills.filter(skill => skill !== skillToRemove)
+    });
+  };
+  
+  const handleAddLanguage = () => {
+    if (currentLanguage.trim() && formData.languages.length < 5) {
+      setFormData({ 
+        ...formData, 
+        languages: [...formData.languages, currentLanguage.trim()] 
+      });
+      setCurrentLanguage('');
+    }
+  };
+  
+  const handleRemoveLanguage = (languageToRemove: string) => {
+    if (formData.languages.length > 1) { // Keep at least one language
+      setFormData({
+        ...formData,
+        languages: formData.languages.filter(lang => lang !== languageToRemove)
+      });
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +108,7 @@ export const CreateProfilePage: React.FC = () => {
       await updateDoc(doc(db, 'users', user!.uid), {
         ...formData,
         profileCompleted: true,
-        updatedAt: new Date(),
+        updatedAt: serverTimestamp(),
         isAvailable: true
       });
       
@@ -73,147 +116,206 @@ export const CreateProfilePage: React.FC = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Error creating profile:', error);
-      toast.error('Failed to create profile');
+      toast.error('Failed to create profile. Please try again.');
     } finally {
       setLoading(false);
     }
   };
   
-  const addSkill = () => {
-    if (currentSkill.trim() && !formData.skills.includes(currentSkill.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        skills: [...prev.skills, currentSkill.trim()]
-      }));
-      setCurrentSkill('');
-    }
-  };
-  
-  const removeSkill = (skill: string) => {
-    setFormData(prev => ({
-      ...prev,
-      skills: prev.skills.filter(s => s !== skill)
-    }));
-  };
-  
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
+    <div className="container mx-auto max-w-4xl px-4 py-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.3 }}
       >
-        <h1 className="text-3xl font-bold mb-2">Create Your Freelancer Profile</h1>
-        <p className="text-gray-500 mb-8">
-          Tell clients about your skills and experience
-        </p>
+        <h1 className="text-3xl font-bold text-white mb-8">Create Your Freelancer Profile</h1>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card>
-            <CardBody className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Basic Information</h3>
+        <form onSubmit={handleSubmit}>
+          <Card className="glass-effect border-none mb-6">
+            <CardBody className="p-6">
+              <h2 className="text-xl font-semibold text-white mb-4">Basic Information</h2>
               
-              <Input
-                label="Display Name"
-                placeholder="John Doe"
-                value={formData.displayName}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, displayName: value }))}
-                isRequired
-              />
-              
-              <Textarea
-                label="Professional Bio"
-                placeholder="Tell clients about your experience and what you can offer..."
-                value={formData.bio}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, bio: value }))}
-                minRows={4}
-                isRequired
-              />
-              
-              <Input
-                label="Location"
-                placeholder="City, Country"
-                value={formData.location}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, location: value }))}
-                isRequired
-              />
+              <div className="space-y-4">
+                <Input
+                  label="Display Name"
+                  placeholder="Your professional name"
+                  value={formData.displayName}
+                  onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                  variant="bordered"
+                  className="text-white"
+                  startContent={<Icon icon="lucide:user" className="text-gray-400" />}
+                  isRequired
+                />
+                
+                <Textarea
+                  label="Bio"
+                  placeholder="Tell clients about yourself, your experience, and what makes you unique..."
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  variant="bordered"
+                  className="text-white"
+                  minRows={4}
+                  isRequired
+                />
+                
+                <Input
+                  label="Location"
+                  placeholder="City, Country"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  variant="bordered"
+                  className="text-white"
+                  startContent={<Icon icon="lucide:map-pin" className="text-gray-400" />}
+                  isRequired
+                />
+                
+                <Input
+                  label="Portfolio Link (Optional)"
+                  placeholder="https://your-portfolio.com"
+                  value={formData.portfolio}
+                  onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })}
+                  variant="bordered"
+                  className="text-white"
+                  startContent={<Icon icon="lucide:link" className="text-gray-400" />}
+                />
+              </div>
             </CardBody>
           </Card>
           
-          <Card>
-            <CardBody className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold">Skills & Expertise</h3>
+          <Card className="glass-effect border-none mb-6">
+            <CardBody className="p-6">
+              <h2 className="text-xl font-semibold text-white mb-4">Skills & Experience</h2>
               
-              <div className="space-y-2">
-                <div className="flex gap-2">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-400 mb-2 block">Skills (Add up to 10)</label>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      placeholder="Add a skill"
+                      value={currentSkill}
+                      onChange={(e) => setCurrentSkill(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
+                      variant="bordered"
+                      className="text-white"
+                    />
+                    <Button
+                      type="button"
+                      color="secondary"
+                      isIconOnly
+                      onClick={handleAddSkill}
+                      disabled={!currentSkill.trim() || formData.skills.length >= 10}
+                    >
+                      <Icon icon="lucide:plus" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.skills.map(skill => (
+                      <Chip
+                        key={skill}
+                        onClose={() => handleRemoveSkill(skill)}
+                        variant="flat"
+                        color="secondary"
+                      >
+                        {skill}
+                      </Chip>
+                    ))}
+                  </div>
+                  {formData.skills.length === 0 && (
+                    <p className="text-xs text-red-400 mt-1">At least one skill is required</p>
+                  )}
+                </div>
+                
+                <Select
+                  label="Experience Level"
+                  placeholder="Select your experience level"
+                  selectedKeys={[formData.experienceLevel]}
+                  onSelectionChange={(keys) => {
+                    const selected = Array.from(keys)[0] as string;
+                    setFormData({ ...formData, experienceLevel: selected as 'entry' | 'intermediate' | 'expert' });
+                  }}
+                  variant="bordered"
+                  className="text-white"
+                >
+                  {experienceLevels.map(level => (
+                    <SelectItem key={level.value} value={level.value} className="text-white">
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </Select>
+                
+                <Input
+                  type="number"
+                  label="Hourly Rate ($)"
+                  placeholder="Your hourly rate"
+                  value={formData.hourlyRate.toString()}
+                  onChange={(e) => setFormData({ ...formData, hourlyRate: parseFloat(e.target.value) || 0 })}
+                  variant="bordered"
+                  className="text-white"
+                  startContent={<span className="text-gray-400">$</span>}
+                  endContent={<span className="text-gray-400">/hour</span>}
+                  isRequired
+                />
+              </div>
+            </CardBody>
+          </Card>
+          
+          <Card className="glass-effect border-none mb-6">
+            <CardBody className="p-6">
+              <h2 className="text-xl font-semibold text-white mb-4">Languages</h2>
+              
+              <div>
+                <label className="text-sm text-gray-400 mb-2 block">Languages you speak (Max 5)</label>
+                <div className="flex gap-2 mb-2">
                   <Input
-                    placeholder="Add a skill (e.g., React, Design)"
-                    value={currentSkill}
-                    onValueChange={setCurrentSkill}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                    placeholder="Add a language"
+                    value={currentLanguage}
+                    onChange={(e) => setCurrentLanguage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddLanguage())}
+                    variant="bordered"
+                    className="text-white"
                   />
                   <Button
-                    color="primary"
-                    onPress={addSkill}
+                    type="button"
+                    color="secondary"
                     isIconOnly
+                    onClick={handleAddLanguage}
+                    disabled={!currentLanguage.trim() || formData.languages.length >= 5}
                   >
                     <Icon icon="lucide:plus" />
                   </Button>
                 </div>
-                
                 <div className="flex flex-wrap gap-2">
-                  {formData.skills.map((skill) => (
+                  {formData.languages.map(language => (
                     <Chip
-                      key={skill}
-                      onClose={() => removeSkill(skill)}
+                      key={language}
+                      onClose={() => handleRemoveLanguage(language)}
                       variant="flat"
-                      color="primary"
+                      color="secondary"
+                      isCloseable={formData.languages.length > 1}
                     >
-                      {skill}
+                      {language}
                     </Chip>
                   ))}
                 </div>
               </div>
-              
-              <Input
-                type="number"
-                label="Hourly Rate (USD)"
-                placeholder="50"
-                value={formData.hourlyRate.toString()}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, hourlyRate: parseInt(value) || 0 }))}
-                startContent={<span className="text-gray-500">$</span>}
-                isRequired
-              />
-              
-              <Select
-                label="Experience Level"
-                selectedKeys={[formData.experienceLevel]}
-                onSelectionChange={(keys) => setFormData(prev => ({ 
-                  ...prev, 
-                  experienceLevel: Array.from(keys)[0] as string 
-                }))}
-              >
-                <SelectItem key="entry" value="entry">Entry Level</SelectItem>
-                <SelectItem key="intermediate" value="intermediate">Intermediate</SelectItem>
-                <SelectItem key="expert" value="expert">Expert</SelectItem>
-              </Select>
             </CardBody>
           </Card>
           
           <div className="flex gap-4">
             <Button
-              color="default"
-              variant="flat"
-              onPress={() => navigate('/dashboard')}
+              type="button"
+              variant="bordered"
               className="flex-1"
+              onClick={() => navigate('/dashboard')}
             >
               Cancel
             </Button>
             <Button
-              color="primary"
               type="submit"
-              isLoading={loading}
+              color="primary"
               className="flex-1"
+              isLoading={loading}
             >
               Create Profile
             </Button>
@@ -223,5 +325,3 @@ export const CreateProfilePage: React.FC = () => {
     </div>
   );
 };
-
-export default CreateProfilePage;

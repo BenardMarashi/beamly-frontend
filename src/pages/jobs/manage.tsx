@@ -1,68 +1,77 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardBody, Button, Input, Select, SelectItem, Chip, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@heroui/react';
-import { Icon } from '@iconify/react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/theme-context';
-import { collection, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Card, CardBody, Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Select, SelectItem } from "@nextui-org/react";
+import { Icon } from "@iconify/react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { collection, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
 
 interface Job {
   id: string;
   title: string;
-  status: string;
   category: string;
-  budgetType: string;
+  budgetType: 'fixed' | 'hourly';
   budgetMin: number;
   budgetMax: number;
+  status: string;
   proposalCount: number;
   createdAt: any;
+  viewCount: number;
 }
 
 export const ManageJobsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { isDarkMode } = useTheme();
+  const { user, userData, canPostJobs } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const { isOpen, onOpen, onClose } = useDisclosure();
-
+  
   useEffect(() => {
-    if (user) {
+    if (!user) {
+      navigate('/login');
+    } else if (!canPostJobs) {
+      toast.error('Only clients can manage jobs');
+      navigate('/dashboard');
+    } else {
       fetchJobs();
     }
-  }, [user, statusFilter]);
-
+  }, [user, canPostJobs, navigate, filterStatus]);
+  
   const fetchJobs = async () => {
     if (!user) return;
     
+    setLoading(true);
     try {
-      let jobsQuery;
+      let q;
       
-      if (statusFilter === 'all') {
-        jobsQuery = query(
+      if (filterStatus === 'all') {
+        q = query(
           collection(db, 'jobs'),
           where('clientId', '==', user.uid),
           orderBy('createdAt', 'desc')
         );
       } else {
-        jobsQuery = query(
+        q = query(
           collection(db, 'jobs'),
           where('clientId', '==', user.uid),
-          where('status', '==', statusFilter),
+          where('status', '==', filterStatus),
           orderBy('createdAt', 'desc')
         );
       }
       
-      const snapshot = await getDocs(jobsQuery);
-      const jobsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Job));
+      const querySnapshot = await getDocs(q);
+      const jobsData: Job[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        jobsData.push({
+          id: doc.id,
+          ...doc.data()
+        } as Job);
+      });
       
       setJobs(jobsData);
     } catch (error) {
@@ -72,22 +81,22 @@ export const ManageJobsPage: React.FC = () => {
       setLoading(false);
     }
   };
-
+  
   const handleStatusChange = async (jobId: string, newStatus: string) => {
     try {
       await updateDoc(doc(db, 'jobs', jobId), {
         status: newStatus,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       });
       
-      toast.success('Job status updated');
+      toast.success(`Job status updated to ${newStatus}`);
       fetchJobs();
     } catch (error) {
-      console.error('Error updating job:', error);
+      console.error('Error updating job status:', error);
       toast.error('Failed to update job status');
     }
   };
-
+  
   const handleDeleteJob = async () => {
     if (!selectedJob) return;
     
@@ -101,193 +110,245 @@ export const ManageJobsPage: React.FC = () => {
       toast.error('Failed to delete job');
     }
   };
-
-  const filteredJobs = jobs.filter(job =>
-    job.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
+  
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return 'success';
-      case 'in-progress': return 'warning';
-      case 'completed': return 'primary';
-      case 'cancelled': return 'danger';
-      default: return 'default';
+      case 'open':
+        return 'success';
+      case 'in-progress':
+        return 'primary';
+      case 'completed':
+        return 'secondary';
+      case 'cancelled':
+        return 'danger';
+      default:
+        return 'default';
     }
   };
-
+  
   const formatBudget = (job: Job) => {
     if (job.budgetType === 'fixed') {
       return `$${job.budgetMin}`;
+    } else {
+      return `$${job.budgetMin} - $${job.budgetMax}/hr`;
     }
-    return `$${job.budgetMin}-${job.budgetMax}/hr`;
   };
+  
+  const statusOptions = [
+    { value: "all", label: "All Jobs" },
+    { value: "open", label: "Open" },
+    { value: "in-progress", label: "In Progress" },
+    { value: "completed", label: "Completed" },
+    { value: "cancelled", label: "Cancelled" }
+  ];
 
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return 'N/A';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString();
+  const handleDropdownAction = (key: React.Key, job: Job) => {
+    switch (key) {
+      case 'view':
+        navigate(`/jobs/${job.id}`);
+        break;
+      case 'edit':
+        navigate(`/jobs/${job.id}/edit`);
+        break;
+      case 'close':
+        handleStatusChange(job.id, 'cancelled');
+        break;
+      case 'delete':
+        setSelectedJob(job);
+        onOpen();
+        break;
+    }
   };
-
-  return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-            Manage Jobs
-          </h1>
-          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-            View and manage all your job postings
-          </p>
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading jobs...</p>
         </div>
-        <Button
-          color="primary"
-          startContent={<Icon icon="lucide:plus" />}
-          onPress={() => navigate('/post-job')}
-        >
-          Post New Job
-        </Button>
       </div>
-
-      {/* Filters */}
-      <Card className={`mb-6 ${isDarkMode ? 'glass-effect' : ''}`}>
-        <CardBody className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <Input
-              placeholder="Search jobs..."
-              value={searchQuery}
-              onValueChange={setSearchQuery}
-              startContent={<Icon icon="lucide:search" />}
-              className="md:w-96"
-            />
-            <Select
-              selectedKeys={[statusFilter]}
-              onSelectionChange={(keys) => setStatusFilter(Array.from(keys)[0] as string)}
-              className="md:w-48"
-              label="Status"
-            >
-              <SelectItem key="all" value="all">All Status</SelectItem>
-              <SelectItem key="open" value="open">Open</SelectItem>
-              <SelectItem key="in-progress" value="in-progress">In Progress</SelectItem>
-              <SelectItem key="completed" value="completed">Completed</SelectItem>
-              <SelectItem key="cancelled" value="cancelled">Cancelled</SelectItem>
-            </Select>
-          </div>
-        </CardBody>
-      </Card>
-
-      {/* Jobs Table */}
-      <Card className={isDarkMode ? 'glass-effect' : ''}>
-        <CardBody className="p-0">
-          <Table aria-label="Jobs table">
-            <TableHeader>
-              <TableColumn>JOB TITLE</TableColumn>
-              <TableColumn>CATEGORY</TableColumn>
-              <TableColumn>BUDGET</TableColumn>
-              <TableColumn>PROPOSALS</TableColumn>
-              <TableColumn>STATUS</TableColumn>
-              <TableColumn>POSTED</TableColumn>
-              <TableColumn>ACTIONS</TableColumn>
-            </TableHeader>
-            <TableBody emptyContent="No jobs found">
-              {filteredJobs.map((job) => (
-                <TableRow key={job.id}>
-                  <TableCell>
-                    <button
-                      onClick={() => navigate(`/jobs/${job.id}`)}
-                      className="text-primary hover:underline text-left"
-                    >
-                      {job.title}
-                    </button>
-                  </TableCell>
-                  <TableCell>{job.category}</TableCell>
-                  <TableCell>{formatBudget(job)}</TableCell>
-                  <TableCell>{job.proposalCount}</TableCell>
-                  <TableCell>
-                    <Chip
-                      size="sm"
-                      color={getStatusColor(job.status)}
-                      variant="flat"
-                    >
-                      {job.status}
-                    </Chip>
-                  </TableCell>
-                  <TableCell>{formatDate(job.createdAt)}</TableCell>
-                  <TableCell>
-                    <Dropdown>
-                      <DropdownTrigger>
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          variant="light"
+    );
+  }
+  
+  return (
+    <div className="container mx-auto max-w-6xl px-4 py-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-white">Manage Jobs</h1>
+          <Button
+            color="primary"
+            startContent={<Icon icon="lucide:plus" />}
+            onClick={() => navigate('/post-job')}
+          >
+            Post New Job
+          </Button>
+        </div>
+        
+        <Card className="glass-effect border-none mb-6">
+          <CardBody className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-white">Your Jobs</h2>
+              <Select
+                label="Filter by status"
+                selectedKeys={[filterStatus]}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string;
+                  setFilterStatus(selected);
+                }}
+                className="w-48"
+                variant="bordered"
+              >
+                {statusOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+            
+            {jobs.length === 0 ? (
+              <div className="text-center py-12">
+                <Icon icon="lucide:briefcase" className="text-gray-400 mb-4" width={48} />
+                <p className="text-gray-400">
+                  {filterStatus === 'all' 
+                    ? "You haven't posted any jobs yet" 
+                    : `No ${filterStatus} jobs found`}
+                </p>
+                {filterStatus === 'all' && (
+                  <Button
+                    color="primary"
+                    className="mt-4"
+                    onClick={() => navigate('/post-job')}
+                  >
+                    Post Your First Job
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Table aria-label="Jobs table" className="glass-effect">
+                <TableHeader>
+                  <TableColumn>JOB TITLE</TableColumn>
+                  <TableColumn>CATEGORY</TableColumn>
+                  <TableColumn>BUDGET</TableColumn>
+                  <TableColumn>STATUS</TableColumn>
+                  <TableColumn>PROPOSALS</TableColumn>
+                  <TableColumn>VIEWS</TableColumn>
+                  <TableColumn>POSTED</TableColumn>
+                  <TableColumn>ACTIONS</TableColumn>
+                </TableHeader>
+                <TableBody>
+                  {jobs.map((job) => (
+                    <TableRow key={job.id}>
+                      <TableCell>
+                        <div className="max-w-xs">
+                          <p className="text-white font-medium truncate">{job.title}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Chip size="sm" variant="flat">
+                          {job.category}
+                        </Chip>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-white">{formatBudget(job)}</p>
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          size="sm" 
+                          color={getStatusColor(job.status)}
+                          variant="flat"
                         >
-                          <Icon icon="lucide:more-vertical" />
-                        </Button>
-                      </DropdownTrigger>
-                      <DropdownMenu aria-label="Job actions">
-                        <DropdownItem
-                          key="view"
-                          startContent={<Icon icon="lucide:eye" />}
-                          onPress={() => navigate(`/jobs/${job.id}`)}
-                        >
-                          View Details
-                        </DropdownItem>
-                        <DropdownItem
-                          key="edit"
-                          startContent={<Icon icon="lucide:edit" />}
-                          onPress={() => navigate(`/jobs/${job.id}/edit`)}
-                        >
-                          Edit Job
-                        </DropdownItem>
-                        {job.status === 'open' && (
-                          <DropdownItem
-                            key="close"
-                            startContent={<Icon icon="lucide:x-circle" />}
-                            onPress={() => handleStatusChange(job.id, 'cancelled')}
+                          {job.status}
+                        </Chip>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-white">{job.proposalCount}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-white">{job.viewCount || 0}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-gray-400 text-sm">
+                          {job.createdAt?.toDate ? 
+                            new Date(job.createdAt.toDate()).toLocaleDateString() : 
+                            'Recently'}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <Dropdown>
+                          <DropdownTrigger>
+                            <Button isIconOnly size="sm" variant="light">
+                              <Icon icon="lucide:more-vertical" className="text-gray-400" />
+                            </Button>
+                          </DropdownTrigger>
+                          <DropdownMenu 
+                            aria-label="Job actions"
+                            onAction={(key) => handleDropdownAction(key, job)}
+                            disabledKeys={job.status !== 'open' ? ['close'] : []}
                           >
-                            Close Job
-                          </DropdownItem>
-                        )}
-                        <DropdownItem
-                          key="delete"
-                          color="danger"
-                          startContent={<Icon icon="lucide:trash" />}
-                          onPress={() => {
-                            setSelectedJob(job);
-                            onOpen();
-                          }}
-                        >
-                          Delete Job
-                        </DropdownItem>
-                      </DropdownMenu>
-                    </Dropdown>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardBody>
-      </Card>
-
-      {/* Delete Confirmation Modal */}
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalContent>
-          <ModalHeader>Delete Job</ModalHeader>
-          <ModalBody>
-            Are you sure you want to delete "{selectedJob?.title}"? This action cannot be undone.
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="light" onPress={onClose}>
-              Cancel
-            </Button>
-            <Button color="danger" onPress={handleDeleteJob}>
-              Delete
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+                            <DropdownItem
+                              key="view"
+                              startContent={<Icon icon="lucide:eye" />}
+                            >
+                              View Job
+                            </DropdownItem>
+                            <DropdownItem
+                              key="edit"
+                              startContent={<Icon icon="lucide:edit" />}
+                            >
+                              Edit Job
+                            </DropdownItem>
+                            <DropdownItem
+                              key="close"
+                              startContent={<Icon icon="lucide:x-circle" />}
+                              className="text-warning"
+                            >
+                              Close Job
+                            </DropdownItem>
+                            <DropdownItem
+                              key="delete"
+                              color="danger"
+                              startContent={<Icon icon="lucide:trash" />}
+                              className="text-danger"
+                            >
+                              Delete Job
+                            </DropdownItem>
+                          </DropdownMenu>
+                        </Dropdown>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardBody>
+        </Card>
+        
+        <Modal isOpen={isOpen} onClose={onClose}>
+          <ModalContent>
+            <ModalHeader>Confirm Delete</ModalHeader>
+            <ModalBody>
+              <p>Are you sure you want to delete "{selectedJob?.title}"?</p>
+              <p className="text-sm text-gray-400 mt-2">
+                This action cannot be undone. All proposals for this job will also be removed.
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="light" onPress={onClose}>
+                Cancel
+              </Button>
+              <Button color="danger" onPress={handleDeleteJob}>
+                Delete Job
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      </motion.div>
     </div>
   );
 };
-
-export default ManageJobsPage;
