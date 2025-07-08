@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
+import { getAnalytics } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -24,9 +25,21 @@ if (missingFields.length > 0) {
 
 // Initialize Firebase
 let app;
+let analytics;
+
 try {
   app = initializeApp(firebaseConfig);
   console.log('✅ Firebase initialized successfully');
+  
+  // Initialize analytics if measurementId is provided and we're in browser
+  if (firebaseConfig.measurementId && typeof window !== 'undefined' && import.meta.env.PROD) {
+    try {
+      analytics = getAnalytics(app);
+      console.log('✅ Firebase Analytics initialized');
+    } catch (analyticsError) {
+      console.warn('⚠️ Failed to initialize Firebase Analytics:', analyticsError);
+    }
+  }
 } catch (error) {
   console.error('❌ Failed to initialize Firebase:', error);
   throw error;
@@ -46,8 +59,8 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true'
     }
     
     // @ts-ignore - Firestore doesn't expose emulator connection status
-    if (!db._settings?.host?.includes('localhost:8080')) {
-      connectFirestoreEmulator(db, 'localhost', 8080);
+    if (!db._settings?.host?.includes('localhost:8081')) {
+      connectFirestoreEmulator(db, 'localhost', 8081);
     }
     
     // @ts-ignore - Storage doesn't expose emulator connection status
@@ -61,4 +74,5 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true'
   }
 }
 
+export { app, analytics };
 export default app;

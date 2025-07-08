@@ -1,6 +1,4 @@
-import React, { Component, ReactNode } from 'react';
-import { Button } from '@nextui-org/react';
-import { Icon } from '@iconify/react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -9,69 +7,78 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorInfo: ErrorInfo | null;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
-  }
-
-  handleReset = () => {
-    this.setState({ hasError: false, error: null });
-    window.location.href = '/';
+class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+    errorInfo: null
   };
 
-  render() {
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error, errorInfo: null };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Uncaught error:', error, errorInfo);
+    this.setState({
+      error,
+      errorInfo
+    });
+  }
+
+  public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
-          <div className="max-w-md w-full text-center">
-            <Icon 
-              icon="lucide:alert-triangle" 
-              className="text-red-500 mb-4 mx-auto" 
-              width={64} 
-            />
-            <h1 className="text-2xl font-bold text-white mb-4">
-              Oops! Something went wrong
-            </h1>
-            <p className="text-gray-400 mb-6">
-              We encountered an unexpected error. Please try refreshing the page or go back to the homepage.
-            </p>
-            <div className="space-y-3">
-              <Button
-                color="primary"
-                onClick={this.handleReset}
-                fullWidth
-              >
-                Go to Homepage
-              </Button>
-              <Button
-                variant="bordered"
-                onClick={() => window.location.reload()}
-                fullWidth
-              >
-                Refresh Page
-              </Button>
-            </div>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details className="mt-6 text-left">
-                <summary className="text-gray-500 cursor-pointer">Error details</summary>
-                <pre className="mt-2 text-xs text-gray-400 overflow-auto p-3 bg-gray-900 rounded">
-                  {this.state.error.toString()}
-                  {this.state.error.stack}
-                </pre>
-              </details>
-            )}
-          </div>
+        <div style={{ 
+          padding: '20px', 
+          textAlign: 'center',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#f5f5f5'
+        }}>
+          <h1 style={{ color: '#dc2626', marginBottom: '20px' }}>Something went wrong</h1>
+          <p style={{ marginBottom: '20px' }}>We're sorry for the inconvenience. Please try refreshing the page.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              marginBottom: '20px'
+            }}
+          >
+            Refresh Page
+          </button>
+          {process.env.NODE_ENV === 'development' && (
+            <details style={{ 
+              whiteSpace: 'pre-wrap', 
+              textAlign: 'left', 
+              maxWidth: '800px', 
+              margin: '0 auto',
+              backgroundColor: 'white',
+              padding: '20px',
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              <summary style={{ cursor: 'pointer', marginBottom: '10px' }}>Error details</summary>
+              <pre style={{ overflow: 'auto' }}>
+                {this.state.error && this.state.error.toString()}
+                {'\n\n'}
+                {this.state.error && this.state.error.stack}
+                {'\n\n'}
+                {this.state.errorInfo && this.state.errorInfo.componentStack}
+              </pre>
+            </details>
+          )}
         </div>
       );
     }
@@ -79,3 +86,5 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
+export default ErrorBoundary;
