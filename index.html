@@ -1,62 +1,117 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Beamly - Freelance Marketplace</title>
+    <title>Beamly - Connect with Skilled Freelancers</title>
+    <meta name="description" content="Find and hire skilled freelancers or offer your services on Beamly. Connect, collaborate, and grow your business." />
     
-    <!-- Add any external fonts or styles here -->
+    <!-- Preconnect to external origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Loading styles -->
     <style>
-      /* Add a loading state style */
-      #root:empty {
+      body {
+        margin: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Loading screen styles */
+      #loading-screen {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
+        background-color: #ffffff;
         display: flex;
-        align-items: center;
         justify-content: center;
-        background-color: #0a0a0a;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease-out;
       }
       
-      #root:empty::after {
-        content: "";
-        width: 48px;
-        height: 48px;
-        border: 3px solid #374151;
-        border-top-color: #8B5CF6;
+      #loading-screen.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3b82f6;
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
       
       @keyframes spin {
-        to { transform: rotate(360deg); }
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* Hide root until React is ready */
+      #root:empty {
+        display: none;
       }
     </style>
   </head>
   <body>
+    <!-- Loading screen -->
+    <div id="loading-screen">
+      <div class="spinner"></div>
+    </div>
+    
+    <!-- React root -->
     <div id="root"></div>
+    
+    <!-- Module script -->
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Remove any inline JavaScript that might be causing the error -->
-    <!-- If you have analytics or other scripts, wrap them properly -->
+    <!-- Loading screen handler -->
     <script>
-      // Ensure DOM is loaded before running any scripts
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-          // Any initialization code here
-          console.log('DOM loaded');
-        });
-      } else {
-        // DOM is already loaded
-        console.log('DOM already loaded');
-      }
+      // Use DOMContentLoaded to ensure DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        // Set a timeout to remove loading screen after max 5 seconds
+        const maxLoadTime = setTimeout(function() {
+          const loadingScreen = document.getElementById('loading-screen');
+          if (loadingScreen) {
+            loadingScreen.classList.add('fade-out');
+            setTimeout(function() {
+              if (loadingScreen && loadingScreen.parentNode) {
+                loadingScreen.parentNode.removeChild(loadingScreen);
+              }
+            }, 300);
+          }
+        }, 5000);
+        
+        // Also check periodically if React has rendered
+        const checkInterval = setInterval(function() {
+          const root = document.getElementById('root');
+          if (root && root.children.length > 0) {
+            clearTimeout(maxLoadTime);
+            clearInterval(checkInterval);
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+              loadingScreen.classList.add('fade-out');
+              setTimeout(function() {
+                if (loadingScreen && loadingScreen.parentNode) {
+                  loadingScreen.parentNode.removeChild(loadingScreen);
+                }
+              }, 300);
+            }
+          }
+        }, 100);
+      });
     </script>
   </body>
 </html>
