@@ -9,7 +9,8 @@ import { ProtectedRoute } from './components/protected-route';
 import { NotFoundPage } from './pages/not-found';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './lib/firebase';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import ErrorBoundary from './components/ErrorBoundary';
+import { LandingPage } from './components/landing-page';
 
 // Direct imports for pages that export as default
 import HomePage from './pages/home';
@@ -73,12 +74,20 @@ const AppContent: React.FC = () => {
         {/* Public routes */}
         <Route path="/" element={<MainLayout isLoggedIn={isLoggedIn} onLogout={handleLogout} />}>
           <Route index element={
-            <Suspense fallback={<LoadingFallback />}>
-              <HomePage />
-            </Suspense>
+            isLoggedIn ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Suspense fallback={<LoadingFallback />}>
+                <LandingPage setCurrentPage={() => {}} />
+              </Suspense>
+            )
           } />
-          <Route path="login" element={<LoginPage />} />
-          <Route path="signup" element={<SignupPage />} />
+          <Route path="login" element={
+            isLoggedIn ? <Navigate to="/dashboard" replace /> : <LoginPage />
+          } />
+          <Route path="signup" element={
+            isLoggedIn ? <Navigate to="/dashboard" replace /> : <SignupPage />
+          } />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="browse-freelancers" element={
             <Suspense fallback={<LoadingFallback />}>
@@ -159,38 +168,35 @@ const AppContent: React.FC = () => {
           </Route>
         </Route>
 
-        {/* 404 */}
+        {/* 404 route */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+        }}
+      />
     </Router>
   );
 };
 
-const App: React.FC = () => {
+function App() {
   return (
     <ErrorBoundary>
-      <NextUIProvider>
+      <AuthProvider>
         <ThemeProvider>
-          <AuthProvider>
-            <Suspense fallback={<LoadingFallback />}>
-              <AppContent />
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: '#1f2937',
-                    color: '#fff',
-                    border: '1px solid #374151',
-                  },
-                }}
-              />
-            </Suspense>
-          </AuthProvider>
+          <NextUIProvider>
+            <AppContent />
+          </NextUIProvider>
         </ThemeProvider>
-      </NextUIProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
-};
+}
 
 export default App;

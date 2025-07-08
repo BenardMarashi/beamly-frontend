@@ -163,6 +163,53 @@ a:focus[class*="bg-violet"] {
   --color-900: #a19509 !important;
 }
 
+/* BUTTON COLOR OVERRIDES - #FCE90D for both dark and light modes */
+button[data-color="primary"],
+button[data-color="secondary"],
+button.bg-primary,
+button.bg-secondary,
+.nextui-button--primary,
+.nextui-button--secondary {
+  background-color: #FCE90D !important;
+  color: #011241 !important;
+}
+
+/* Button hover states */
+button[data-color="primary"]:hover,
+button[data-color="secondary"]:hover,
+button.bg-primary:hover,
+button.bg-secondary:hover,
+.nextui-button--primary:hover,
+.nextui-button--secondary:hover {
+  background-color: #e6d70c !important;
+  color: #011241 !important;
+}
+
+/* Button focus states */
+button[data-color="primary"]:focus,
+button[data-color="secondary"]:focus,
+button.bg-primary:focus,
+button.bg-secondary:focus,
+.nextui-button--primary:focus,
+.nextui-button--secondary:focus {
+  background-color: #cfc10b !important;
+  color: #011241 !important;
+}
+
+/* Ensure button text is visible on yellow background */
+button[class*="bg-"],
+button[data-color] {
+  color: #011241 !important;
+}
+
+/* Secondary button specific styles */
+button[color="secondary"],
+[data-color="secondary"],
+.bg-beamly-secondary {
+  background-color: #FCE90D !important;
+  color: #011241 !important;
+}
+
 /* Fix text color for dark buttons with yellow background */
 button.bg-beamly-secondary,
 button[class*="bg-purple"],
@@ -470,28 +517,117 @@ body.light-mode .bg-white\/10 {
   background-color: rgba(15, 67, 238, 0.1);
 }
 
-/* Mobile responsive */
+/* Mobile Responsive Styles */
 @media (max-width: 768px) {
+  /* Container padding */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Center all content on mobile */
+  .flex,
+  .grid {
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* Mobile padding adjustments */
+  .px-4 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  .py-8 {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
+  
+  /* Card and section spacing */
   .glass-effect,
   .glass-card,
   .yellow-glass {
+    margin-left: 1rem;
+    margin-right: 1rem;
     border-radius: 12px;
   }
   
-  h1, h2 {
-    font-size: 1.75rem;
+  /* Typography adjustments */
+  h1 {
+    font-size: 1.75rem !important;
+    text-align: center;
+  }
+  
+  h2 {
+    font-size: 1.5rem !important;
+    text-align: center;
   }
   
   h3 {
-    font-size: 1.25rem;
+    font-size: 1.25rem !important;
+    text-align: center;
   }
   
+  /* Button full width on mobile */
+  button {
+    width: 100% !important;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Stack flex items on mobile */
+  .flex-row {
+    flex-direction: column !important;
+  }
+  
+  /* Grid responsive */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Form elements full width */
+  input,
+  textarea,
+  select {
+    width: 100% !important;
+  }
+  
+  /* Center text on mobile */
+  .text-left {
+    text-align: center !important;
+  }
+  
+  /* Hide desktop-only elements */
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  /* Section container mobile */
   .section-container {
-    padding: 1.5rem 0;
+    padding: 1.5rem 1rem !important;
   }
   
+  /* Modal and drawer full width */
+  .modal-content,
+  .drawer-content {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Mobile header controls */
   .mobile-header-controls {
     display: none;
+  }
+}
+
+/* Tablet responsive */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
@@ -645,4 +781,22 @@ button, input, select, textarea {
 
 .bg-beamly-third {
   background-color: var(--beamly-third);
+}
+
+/* Center content utility */
+.center-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* Mobile center utility */
+@media (max-width: 768px) {
+  .mobile-center {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
 }

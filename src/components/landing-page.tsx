@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from "react";
 import { HeroSection } from "./hero-section";
-import { Button, Spinner } from "@heroui/react";
+import { Button, Spinner } from "@nextui-org/react";
 
 // Lazy load secondary sections to improve initial page load
 const CategoriesSection = lazy(() => import("./categories-section").then(module => ({ default: module.CategoriesSection })));
