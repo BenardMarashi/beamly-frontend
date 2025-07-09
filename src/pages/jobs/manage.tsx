@@ -142,7 +142,7 @@ export const ManageJobsPage: React.FC = () => {
           <CardBody>
             <Tabs
               selectedKey={selectedTab}
-              onSelectionChange={(key) => setSelectedTab(key.toString())}
+              onSelectionChange={(key) => setSelectedTab(key ? key.toString() : 'all')}
               classNames={{
                 tabList: "bg-transparent",
                 cursor: "bg-primary",

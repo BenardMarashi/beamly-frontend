@@ -33,7 +33,7 @@ class ErrorMonitor {
     }
 
     // In production, you might want to send errors to a service
-    if (featureFlags.enableErrorReporting && process.env.NODE_ENV === 'production') {
+    if (featureFlags.enableErrorReporting && import.meta.env.PROD) {
       this.reportError(errorInfo);
     }
   }
