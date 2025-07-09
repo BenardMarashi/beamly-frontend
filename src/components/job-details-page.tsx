@@ -32,43 +32,39 @@ interface JobDetails {
 }
 
 interface JobDetailsPageProps {
-  // FIXED: Removed unused setCurrentPage
   isDarkMode?: boolean;
 }
 
-export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({ 
-  isDarkMode = true 
-}) => {
-  const { id } = useParams();
+export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({ isDarkMode = true }) => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isFreelancer } = useAuth();
+  const { user, userData } = useAuth();
   const [job, setJob] = useState<JobDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  // FIXED: Removed unused applying and setApplying
+
+  const isFreelancer = userData?.userType === 'freelancer' || userData?.userType === 'both';
 
   useEffect(() => {
-    fetchJobDetails();
+    if (id) {
+      fetchJobDetails();
+    }
   }, [id]);
 
   const fetchJobDetails = async () => {
     if (!id) return;
-
+    
+    setLoading(true);
     try {
-      const jobDoc = await getDoc(doc(db, "jobs", id));
-      
+      const jobDoc = await getDoc(doc(db, 'jobs', id));
       if (jobDoc.exists()) {
-        const data = jobDoc.data();
-        setJob({
-          id: jobDoc.id,
-          ...data
-        } as JobDetails);
+        setJob({ id: jobDoc.id, ...jobDoc.data() } as JobDetails);
       } else {
-        toast.error("Job not found");
-        navigate("/looking-for-work");
+        toast.error('Job not found');
+        navigate('/looking-for-work');
       }
     } catch (error) {
-      console.error("Error fetching job:", error);
-      toast.error("Failed to load job details");
+      console.error('Error fetching job details:', error);
+      toast.error('Failed to load job details');
     } finally {
       setLoading(false);
     }
@@ -76,17 +72,18 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({
 
   const handleApply = () => {
     if (!user) {
-      toast.error("Please login to apply for jobs");
-      navigate("/login");
+      toast.error('Please login to apply');
+      navigate('/login');
       return;
     }
     
     if (!isFreelancer) {
-      toast.error("Only freelancers can apply for jobs");
+      toast.error('Only freelancers can apply to jobs');
       return;
     }
     
-    navigate(`/submit-proposal/${id}`);
+    // Navigate to proposal submission page or open modal
+    navigate(`/jobs/${id}/apply`);
   };
 
   const formatBudget = () => {
@@ -94,30 +91,48 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({
     
     if (job.budgetType === 'fixed') {
       return `$${job.budgetMin}`;
+    } else {
+      return `$${job.budgetMin} - $${job.budgetMax}/hr`;
     }
-    return `$${job.budgetMin} - $${job.budgetMax}/hr`;
+  };
+
+  const formatPostedDate = (date: any) => {
+    if (!date) return 'Recently';
+    const postedDate = date.toDate ? date.toDate() : new Date(date);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - postedDate.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    if (diffInHours < 48) return 'Yesterday';
+    return `${Math.floor(diffInHours / 24)} days ago`;
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
-        <PageHeader title="Loading..." subtitle="" />
+        <PageHeader 
+          title="Loading..."
+          subtitle="Please wait while we fetch the job details"
+        />
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <Card className="glass-effect">
-                <CardBody>
-                  <Skeleton className="h-8 w-3/4 mb-4" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-2/3" />
+                <CardBody className="space-y-4">
+                  <Skeleton className="h-8 w-3/4 rounded-lg" />
+                  <Skeleton className="h-4 w-full rounded-lg" />
+                  <Skeleton className="h-4 w-full rounded-lg" />
+                  <Skeleton className="h-4 w-2/3 rounded-lg" />
                 </CardBody>
               </Card>
             </div>
             <div>
               <Card className="glass-effect">
-                <CardBody>
-                  <Skeleton className="h-32 w-full" />
+                <CardBody className="space-y-4">
+                  <Skeleton className="h-6 w-1/2 rounded-lg" />
+                  <Skeleton className="h-10 w-full rounded-lg" />
+                  <Skeleton className="h-4 w-3/4 rounded-lg" />
                 </CardBody>
               </Card>
             </div>
@@ -128,41 +143,51 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({
   }
 
   if (!job) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+        <PageHeader 
+          title="Job Not Found"
+          subtitle="The job you're looking for doesn't exist or has been removed"
+        />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <Button 
+            color="secondary"
+            onPress={() => navigate('/looking-for-work')}
+          >
+            Browse Jobs
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
-      <PageHeader
-        title={job.title}
-        subtitle={`Posted ${job.postedAt?.toDate?.()?.toLocaleDateString() || 'Recently'}`}
-      />
-
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumbs */}
         <Breadcrumbs className="mb-6">
-          <BreadcrumbItem onPress={() => navigate("/")}>Home</BreadcrumbItem>
-          <BreadcrumbItem onPress={() => navigate("/looking-for-work")}>Jobs</BreadcrumbItem>
+          <BreadcrumbItem onPress={() => navigate('/')}>Home</BreadcrumbItem>
+          <BreadcrumbItem onPress={() => navigate('/looking-for-work')}>Jobs</BreadcrumbItem>
           <BreadcrumbItem>{job.category}</BreadcrumbItem>
-          <BreadcrumbItem>{job.title}</BreadcrumbItem>
         </Breadcrumbs>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Job Header */}
             <Card className="glass-effect">
               <CardBody>
-                <div className="flex justify-between items-start mb-6">
+                <div className="flex justify-between items-start mb-4">
                   <div>
                     <h1 className="text-2xl font-bold text-white mb-2">{job.title}</h1>
                     <div className="flex items-center gap-4 text-sm text-gray-400">
                       <span className="flex items-center gap-1">
-                        <Icon icon="lucide:folder" />
+                        <Icon icon="lucide:briefcase" />
                         {job.category}
                       </span>
                       <span className="flex items-center gap-1">
                         <Icon icon="lucide:clock" />
-                        Posted {job.postedAt?.toDate?.()?.toLocaleDateString() || 'Recently'}
+                        Posted {formatPostedDate(job.postedAt)}
                       </span>
                       <span className="flex items-center gap-1">
                         <Icon icon="lucide:users" />
@@ -170,35 +195,46 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({
                       </span>
                     </div>
                   </div>
-                  <Chip
-                    color={job.status === 'open' ? 'success' : 'default'}
+                  <Chip 
+                    color={job.status === 'open' ? 'success' : 'default'} 
                     variant="flat"
                   >
                     {job.status}
                   </Chip>
                 </div>
 
-                <div className="space-y-6">
+                {/* Budget and Duration */}
+                <div className="flex gap-6 mb-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-3">Description</h3>
-                    <p className="text-gray-300 whitespace-pre-line">{job.description}</p>
+                    <h4 className="text-sm text-gray-400 mb-1">Budget</h4>
+                    <p className="text-xl font-semibold text-white">{formatBudget()}</p>
                   </div>
-
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-3">Required Skills</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {job.skills.map((skill, index) => (
-                        <Chip
-                          key={index}
-                          variant="flat"
-                          className="bg-white/10"
-                        >
-                          {skill}
-                        </Chip>
-                      ))}
-                    </div>
+                    <h4 className="text-sm text-gray-400 mb-1">Duration</h4>
+                    <p className="text-xl font-semibold text-white">{job.projectDuration}</p>
                   </div>
+                </div>
 
+                {/* Skills */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-white mb-3">Required Skills</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {job.skills.map((skill, index) => (
+                      <Chip key={index} variant="flat" size="sm">
+                        {skill}
+                      </Chip>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-3">Description</h3>
+                  <p className="text-gray-300 whitespace-pre-wrap">{job.description}</p>
+                </div>
+
+                {/* Additional Details */}
+                <div className="mt-6 pt-6 border-t border-white/10">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <h4 className="font-medium text-gray-400 mb-1">Experience Level</h4>
@@ -211,7 +247,7 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({
                   </div>
 
                   {job.attachments && job.attachments.length > 0 && (
-                    <div>
+                    <div className="mt-4">
                       <h3 className="text-lg font-semibold text-white mb-3">Attachments</h3>
                       <div className="space-y-2">
                         {job.attachments.map((attachment, index) => (

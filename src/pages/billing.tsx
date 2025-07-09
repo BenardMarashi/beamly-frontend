@@ -1,23 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardBody, Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Progress, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Input } from '@nextui-org/react';
+import { Card, CardBody, CardHeader, Button, Input, Select, SelectItem, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, where, orderBy, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
-
-interface Transaction {
-  id: string;
-  type: 'payment' | 'withdrawal' | 'refund' | 'subscription';
-  amount: number;
-  description: string;
-  status: 'completed' | 'pending' | 'failed';
-  createdAt: any;
-  jobId?: string;
-  jobTitle?: string;
-}
 
 interface PaymentMethod {
   id: string;
@@ -27,14 +16,24 @@ interface PaymentMethod {
   isDefault: boolean;
 }
 
+interface Transaction {
+  id: string;
+  type: 'payment' | 'withdrawal' | 'subscription' | 'refund';
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  description: string;
+  createdAt: any;
+}
+
 export const BillingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, userData } = useAuth();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  
   const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure();
   const { isOpen: isAddPaymentOpen, onOpen: onAddPaymentOpen, onClose: onAddPaymentClose } = useDisclosure();
   
@@ -50,11 +49,12 @@ export const BillingPage: React.FC = () => {
     if (!user) return;
     
     setLoading(true);
+    
     try {
       // Fetch transactions
       const transactionsQuery = query(
         collection(db, 'transactions'),
-        where(userData?.userType === 'client' ? 'clientId' : 'freelancerId', '==', user.uid),
+        where(userData?.userType === 'freelancer' ? 'freelancerId' : 'clientId', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
       
@@ -112,140 +112,91 @@ export const BillingPage: React.FC = () => {
       return;
     }
     
-    // In a real app, this would process the withdrawal
-    toast.success('Withdrawal request submitted');
+    // TODO: Implement withdrawal logic
+    toast.success(`Withdrawal of $${amount} initiated`);
     onWithdrawClose();
     setWithdrawAmount('');
-  };
-  
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'failed':
-        return 'danger';
-      default:
-        return 'default';
-    }
   };
   
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'payment':
-        return 'lucide:arrow-down-circle';
+        return <Icon icon="lucide:arrow-down-circle" className="text-green-500" />;
       case 'withdrawal':
-        return 'lucide:arrow-up-circle';
-      case 'refund':
-        return 'lucide:rotate-ccw';
+        return <Icon icon="lucide:arrow-up-circle" className="text-red-500" />;
       case 'subscription':
-        return 'lucide:credit-card';
+        return <Icon icon="lucide:repeat" className="text-blue-500" />;
+      case 'refund':
+        return <Icon icon="lucide:rotate-ccw" className="text-yellow-500" />;
       default:
-        return 'lucide:circle';
+        return <Icon icon="lucide:circle" className="text-gray-500" />;
     }
   };
   
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading billing data...</p>
-        </div>
-      </div>
-    );
-  }
-  
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
+    <div className="min-h-screen bg-mesh">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        className="container mx-auto px-4 py-8"
       >
         <h1 className="text-3xl font-bold text-white mb-8">Billing & Payments</h1>
         
         {/* Balance Card (for freelancers) */}
         {(userData?.userType === 'freelancer' || userData?.userType === 'both') && (
-          <Card className="glass-effect border-none mb-6">
-            <CardBody className="p-6">
-              <div className="flex justify-between items-start mb-4">
+          <Card className="glass-card mb-6">
+            <CardBody>
+              <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-semibold text-white mb-2">Available Balance</h2>
-                  <p className="text-3xl font-bold text-white">${balance.toFixed(2)}</p>
-                  <p className="text-gray-400 text-sm mt-1">Ready to withdraw</p>
+                  <p className="text-gray-400 mb-1">Available Balance</p>
+                  <h2 className="text-3xl font-bold text-white">${balance.toFixed(2)}</h2>
                 </div>
                 <Button
-                  color="primary"
-                  startContent={<Icon icon="lucide:arrow-up-circle" />}
-                  onClick={onWithdrawOpen}
-                  isDisabled={balance <= 0}
+                  color="secondary"
+                  onPress={onWithdrawOpen}
+                  disabled={balance <= 0}
                 >
                   Withdraw Funds
                 </Button>
               </div>
-              <Progress 
-                value={(balance / (userData?.totalEarnings || 1)) * 100} 
-                color="success"
-                className="mb-2"
-              />
-              <p className="text-gray-400 text-sm">
-                Total earnings: ${userData?.totalEarnings?.toFixed(2) || '0.00'}
-              </p>
             </CardBody>
           </Card>
         )}
         
         {/* Payment Methods */}
-        <Card className="glass-effect border-none mb-6">
-          <CardBody className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-white">Payment Methods</h2>
-              <Button
-                color="primary"
-                variant="flat"
-                startContent={<Icon icon="lucide:plus" />}
-                onClick={onAddPaymentOpen}
-              >
-                Add Payment Method
-              </Button>
-            </div>
-            
+        <Card className="glass-card mb-6">
+          <CardHeader className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-white">Payment Methods</h3>
+            <Button size="sm" color="secondary" onPress={onAddPaymentOpen}>
+              Add New
+            </Button>
+          </CardHeader>
+          <CardBody>
             {paymentMethods.length === 0 ? (
-              <div className="text-center py-8">
-                <Icon icon="lucide:credit-card" className="text-gray-400 mb-4 mx-auto" width={48} />
-                <p className="text-gray-400">No payment methods added yet</p>
-              </div>
+              <p className="text-gray-400 text-center py-8">No payment methods added</p>
             ) : (
               <div className="space-y-3">
                 {paymentMethods.map((method) => (
-                  <div
-                    key={method.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 border border-gray-700"
-                  >
+                  <div key={method.id} className="flex justify-between items-center p-4 glass-card">
                     <div className="flex items-center gap-3">
                       <Icon 
-                        icon={method.type === 'card' ? 'lucide:credit-card' : 
-                              method.type === 'bank' ? 'lucide:building' : 
-                              'lucide:wallet'}
-                        className="text-gray-400"
-                        width={24}
+                        icon={
+                          method.type === 'card' ? 'lucide:credit-card' :
+                          method.type === 'bank' ? 'lucide:building' :
+                          'lucide:wallet'
+                        } 
+                        className="text-2xl text-beamly-secondary"
                       />
                       <div>
-                        <p className="text-white">
+                        <p className="text-white font-medium">
                           {method.brand} •••• {method.last4}
                         </p>
                         {method.isDefault && (
-                          <Chip size="sm" color="primary" variant="flat">Default</Chip>
+                          <span className="text-xs text-gray-400">Default</span>
                         )}
                       </div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="light"
-                      color="danger"
-                    >
+                    <Button size="sm" variant="light">
                       Remove
                     </Button>
                   </div>
@@ -255,69 +206,51 @@ export const BillingPage: React.FC = () => {
           </CardBody>
         </Card>
         
-        {/* Transaction History */}
-        <Card className="glass-effect border-none">
-          <CardBody className="p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Transaction History</h2>
-            
+        {/* Transactions */}
+        <Card className="glass-card">
+          <CardHeader>
+            <h3 className="text-lg font-semibold text-white">Transaction History</h3>
+          </CardHeader>
+          <CardBody>
             {transactions.length === 0 ? (
-              <div className="text-center py-12">
-                <Icon icon="lucide:receipt" className="text-gray-400 mb-4 mx-auto" width={48} />
-                <p className="text-gray-400">No transactions yet</p>
-              </div>
+              <p className="text-gray-400 text-center py-8">No transactions yet</p>
             ) : (
-              <Table aria-label="Transactions table" className="glass-effect">
+              <Table
+                aria-label="Transaction history"
+                classNames={{
+                  th: "bg-transparent text-gray-400",
+                  td: "text-gray-300"
+                }}
+              >
                 <TableHeader>
                   <TableColumn>TYPE</TableColumn>
                   <TableColumn>DESCRIPTION</TableColumn>
                   <TableColumn>AMOUNT</TableColumn>
                   <TableColumn>STATUS</TableColumn>
                   <TableColumn>DATE</TableColumn>
-                  <TableColumn>ACTIONS</TableColumn>
+                  <TableColumn>ACTION</TableColumn>
                 </TableHeader>
                 <TableBody>
                   {transactions.map((transaction) => (
                     <TableRow key={transaction.id}>
+                      <TableCell>{getTransactionIcon(transaction.type)}</TableCell>
+                      <TableCell>{transaction.description}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Icon 
-                            icon={getTransactionIcon(transaction.type)}
-                            className={transaction.type === 'payment' ? 'text-green-400' : 
-                                      transaction.type === 'withdrawal' ? 'text-blue-400' : 
-                                      'text-gray-400'}
-                            width={20}
-                          />
-                          <span className="text-white capitalize">{transaction.type}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="text-white">{transaction.description}</p>
-                          {transaction.jobTitle && (
-                            <p className="text-gray-400 text-xs">Job: {transaction.jobTitle}</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <p className={`font-medium ${
-                          transaction.type === 'payment' ? 'text-green-400' : 
-                          transaction.type === 'withdrawal' ? 'text-blue-400' : 
-                          'text-white'
-                        }`}>
+                        <span className={transaction.type === 'payment' ? 'text-green-500' : 'text-red-500'}>
                           {transaction.type === 'payment' ? '+' : '-'}${transaction.amount.toFixed(2)}
-                        </p>
+                        </span>
                       </TableCell>
                       <TableCell>
-                        <Chip 
-                          size="sm" 
-                          color={getStatusColor(transaction.status)}
-                          variant="flat"
-                        >
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          transaction.status === 'completed' ? 'bg-green-500/20 text-green-500' :
+                          transaction.status === 'pending' ? 'bg-yellow-500/20 text-yellow-500' :
+                          'bg-red-500/20 text-red-500'
+                        }`}>
                           {transaction.status}
-                        </Chip>
+                        </span>
                       </TableCell>
                       <TableCell>
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-sm">
                           {transaction.createdAt?.toDate ? 
                             new Date(transaction.createdAt.toDate()).toLocaleDateString() : 
                             'Recently'}

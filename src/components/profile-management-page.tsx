@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardBody, Input, Textarea, Button, Avatar, Chip, Switch, Divider } from "@heroui/react";
+import { Card, CardBody, Input, Textarea, Button, Avatar, Chip, Switch } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useAuth } from "../contexts/AuthContext";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
@@ -8,7 +8,6 @@ import { toast } from "react-hot-toast";
 import { PageHeader } from "./page-header";
 
 interface ProfileManagementPageProps {
-  // FIXED: Removed unused setCurrentPage
   isDarkMode?: boolean;
 }
 
@@ -106,232 +105,226 @@ export const ProfileManagementPage: React.FC<ProfileManagementPageProps> = ({
 
   const handleAddSkill = () => {
     if (newSkill.trim() && !profile.skills.includes(newSkill.trim())) {
-      setProfile({
-        ...profile,
-        skills: [...profile.skills, newSkill.trim()]
-      });
+      setProfile(prev => ({
+        ...prev,
+        skills: [...prev.skills, newSkill.trim()]
+      }));
       setNewSkill('');
     }
   };
 
-  const handleRemoveSkill = (skillToRemove: string) => {
-    setProfile({
-      ...profile,
-      skills: profile.skills.filter(skill => skill !== skillToRemove)
-    });
+  const handleRemoveSkill = (skill: string) => {
+    setProfile(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s !== skill)
+    }));
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
       <PageHeader
         title="Profile Management"
-        subtitle="Manage your professional profile"
+        subtitle="Update your professional information"
       />
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="space-y-6">
-          {/* Profile Header Card */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
           <Card className="glass-effect">
-            <CardBody>
+            <CardBody className="p-8">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-white">Profile Information</h2>
+                <h2 className="text-2xl font-bold text-white">Profile Information</h2>
                 <Button
-                  color={isEditing ? "secondary" : "primary"}
-                  variant={isEditing ? "flat" : "solid"}
-                  onPress={() => isEditing ? handleSave() : setIsEditing(true)}
-                  isLoading={isSaving}
+                  color={isEditing ? "danger" : "secondary"}
+                  variant={isEditing ? "light" : "solid"}
+                  onPress={() => setIsEditing(!isEditing)}
                 >
-                  {isEditing ? 'Save Changes' : 'Edit Profile'}
+                  {isEditing ? 'Cancel' : 'Edit Profile'}
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2 flex items-center gap-6 mb-4">
+              <div className="space-y-6">
+                {/* Avatar and Basic Info */}
+                <div className="flex items-center gap-6">
                   <Avatar
-                    src={user?.photoURL || `https://i.pravatar.cc/150?u=${user?.uid}`}
+                    src={`https://i.pravatar.cc/150?u=${user?.uid}`}
                     className="w-24 h-24"
                   />
+                  <div className="flex-1">
+                    <Input
+                      label="Display Name"
+                      value={profile.displayName}
+                      onChange={(e) => setProfile(prev => ({ ...prev, displayName: e.target.value }))}
+                      disabled={!isEditing}
+                      variant={isEditing ? "bordered" : "flat"}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Email"
+                    value={profile.email}
+                    disabled
+                    variant="flat"
+                  />
+                  <Input
+                    label="Professional Title"
+                    placeholder="e.g., Full Stack Developer"
+                    value={profile.title}
+                    onChange={(e) => setProfile(prev => ({ ...prev, title: e.target.value }))}
+                    disabled={!isEditing}
+                    variant={isEditing ? "bordered" : "flat"}
+                  />
+                </div>
+
+                <Textarea
+                  label="Bio"
+                  placeholder="Tell us about yourself..."
+                  value={profile.bio}
+                  onChange={(e) => setProfile(prev => ({ ...prev, bio: e.target.value }))}
+                  disabled={!isEditing}
+                  variant={isEditing ? "bordered" : "flat"}
+                  minRows={4}
+                />
+
+                {/* Skills */}
+                <div>
+                  <label className="text-sm text-gray-400 mb-2 block">Skills</label>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {profile.skills.map((skill, index) => (
+                      <Chip
+                        key={index}
+                        onClose={isEditing ? () => handleRemoveSkill(skill) : undefined}
+                        variant="flat"
+                      >
+                        {skill}
+                      </Chip>
+                    ))}
+                  </div>
                   {isEditing && (
-                    <Button
-                      variant="bordered"
-                      startContent={<Icon icon="lucide:upload" />}
-                    >
-                      Change Photo
-                    </Button>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add a skill"
+                        value={newSkill}
+                        onChange={(e) => setNewSkill(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+                        size="sm"
+                      />
+                      <Button
+                        size="sm"
+                        color="secondary"
+                        onPress={handleAddSkill}
+                      >
+                        Add
+                      </Button>
+                    </div>
                   )}
                 </div>
 
-                <Input
-                  label="Display Name"
-                  value={profile.displayName}
-                  onChange={(e) => setProfile({ ...profile, displayName: e.target.value })}
-                  isReadOnly={!isEditing}
-                />
-
-                <Input
-                  label="Email"
-                  type="email"
-                  value={profile.email}
-                  isReadOnly
-                  isDisabled
-                />
-
-                <Input
-                  label="Professional Title"
-                  placeholder="e.g., Full Stack Developer"
-                  value={profile.title}
-                  onChange={(e) => setProfile({ ...profile, title: e.target.value })}
-                  isReadOnly={!isEditing}
-                />
-
-                <Input
-                  label="Hourly Rate"
-                  type="number"
-                  value={profile.hourlyRate.toString()}
-                  onChange={(e) => setProfile({ ...profile, hourlyRate: parseInt(e.target.value) || 0 })}
-                  startContent="$"
-                  endContent="/hr"
-                  isReadOnly={!isEditing}
-                />
-
-                <div className="md:col-span-2">
-                  <Textarea
-                    label="Bio"
-                    placeholder="Tell us about yourself..."
-                    value={profile.bio}
-                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                    isReadOnly={!isEditing}
-                    minRows={4}
-                  />
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-
-          {/* Skills Card */}
-          <Card className="glass-effect">
-            <CardBody>
-              <h3 className="text-lg font-semibold text-white mb-4">Skills</h3>
-              
-              <div className="flex flex-wrap gap-2 mb-4">
-                {profile.skills.map((skill) => (
-                  <Chip
-                    key={skill}
-                    onClose={isEditing ? () => handleRemoveSkill(skill) : undefined}
-                    variant="flat"
-                    className="bg-white/10"
-                  >
-                    {skill}
-                  </Chip>
-                ))}
-              </div>
-
-              {isEditing && (
-                <div className="flex gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    placeholder="Add a skill"
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
-                    size="sm"
+                    type="number"
+                    label="Hourly Rate ($)"
+                    value={profile.hourlyRate.toString()}
+                    onChange={(e) => setProfile(prev => ({ ...prev, hourlyRate: parseFloat(e.target.value) || 0 }))}
+                    disabled={!isEditing}
+                    variant={isEditing ? "bordered" : "flat"}
+                    startContent={<span className="text-gray-400">$</span>}
                   />
-                  <Button
-                    size="sm"
+                  <div>
+                    <label className="text-sm text-gray-400 mb-2 block">Experience Level</label>
+                    <select
+                      value={profile.experienceLevel}
+                      onChange={(e) => setProfile(prev => ({ ...prev, experienceLevel: e.target.value }))}
+                      disabled={!isEditing}
+                      className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+                    >
+                      <option value="entry">Entry Level</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="expert">Expert</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-medium">Available for Work</h3>
+                    <p className="text-sm text-gray-400">Let clients know you're available</p>
+                  </div>
+                  <Switch
+                    isSelected={profile.availability}
+                    onValueChange={(value) => setProfile(prev => ({ ...prev, availability: value }))}
+                    isDisabled={!isEditing}
                     color="secondary"
-                    onPress={handleAddSkill}
-                  >
-                    Add
-                  </Button>
+                  />
                 </div>
-              )}
-            </CardBody>
-          </Card>
 
-          {/* Availability Card */}
-          <Card className="glass-effect">
-            <CardBody>
-              <div className="flex items-center justify-between">
+                {/* Social Links */}
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Availability</h3>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Let clients know you're available for new projects
-                  </p>
+                  <h3 className="text-white font-medium mb-4">Social Links</h3>
+                  <div className="space-y-3">
+                    <Input
+                      label="LinkedIn"
+                      placeholder="https://linkedin.com/in/yourprofile"
+                      value={profile.socialLinks.linkedin || ''}
+                      onChange={(e) => setProfile(prev => ({
+                        ...prev,
+                        socialLinks: { ...prev.socialLinks, linkedin: e.target.value }
+                      }))}
+                      disabled={!isEditing}
+                      variant={isEditing ? "bordered" : "flat"}
+                      startContent={<Icon icon="lucide:linkedin" className="text-gray-400" />}
+                    />
+                    <Input
+                      label="GitHub"
+                      placeholder="https://github.com/yourusername"
+                      value={profile.socialLinks.github || ''}
+                      onChange={(e) => setProfile(prev => ({
+                        ...prev,
+                        socialLinks: { ...prev.socialLinks, github: e.target.value }
+                      }))}
+                      disabled={!isEditing}
+                      variant={isEditing ? "bordered" : "flat"}
+                      startContent={<Icon icon="lucide:github" className="text-gray-400" />}
+                    />
+                    <Input
+                      label="Website"
+                      placeholder="https://yourwebsite.com"
+                      value={profile.socialLinks.website || ''}
+                      onChange={(e) => setProfile(prev => ({
+                        ...prev,
+                        socialLinks: { ...prev.socialLinks, website: e.target.value }
+                      }))}
+                      disabled={!isEditing}
+                      variant={isEditing ? "bordered" : "flat"}
+                      startContent={<Icon icon="lucide:globe" className="text-gray-400" />}
+                    />
+                  </div>
                 </div>
-                <Switch
-                  isSelected={profile.availability}
-                  onValueChange={(value) => setProfile({ ...profile, availability: value })}
-                  isDisabled={!isEditing}
-                />
+
+                {isEditing && (
+                  <div className="flex justify-end gap-4 pt-4">
+                    <Button
+                      variant="light"
+                      onPress={() => {
+                        setIsEditing(false);
+                        fetchUserProfile(); // Reset changes
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      color="secondary"
+                      onPress={handleSave}
+                      isLoading={isSaving}
+                    >
+                      Save Changes
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardBody>
           </Card>
-
-          {/* Social Links Card */}
-          <Card className="glass-effect">
-            <CardBody>
-              <h3 className="text-lg font-semibold text-white mb-4">Social Links</h3>
-              
-              <div className="space-y-4">
-                <Input
-                  label="LinkedIn"
-                  placeholder="https://linkedin.com/in/yourprofile"
-                  value={profile.socialLinks.linkedin || ''}
-                  onChange={(e) => setProfile({
-                    ...profile,
-                    socialLinks: { ...profile.socialLinks, linkedin: e.target.value }
-                  })}
-                  startContent={<Icon icon="lucide:linkedin" />}
-                  isReadOnly={!isEditing}
-                />
-                
-                <Input
-                  label="GitHub"
-                  placeholder="https://github.com/yourusername"
-                  value={profile.socialLinks.github || ''}
-                  onChange={(e) => setProfile({
-                    ...profile,
-                    socialLinks: { ...profile.socialLinks, github: e.target.value }
-                  })}
-                  startContent={<Icon icon="lucide:github" />}
-                  isReadOnly={!isEditing}
-                />
-                
-                <Input
-                  label="Personal Website"
-                  placeholder="https://yourwebsite.com"
-                  value={profile.socialLinks.website || ''}
-                  onChange={(e) => setProfile({
-                    ...profile,
-                    socialLinks: { ...profile.socialLinks, website: e.target.value }
-                  })}
-                  startContent={<Icon icon="lucide:globe" />}
-                  isReadOnly={!isEditing}
-                />
-              </div>
-            </CardBody>
-          </Card>
-
-          {/* Cancel Button */}
-          {isEditing && (
-            <div className="flex justify-end gap-4">
-              <Button
-                variant="light"
-                onPress={() => {
-                  setIsEditing(false);
-                  fetchUserProfile(); // Reset to saved data
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                color="secondary"
-                onPress={handleSave}
-                isLoading={isSaving}
-              >
-                Save Changes
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     </div>

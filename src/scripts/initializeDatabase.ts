@@ -7,7 +7,6 @@ import {
   setDoc, 
   serverTimestamp 
 } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 
 // Your Firebase config
 const firebaseConfig = {
@@ -22,14 +21,12 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
 async function setupCollections() {
   console.log('🚀 Setting up Firestore collections...');
 
   try {
     // 1. Create a sample user document structure
-    const usersRef = collection(db, 'users');
     console.log('✅ Users collection reference created');
 
     // 2. Create a sample job document structure
@@ -91,111 +88,7 @@ async function setupCollections() {
     await setDoc(doc(proposalsRef, 'sample-proposal-id'), sampleProposal);
     console.log('✅ Proposals collection created with sample document');
 
-    // 4. Create contracts collection structure
-    const contractsRef = collection(db, 'contracts');
-    const sampleContract = {
-      id: 'sample-contract-id',
-      jobId: 'sample-job-id',
-      proposalId: 'sample-proposal-id',
-      clientId: 'sample-client-id',
-      freelancerId: 'sample-freelancer-id',
-      title: 'Sample Contract',
-      description: 'Sample contract description',
-      amount: 100,
-      paymentType: 'fixed',
-      status: 'draft',
-      milestones: [],
-      startDate: serverTimestamp(),
-      endDate: null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
-    
-    await setDoc(doc(contractsRef, 'sample-contract-id'), sampleContract);
-    console.log('✅ Contracts collection created with sample document');
-
-    // 5. Create messages/conversations structure
-    const conversationsRef = collection(db, 'conversations');
-    const sampleConversation = {
-      id: 'sample-conversation-id',
-      participants: ['user1', 'user2'],
-      participantNames: {
-        user1: 'User One',
-        user2: 'User Two'
-      },
-      lastMessage: 'Sample message',
-      lastMessageTime: serverTimestamp(),
-      lastMessageSenderId: 'user1',
-      unreadCount: {
-        user1: 0,
-        user2: 0
-      },
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
-    
-    await setDoc(doc(conversationsRef, 'sample-conversation-id'), sampleConversation);
-    console.log('✅ Conversations collection created with sample document');
-
-    // 6. Create notifications structure
-    const notificationsRef = collection(db, 'notifications');
-    const sampleNotification = {
-      id: 'sample-notification-id',
-      userId: 'sample-user-id',
-      title: 'Welcome to Beamly',
-      body: 'This is a sample notification',
-      type: 'system',
-      actionUrl: '/dashboard',
-      actionData: {},
-      read: true,
-      pushSent: false,
-      createdAt: serverTimestamp()
-    };
-    
-    await setDoc(doc(notificationsRef, 'sample-notification-id'), sampleNotification);
-    console.log('✅ Notifications collection created with sample document');
-
-    // 7. Create reviews structure
-    const reviewsRef = collection(db, 'reviews');
-    const sampleReview = {
-      id: 'sample-review-id',
-      contractId: 'sample-contract-id',
-      jobId: 'sample-job-id',
-      reviewerId: 'sample-reviewer-id',
-      revieweeId: 'sample-reviewee-id',
-      rating: 5,
-      comment: 'Sample review comment',
-      createdAt: serverTimestamp()
-    };
-    
-    await setDoc(doc(reviewsRef, 'sample-review-id'), sampleReview);
-    console.log('✅ Reviews collection created with sample document');
-
-    // 8. Create transactions structure
-    const transactionsRef = collection(db, 'transactions');
-    const sampleTransaction = {
-      id: 'sample-transaction-id',
-      type: 'payment',
-      amount: 100,
-      currency: 'USD',
-      fromUserId: 'sample-client-id',
-      toUserId: 'sample-freelancer-id',
-      jobId: 'sample-job-id',
-      contractId: 'sample-contract-id',
-      status: 'completed',
-      paymentMethod: 'stripe',
-      stripeSessionId: null,
-      description: 'Sample transaction',
-      createdAt: serverTimestamp(),
-      completedAt: serverTimestamp()
-    };
-    
-    await setDoc(doc(transactionsRef, 'sample-transaction-id'), sampleTransaction);
-    console.log('✅ Transactions collection created with sample document');
-
-    console.log('🎉 All collections created successfully!');
-    console.log('Note: All sample documents have draft/completed status to avoid showing in active listings');
-    
+    console.log('✅ All collections set up successfully!');
   } catch (error) {
     console.error('❌ Error setting up collections:', error);
   }

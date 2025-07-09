@@ -1,12 +1,9 @@
 import React from "react";
-// FIXED: Removed unused Button import
 import { Spinner } from "@nextui-org/react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
-interface LandingPageProps {
-  // FIXED: Removed unused setCurrentPage
-}
+interface LandingPageProps {}
 
 export const LandingPage: React.FC<LandingPageProps> = () => {
   const navigate = useNavigate();

@@ -13,7 +13,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { LandingPage } from './components/landing-page';
 
 // Direct imports for pages that export as default
-// REMOVED UNUSED: import HomePage from './pages/home';
 import DashboardPage from './pages/dashboard';
 import LoginPage from './pages/login';
 import SignupPage from './pages/signup';
@@ -45,7 +44,7 @@ const LoadingFallback = () => (
 );
 
 const AppContent: React.FC = () => {
-  const { loading } = useAuth(); // FIXED: Removed unused 'user'
+  const { loading } = useAuth();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -78,7 +77,7 @@ const AppContent: React.FC = () => {
               <Navigate to="/dashboard" replace />
             ) : (
               <Suspense fallback={<LoadingFallback />}>
-                <LandingPage setCurrentPage={() => {}} />
+                <LandingPage />
               </Suspense>
             )
           } />
@@ -171,16 +170,6 @@ const AppContent: React.FC = () => {
         {/* 404 route */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#333',
-            color: '#fff',
-          },
-        }}
-      />
     </Router>
   );
 };
@@ -188,13 +177,14 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
+      <NextUIProvider>
         <ThemeProvider>
-          <NextUIProvider>
+          <AuthProvider>
             <AppContent />
-          </NextUIProvider>
+            <Toaster position="top-right" />
+          </AuthProvider>
         </ThemeProvider>
-      </AuthProvider>
+      </NextUIProvider>
     </ErrorBoundary>
   );
 }
