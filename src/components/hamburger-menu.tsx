@@ -1,6 +1,6 @@
 import React from "react";
-import { useNavigate } from "react-router-dom"; // FIXED: Removed unused RouterLink
-import { Button, Avatar } from "@heroui/react"; // FIXED: Removed unused Link
+import { useNavigate } from "react-router-dom";
+import { Button, Avatar } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -14,7 +14,6 @@ interface HamburgerMenuProps {
   onClose: () => void;
   isLoggedIn: boolean;
   onLogout: () => void;
-  // FIXED: Removed unused isDashboard prop
 }
 
 // Add memo to optimize rerenders
@@ -34,7 +33,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
     onClose();
   };
   
-  // Simplify menu items to ensure consistent routing
+  // Updated menu items - removed "How It Works" for non-logged in users
   const menuItems = isLoggedIn ? [
     { name: t('navigation.home'), path: "/home", icon: "lucide:home" },
     { name: t('navigation.dashboard'), path: "/dashboard", icon: "lucide:layout-dashboard" },
@@ -45,11 +44,10 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
   ] : [
     { name: t('navigation.home'), path: "/", icon: "lucide:home" },
     { name: t('navigation.freelancers'), path: "/browse-freelancers", icon: "lucide:users" },
-    { name: t('navigation.lookingForWork'), path: "/looking-for-work", icon: "lucide:briefcase" },
-    { name: t('navigation.howItWorks'), path: "/help-support", icon: "lucide:help-circle" }
+    { name: t('navigation.lookingForWork'), path: "/looking-for-work", icon: "lucide:briefcase" }
+    // Removed How It Works
   ];
   
-  // FIXED: Added 'as const' to fix type issues
   const menuVariants = {
     closed: {
       x: "100%",
@@ -68,8 +66,6 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
       },
     },
   };
-
-  // FIXED: Removed unused publicMenuItems and dashboardMenuItems
   
   return (
     <AnimatePresence>
@@ -154,7 +150,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
                     startContent={<Icon icon="lucide:log-out" width={24} height={24} />}
                     onPress={onLogout}
                   >
-                    {t('navigation.logout')}
+                    {t('navigation.logout') || 'Logout'}
                   </Button>
                 </div>
               )}
@@ -167,14 +163,14 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
                     className="w-full py-6 text-lg"
                     onPress={() => handleNavigation("/login")}
                   >
-                    {t('auth.login')}
+                    {t('common.login')}
                   </Button>
                   <Button
                     variant="bordered"
                     className="w-full py-6 text-lg"
                     onPress={() => handleNavigation("/signup")}
                   >
-                    {t('auth.signUp')}
+                    {t('common.signup')}
                   </Button>
                 </div>
               )}

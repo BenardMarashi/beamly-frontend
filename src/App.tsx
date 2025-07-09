@@ -10,13 +10,13 @@ import { NotFoundPage } from './pages/not-found';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './lib/firebase';
 import ErrorBoundary from './components/ErrorBoundary';
-import { LandingPage } from './components/landing-page';
 
 // Direct imports for pages that export as default
 import DashboardPage from './pages/dashboard';
 import LoginPage from './pages/login';
 import SignupPage from './pages/signup';
 import ForgotPasswordPage from './pages/forgot-password';
+import HomePage from './pages/home'; // Add HomePage import
 
 // Lazy imports for pages with named exports
 const BrowseFreelancersPage = lazy(() => import('./pages/browse-freelancers').then(m => ({ default: m.BrowseFreelancersPage })));
@@ -76,9 +76,14 @@ const AppContent: React.FC = () => {
             isLoggedIn ? (
               <Navigate to="/dashboard" replace />
             ) : (
-              <Suspense fallback={<LoadingFallback />}>
-                <LandingPage />
-              </Suspense>
+              <HomePage /> // Show HomePage directly for unlogged users
+            )
+          } />
+          <Route path="home" element={
+            isLoggedIn ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <HomePage /> // Add /home route
             )
           } />
           <Route path="login" element={

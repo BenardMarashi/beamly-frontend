@@ -37,12 +37,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
   ];
   
   return (
-    <div className="min-h-screen overflow-hidden">
-      <div className="relative bg-mesh">
-        <div className="blue-accent blue-accent-1"></div>
-        <div className="blue-accent blue-accent-2"></div>
-        <div className="yellow-accent yellow-accent-1"></div>
-        <div className="yellow-accent yellow-accent-2"></div>
+    <div className={`min-h-screen overflow-hidden ${isDarkMode ? 'bg-mesh' : 'bg-white'}`}>
+      <div className="relative">
+        {/* Always add gradient accents in dark mode */}
+        {isDarkMode && (
+          <>
+            <div className="blue-accent blue-accent-1"></div>
+            <div className="blue-accent blue-accent-2"></div>
+            <div className="yellow-accent yellow-accent-1"></div>
+            <div className="yellow-accent yellow-accent-2"></div>
+          </>
+        )}
         
         {/* Desktop Nav */}
         <Navbar maxWidth="xl" className="glass-effect border-none" isMenuOpen={menuOpen} onMenuOpenChange={setMenuOpen}>
@@ -206,14 +211,25 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
                     Messages
                   </Button>
                   <Button
-                    color="danger"
-                    variant="flat"
+                    as={RouterLink}
+                    to="/settings"
+                    variant="light"
                     fullWidth
+                    className={`justify-start ${isDarkMode ? 'text-white' : 'text-gray-800'}`}
+                    startContent={<Icon icon="lucide:settings" />}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Settings
+                  </Button>
+                  <Button
+                    variant="light"
+                    fullWidth
+                    color="danger"
                     className="justify-start"
                     startContent={<Icon icon="lucide:log-out" />}
-                    onClick={() => {
-                      setMenuOpen(false);
+                    onPress={() => {
                       handleLogout();
+                      setMenuOpen(false);
                     }}
                   >
                     Log Out
@@ -235,7 +251,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
                     as={RouterLink}
                     to="/signup"
                     color="secondary"
-                    variant="flat"
                     fullWidth
                     onClick={() => setMenuOpen(false)}
                   >
@@ -247,7 +262,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
           </NavbarMenu>
         </Navbar>
         
-        {/* Main Content */}
+        {/* Main Content - will have gradient background in dark mode */}
         <main className="relative z-10">
           <Outlet />
         </main>
