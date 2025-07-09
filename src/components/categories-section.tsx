@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Card, CardBody, Button } from "@heroui/react";
+import { Button } from "@heroui/react"; // FIXED: Removed unused Card, CardBody
 import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/theme-context";

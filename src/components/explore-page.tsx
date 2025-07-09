@@ -1,213 +1,207 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { Input, Button, Card, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import React, { useState, useEffect } from "react";
+import { Input, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react"; // FIXED: Removed unused Card
 import { Icon } from "@iconify/react";
+import { motion } from "framer-motion";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { JobCard } from "./job-card";
+import { FreelancerCard } from "./freelancer-card";
 import { PageHeader } from "./page-header";
 
-const popularSearches = ["Web Development", "Logo Design", "Content Writing", "Mobile App", "UI/UX Design", "Video Editing"];
+interface ExplorePageProps {
+  isDarkMode?: boolean;
+}
 
-const services = [
-  {
-    id: 1,
-    title: "Professional Logo Design",
-    category: "Graphic Design",
-    rating: 4.9,
-    reviews: 253,
-    price: 120,
-    image: "https://img.heroui.chat/image/ai?w=400&h=300&u=service1"
-  },
-  {
-    id: 2,
-    title: "Full Stack Web Development",
-    category: "Web Development",
-    rating: 4.8,
-    reviews: 189,
-    price: 450,
-    image: "https://img.heroui.chat/image/ai?w=400&h=300&u=service2"
-  },
-  {
-    id: 3,
-    title: "SEO Optimization",
-    category: "Digital Marketing",
-    rating: 4.7,
-    reviews: 142,
-    price: 200,
-    image: "https://img.heroui.chat/image/ai?w=400&h=300&u=service3"
-  },
-  {
-    id: 4,
-    title: "Mobile App Development",
-    category: "Programming",
-    rating: 4.9,
-    reviews: 217,
-    price: 650,
-    image: "https://img.heroui.chat/image/ai?w=400&h=300&u=service4"
-  },
-  {
-    id: 5,
-    title: "Content Writing",
-    category: "Writing & Translation",
-    rating: 4.8,
-    reviews: 176,
-    price: 80,
-    image: "https://img.heroui.chat/image/ai?w=400&h=300&u=service5"
-  },
-  {
-    id: 6,
-    title: "Video Editing & Animation",
-    category: "Video & Animation",
-    rating: 4.9,
-    reviews: 203,
-    price: 250,
-    image: "https://img.heroui.chat/image/ai?w=400&h=300&u=service6"
-  },
-  {
-    id: 7,
-    title: "Social Media Management",
-    category: "Digital Marketing",
-    rating: 4.7,
-    reviews: 158,
-    price: 180,
-    image: "https://img.heroui.chat/image/ai?w=400&h=300&u=service7"
-  },
-  {
-    id: 8,
-    title: "UI/UX Design",
-    category: "Graphic Design",
-    rating: 4.8,
-    reviews: 194,
-    price: 350,
-    image: "https://img.heroui.chat/image/ai?w=400&h=300&u=service8"
-  }
-];
+type SearchType = "jobs" | "freelancers";
+type SortBy = "newest" | "relevance" | "price";
 
-export const ExplorePage: React.FC = () => {
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const [sortBy, setSortBy] = React.useState("popular");
+export const ExplorePage: React.FC<ExplorePageProps> = ({ isDarkMode = true }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchType, setSearchType] = useState<SearchType>("jobs");
+  const [sortBy, setSortBy] = useState<SortBy>("newest");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const categories = [
+    { key: "all", label: "All Categories" },
+    { key: "web-development", label: "Web Development" },
+    { key: "graphic-design", label: "Graphic Design" },
+    { key: "writing", label: "Writing & Translation" },
+    { key: "digital-marketing", label: "Digital Marketing" },
+    { key: "video-animation", label: "Video & Animation" },
+    { key: "music-audio", label: "Music & Audio" },
+    { key: "programming", label: "Programming & Tech" },
+    { key: "business", label: "Business" },
+  ];
+
+  const performSearch = async () => {
+    setLoading(true);
+    try {
+      const collectionName = searchType === "jobs" ? "jobs" : "users";
+      let q = query(collection(db, collectionName));
+
+      // Add filters
+      if (selectedCategory !== "all") {
+        q = query(q, where("category", "==", selectedCategory));
+      }
+
+      if (searchQuery) {
+        // In production, you'd want to use a proper full-text search solution
+        // For now, we'll just fetch and filter client-side
+      }
+
+      // Add sorting
+      if (sortBy === "newest") {
+        q = query(q, orderBy("createdAt", "desc"));
+      }
+
+      q = query(q, limit(20));
+
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      setResults(data);
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    performSearch();
+  }, [searchType, selectedCategory, sortBy]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <PageHeader 
-        title="Explore Services"
-        subtitle="Discover top-rated services from talented freelancers"
+    <div className="min-h-screen">
+      <PageHeader
+        title="Explore"
+        subtitle="Discover amazing opportunities and talented professionals"
       />
-      
-      <div className="glass-effect p-6 mb-8">
-        <div className="flex flex-col md:flex-row gap-4">
-          <Input
-            placeholder="Search for services..."
-            value={searchQuery}
-            onValueChange={setSearchQuery}
-            startContent={<Icon icon="lucide:search" className="text-gray-400" />}
-            className="flex-1 bg-white/10 border-white/20"
-            size="lg"
-          />
-          <Button 
-            color="secondary"
-            size="lg"
-            className="font-medium font-outfit text-beamly-third"
-          >
-            Search
-          </Button>
-        </div>
-        
-        <div className="mt-4">
-          <p className="text-sm text-gray-300 mb-2">Popular searches:</p>
-          <div className="flex flex-wrap gap-2">
-            {popularSearches.map((term, index) => (
-              <Button
-                key={index}
-                variant="flat"
-                color="default"
-                size="sm"
-                className="bg-white/10 text-white"
-                onPress={() => setSearchQuery(term)}
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Search Bar */}
+        <div className="mb-8">
+          <div className="flex gap-4 items-center flex-wrap">
+            <div className="flex-1 min-w-[300px]">
+              <Input
+                size="lg"
+                placeholder={`Search for ${searchType}...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                startContent={<Icon icon="lucide:search" />}
+                onKeyPress={(e) => e.key === "Enter" && performSearch()}
+              />
+            </div>
+
+            <Dropdown>
+              <DropdownTrigger>
+                <Button variant="flat">
+                  {searchType === "jobs" ? "Jobs" : "Freelancers"}
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                aria-label="Search type"
+                onAction={(key) => setSearchType(key as SearchType)}
               >
-                {term}
-              </Button>
-            ))}
+                <DropdownItem key="jobs">Jobs</DropdownItem>
+                <DropdownItem key="freelancers">Freelancers</DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+
+            <Dropdown>
+              <DropdownTrigger>
+                <Button variant="flat">
+                  {categories.find(c => c.key === selectedCategory)?.label || "Category"}
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                aria-label="Categories"
+                onAction={(key) => setSelectedCategory(key as string)}
+              >
+                {categories.map((category) => (
+                  <DropdownItem key={category.key}>
+                    {category.label}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+
+            <Dropdown>
+              <DropdownTrigger>
+                <Button variant="flat">
+                  Sort by: {sortBy}
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                aria-label="Sort by"
+                onAction={(key) => setSortBy(key as SortBy)}
+              >
+                <DropdownItem key="newest">Newest</DropdownItem>
+                <DropdownItem key="relevance">Relevance</DropdownItem>
+                <DropdownItem key="price">Price</DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+
+            <Button
+              color="primary"
+              onPress={performSearch}
+              isLoading={loading}
+            >
+              Search
+            </Button>
           </div>
         </div>
-      </div>
-      
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-white">
-          {searchQuery ? `Results for "${searchQuery}"` : "All Services"}
-        </h2>
-        <Dropdown>
-          <DropdownTrigger>
-            <Button 
-              variant="bordered" 
-              className="border-white/20 text-white"
-              endContent={<Icon icon="lucide:chevron-down" />}
+
+        {/* Results */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-gray-500">Searching...</p>
+          </div>
+        ) : results.length === 0 ? (
+          <div className="text-center py-12">
+            <Icon icon="lucide:search-x" className="text-6xl text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No results found</h3>
+            <p className="text-gray-500">Try adjusting your filters or search terms</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {results.map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+              >
+                {searchType === "jobs" ? (
+                  <JobCard job={item} isDarkMode={isDarkMode} />
+                ) : (
+                  <FreelancerCard freelancer={item} isDarkMode={isDarkMode} />
+                )}
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* Load More */}
+        {results.length > 0 && results.length % 20 === 0 && (
+          <div className="text-center mt-8">
+            <Button
+              variant="flat"
+              onPress={() => {
+                // Load more logic
+              }}
             >
-              Sort by: {sortBy === "popular" ? "Most Popular" : sortBy === "recent" ? "Most Recent" : "Price"}
+              Load More
             </Button>
-          </DropdownTrigger>
-          <DropdownMenu 
-            aria-label="Sort options"
-            onAction={(key) => setSortBy(key as string)}
-            className="bg-[#010b29]/95 backdrop-blur-md border border-white/10"
-          >
-            <DropdownItem key="popular" className="text-white">Most Popular</DropdownItem>
-            <DropdownItem key="recent" className="text-white">Most Recent</DropdownItem>
-            <DropdownItem key="price-low" className="text-white">Price: Low to High</DropdownItem>
-            <DropdownItem key="price-high" className="text-white">Price: High to Low</DropdownItem>
-          </DropdownMenu>
-        </Dropdown>
-      </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {services.map((service) => (
-          <motion.div
-            key={service.id}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="glass-card overflow-hidden card-hover h-full">
-              <img 
-                src={service.image} 
-                alt={service.title} 
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-xs bg-beamly-primary/20 text-beamly-primary px-2 py-1 rounded-full">
-                    {service.category}
-                  </span>
-                  <div className="flex items-center">
-                    <Icon icon="lucide:star" className="text-beamly-secondary text-sm" />
-                    <span className="text-white ml-1 text-sm">{service.rating}</span>
-                    <span className="text-gray-400 text-xs ml-1">({service.reviews})</span>
-                  </div>
-                </div>
-                <h3 className="text-white font-semibold mb-2">{service.title}</h3>
-                <div className="flex justify-between items-center mt-4">
-                  <span className="text-beamly-secondary font-semibold">${service.price}</span>
-                  <Button 
-                    size="sm" 
-                    color="secondary"
-                    className="text-beamly-third"
-                  >
-                    View Details
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      
-      <div className="flex justify-center mt-10">
-        <Button 
-          color="primary"
-          variant="bordered"
-          className="text-white border-white/30"
-        >
-          Load More
-        </Button>
+          </div>
+        )}
       </div>
     </div>
   );

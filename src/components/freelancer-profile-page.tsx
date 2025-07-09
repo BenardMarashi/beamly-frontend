@@ -1,336 +1,319 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Button, Card, CardBody, Avatar, Chip, Image, Skeleton } from "@nextui-org/react";
-import { Icon } from "@iconify/react";
-import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { Button, Card, CardBody, Avatar, Chip, Skeleton } from "@nextui-org/react"; // FIXED: Removed unused Image import
+import { Icon } from "@iconify/react";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { useAuth } from "../contexts/AuthContext";
+import { PageHeader } from "./page-header";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../contexts/AuthContext";
+
+interface FreelancerData {
+  id: string;
+  name: string;
+  title: string;
+  bio: string;
+  avatar: string;
+  skills: string[];
+  hourlyRate: number;
+  rating: number;
+  completedJobs: number;
+  responseTime: string;
+  languages: string[];
+  availability: string;
+  portfolio: any[];
+  reviews: any[];
+}
 
 export const FreelancerProfilePage: React.FC = () => {
-  const { t } = useTranslation();
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [profileData, setProfileData] = useState<any>(null);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [freelancer, setFreelancer] = useState<FreelancerData | null>(null);
   const [loading, setLoading] = useState(true);
-  
+  const [activeTab, setActiveTab] = useState("overview");
+
   useEffect(() => {
-    if (id) {
-      fetchFreelancerProfile();
-      fetchReviews();
-    }
+    fetchFreelancerData();
   }, [id]);
-  
-  const fetchFreelancerProfile = async () => {
+
+  const fetchFreelancerData = async () => {
     if (!id) return;
-    
+
     try {
-      const userDoc = await getDoc(doc(db, "users", id));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        // Only show profile if user is a freelancer or has "both" type
-        if (data.userType === 'freelancer' || data.userType === 'both') {
-          setProfileData(data);
-        } else {
-          toast.error("User is not a freelancer");
-          navigate('/freelancers');
-        }
+      const freelancerDoc = await getDoc(doc(db, "users", id));
+      
+      if (freelancerDoc.exists()) {
+        const data = freelancerDoc.data();
+        setFreelancer({
+          id: freelancerDoc.id,
+          name: data.displayName || "Unknown",
+          title: data.title || "Freelancer",
+          bio: data.bio || "",
+          avatar: data.photoURL || "",
+          skills: data.skills || [],
+          hourlyRate: data.hourlyRate || 0,
+          rating: data.rating || 0,
+          completedJobs: data.completedJobs || 0,
+          responseTime: data.responseTime || "N/A",
+          languages: data.languages || ["English"],
+          availability: data.availability || "Available",
+          portfolio: data.portfolio || [],
+          reviews: data.reviews || []
+        });
       } else {
         toast.error("Freelancer not found");
-        navigate('/freelancers');
+        navigate("/browse-freelancers");
       }
     } catch (error) {
-      console.error("Error fetching freelancer profile:", error);
-      toast.error("Failed to load profile");
+      console.error("Error fetching freelancer:", error);
+      toast.error("Failed to load freelancer profile");
     } finally {
       setLoading(false);
     }
   };
-  
-  const fetchReviews = async () => {
-    if (!id) return;
-    
-    try {
-      const reviewsQuery = query(
-        collection(db, "reviews"),
-        where("freelancerId", "==", id),
-        orderBy("createdAt", "desc"),
-        limit(5)
-      );
-      const snapshot = await getDocs(reviewsQuery);
-      const reviewsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setReviews(reviewsData);
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
-    }
-  };
 
-  const handleHireFreelancer = () => {
+  const handleHire = () => {
     if (!user) {
       toast.error("Please login to hire freelancers");
-      navigate('/login');
+      navigate("/login");
       return;
     }
-    // Navigate to job posting with pre-selected freelancer
-    navigate(`/jobs/new?freelancer=${id}`);
+    
+    navigate(`/post-job?freelancer=${id}`);
   };
 
-  const handleSendMessage = () => {
+  const handleMessage = () => {
     if (!user) {
       toast.error("Please login to send messages");
-      navigate('/login');
+      navigate("/login");
       return;
     }
-    navigate(`/messages/new?recipient=${id}`);
+    
+    navigate(`/chat?user=${id}`);
   };
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="md:w-1/3">
-            <Card className="glass-effect">
-              <CardBody className="p-6">
-                <Skeleton className="rounded-full w-24 h-24 mx-auto mb-4" />
-                <Skeleton className="h-4 w-3/4 mx-auto mb-2" />
-                <Skeleton className="h-3 w-1/2 mx-auto" />
-              </CardBody>
-            </Card>
-          </div>
-          <div className="md:w-2/3 space-y-6">
-            <Skeleton className="h-40 rounded-xl" />
-            <Skeleton className="h-40 rounded-xl" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+        <PageHeader title="Loading..." subtitle="" />
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <Card className="glass-effect">
+                <CardBody>
+                  <Skeleton className="rounded-full w-32 h-32 mx-auto mb-4" />
+                  <Skeleton className="h-6 w-3/4 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-1/2 mx-auto" />
+                </CardBody>
+              </Card>
+            </div>
+            <div className="lg:col-span-2">
+              <Card className="glass-effect">
+                <CardBody>
+                  <Skeleton className="h-64 w-full" />
+                </CardBody>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!profileData) {
+  if (!freelancer) {
     return null;
   }
 
-  const profilePicture = profileData.photoURL || 
-    `https://ui-avatars.com/api/?name=${profileData.displayName}&background=0F43EE&color=fff`;
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Button
-        variant="light"
-        startContent={<Icon icon="lucide:arrow-left" />}
-        onPress={() => navigate(-1)}
-        className="mb-4"
-      >
-        Back
-      </Button>
-      
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="md:w-1/3">
-          <div className="glass-effect p-6 rounded-xl sticky top-24">
-            <div className="flex flex-col items-center text-center">
-              <Avatar
-                src={profilePicture}
-                className="w-24 h-24 mb-4"
-                name={profileData.displayName}
-              />
-              <h1 className="text-2xl font-bold text-white mb-1">
-                {profileData.displayName}
-              </h1>
-              <p className="text-beamly-secondary font-medium mb-2">
-                {profileData.skills?.[0] || 'Freelancer'}
-              </p>
-              <div className="flex items-center mb-4">
-                <div className="flex">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Icon 
-                      key={star} 
-                      icon="lucide:star" 
-                      className={star <= Math.round(profileData.rating || 0) ? "text-yellow-400" : "text-gray-400"} 
-                      width={16} 
-                    />
-                  ))}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+      <PageHeader
+        title={freelancer.name}
+        subtitle={freelancer.title}
+      />
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="glass-effect sticky top-4">
+              <CardBody className="text-center">
+                <Avatar
+                  src={freelancer.avatar}
+                  className="w-32 h-32 mx-auto mb-4"
+                />
+                <h2 className="text-2xl font-bold text-white mb-2">{freelancer.name}</h2>
+                <p className="text-gray-300 mb-4">{freelancer.title}</p>
+                
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Icon icon="lucide:star" className="text-yellow-500" />
+                  <span className="text-white font-semibold">{freelancer.rating}</span>
+                  <span className="text-gray-400">({freelancer.completedJobs} jobs)</span>
                 </div>
-                <span className="text-gray-300 text-sm ml-2">
-                  {profileData.rating?.toFixed(1) || '0.0'} ({profileData.reviewCount || 0} {t('freelancerProfile.reviews')})
-                </span>
-              </div>
-              
-              <div className="w-full border-t border-white/10 pt-4 mt-2">
-                {profileData.location && (
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-300">{t('freelancerProfile.location')}:</span>
-                    <span className="text-white">{profileData.location}</span>
+
+                <div className="mb-6">
+                  <p className="text-3xl font-bold text-white">${freelancer.hourlyRate}/hr</p>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Response Time</span>
+                    <span className="text-white">{freelancer.responseTime}</span>
                   </div>
-                )}
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">{t('freelancerProfile.memberSince')}:</span>
-                  <span className="text-white">
-                    {profileData.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
-                  </span>
-                </div>
-                {profileData.hourlyRate && (
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-300">{t('freelancerProfile.hourlyRate')}:</span>
-                    <span className="text-beamly-secondary font-bold">${profileData.hourlyRate}/hr</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Availability</span>
+                    <Chip
+                      color={freelancer.availability === "Available" ? "success" : "warning"}
+                      size="sm"
+                    >
+                      {freelancer.availability}
+                    </Chip>
                   </div>
-                )}
-                <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">Completed Jobs:</span>
-                  <span className="text-white">{profileData.completedProjects || 0}</span>
                 </div>
-              </div>
-              
-              <div className="w-full mt-6 space-y-3">
-                <Button 
-                  color="secondary" 
-                  className="w-full font-medium text-beamly-third"
-                  onPress={handleHireFreelancer}
-                  startContent={<Icon icon="lucide:briefcase" />}
-                >
-                  {t('freelancerProfile.hireMe')}
-                </Button>
-                <Button 
-                  variant="bordered" 
-                  className="w-full font-medium"
-                  onPress={handleSendMessage}
-                  startContent={<Icon icon="lucide:message-square" />}
-                >
-                  {t('freelancerProfile.sendMessage')}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="md:w-2/3 space-y-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="glass-effect p-6 rounded-xl">
-              <h2 className="text-xl font-bold text-white mb-4">{t('freelancerProfile.aboutMe')}</h2>
-              <p className="text-gray-300">
-                {profileData.bio || "No bio available yet."}
-              </p>
-            </div>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
-            <div className="glass-effect p-6 rounded-xl">
-              <h2 className="text-xl font-bold text-white mb-4">{t('freelancerProfile.skills')}</h2>
-              <div className="flex flex-wrap gap-2">
-                {profileData.skills?.length > 0 ? (
-                  profileData.skills.map((skill: string) => (
-                    <Chip key={skill} color="secondary" variant="flat">
+
+                <div className="space-y-2">
+                  <Button
+                    color="secondary"
+                    className="w-full"
+                    onPress={handleHire}
+                  >
+                    Hire Me
+                  </Button>
+                  <Button
+                    variant="bordered"
+                    className="w-full"
+                    startContent={<Icon icon="lucide:message-circle" />}
+                    onPress={handleMessage}
+                  >
+                    Message
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+
+            {/* Skills */}
+            <Card className="glass-effect mt-4">
+              <CardBody>
+                <h3 className="font-semibold text-white mb-3">Skills</h3>
+                <div className="flex flex-wrap gap-2">
+                  {freelancer.skills.map((skill, index) => (
+                    <Chip
+                      key={index}
+                      variant="flat"
+                      className="bg-white/10"
+                    >
                       {skill}
                     </Chip>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+
+            {/* Languages */}
+            <Card className="glass-effect mt-4">
+              <CardBody>
+                <h3 className="font-semibold text-white mb-3">Languages</h3>
+                <div className="space-y-2">
+                  {freelancer.languages.map((language, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Icon icon="lucide:globe" className="text-gray-400" />
+                      <span className="text-white">{language}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            {/* Tabs */}
+            <div className="flex gap-4 mb-6">
+              {["overview", "portfolio", "reviews"].map((tab) => (
+                <Button
+                  key={tab}
+                  variant={activeTab === tab ? "flat" : "light"}
+                  onPress={() => setActiveTab(tab)}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </Button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === "overview" && (
+              <Card className="glass-effect">
+                <CardBody>
+                  <h3 className="text-xl font-semibold text-white mb-4">About Me</h3>
+                  <p className="text-gray-300 whitespace-pre-line">{freelancer.bio}</p>
+                </CardBody>
+              </Card>
+            )}
+
+            {activeTab === "portfolio" && (
+              <div className="space-y-4">
+                {freelancer.portfolio.length > 0 ? (
+                  freelancer.portfolio.map((item, index) => (
+                    <Card key={index} className="glass-effect">
+                      <CardBody>
+                        <h4 className="font-semibold text-white mb-2">{item.title}</h4>
+                        <p className="text-gray-300">{item.description}</p>
+                      </CardBody>
+                    </Card>
                   ))
                 ) : (
-                  <p className="text-gray-400">No skills listed yet.</p>
+                  <Card className="glass-effect">
+                    <CardBody className="text-center py-12">
+                      <Icon icon="lucide:folder-open" className="text-6xl text-gray-500 mx-auto mb-4" />
+                      <p className="text-gray-400">No portfolio items yet</p>
+                    </CardBody>
+                  </Card>
                 )}
               </div>
-            </div>
-          </motion.div>
-          
-          {/* Portfolio Section - To be implemented with actual portfolio items */}
-          {profileData.portfolio && profileData.portfolio.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
-              <div className="glass-effect p-6 rounded-xl">
-                <h2 className="text-xl font-bold text-white mb-4">{t('freelancerProfile.portfolio')}</h2>
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Portfolio items would go here */}
-                  <p className="text-gray-400 col-span-3">Portfolio coming soon...</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.3 }}
-          >
-            <div className="glass-effect p-6 rounded-xl">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">{t('freelancerProfile.reviews')}</h2>
-                <div className="flex items-center">
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Icon 
-                        key={star} 
-                        icon="lucide:star" 
-                        className={star <= Math.round(profileData.rating || 0) ? "text-yellow-400" : "text-gray-400"} 
-                        width={16} 
-                      />
-                    ))}
-                  </div>
-                  <span className="text-gray-300 text-sm ml-2">
-                    {profileData.rating?.toFixed(1) || '0.0'} ({reviews.length} reviews)
-                  </span>
-                </div>
-              </div>
-              
-              <div className="space-y-6">
-                {reviews.length > 0 ? (
-                  reviews.map((review) => (
-                    <div key={review.id} className="border-t border-white/10 pt-4">
-                      <div className="flex justify-between">
-                        <div className="flex items-center">
+            )}
+
+            {activeTab === "reviews" && (
+              <div className="space-y-4">
+                {freelancer.reviews.length > 0 ? (
+                  freelancer.reviews.map((review, index) => (
+                    <Card key={index} className="glass-effect">
+                      <CardBody>
+                        <div className="flex items-start gap-4">
                           <Avatar
-                            src={review.clientPhotoURL || `https://ui-avatars.com/api/?name=${review.clientName}&background=0F43EE&color=fff`}
-                            className="w-10 h-10 mr-3"
-                            name={review.clientName}
+                            src={review.clientAvatar}
+                            size="sm"
                           />
-                          <div>
-                            <h3 className="font-semibold text-white">{review.clientName}</h3>
-                            <div className="flex">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Icon 
-                                  key={star} 
-                                  icon="lucide:star" 
-                                  className={star <= review.rating ? "text-yellow-400" : "text-gray-400"} 
-                                  width={12} 
-                                />
-                              ))}
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold text-white">{review.clientName}</h4>
+                              <div className="flex items-center gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Icon
+                                    key={i}
+                                    icon="lucide:star"
+                                    className={i < review.rating ? "text-yellow-500" : "text-gray-500"}
+                                  />
+                                ))}
+                              </div>
                             </div>
+                            <p className="text-gray-300">{review.comment}</p>
+                            <p className="text-sm text-gray-500 mt-2">{review.date}</p>
                           </div>
                         </div>
-                        <span className="text-gray-400 text-sm">
-                          {review.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}
-                        </span>
-                      </div>
-                      <p className="text-gray-300 mt-2">{review.comment}</p>
-                      {review.jobTitle && (
-                        <p className="text-sm text-gray-400 mt-2">
-                          Project: {review.jobTitle}
-                        </p>
-                      )}
-                    </div>
+                      </CardBody>
+                    </Card>
                   ))
                 ) : (
-                  <p className="text-gray-400 text-center py-8">
-                    No reviews yet. Be the first to work with {profileData.displayName}!
-                  </p>
+                  <Card className="glass-effect">
+                    <CardBody className="text-center py-12">
+                      <Icon icon="lucide:message-square" className="text-6xl text-gray-500 mx-auto mb-4" />
+                      <p className="text-gray-400">No reviews yet</p>
+                    </CardBody>
+                  </Card>
                 )}
               </div>
-            </div>
-          </motion.div>
+            )}
+          </div>
         </div>
       </div>
     </div>

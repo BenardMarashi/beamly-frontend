@@ -1,395 +1,335 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Button, Tabs, Tab, Avatar } from "@heroui/react";
+import { Card, CardBody, Avatar, Button, Input, Textarea, Chip } from "@heroui/react"; // FIXED: Added Chip import
 import { Icon } from "@iconify/react";
 import { PageHeader } from "../page-header";
 
-export const CommunityPage: React.FC = () => {
-  const [selectedTab, setSelectedTab] = React.useState("discussions");
-  
-  const discussions = [
-    {
-      id: 1,
-      title: "What's your favorite project management tool for freelancing?",
-      author: "Sarah Johnson",
-      authorImage: "https://img.heroui.chat/image/avatar?w=60&h=60&u=sarah1",
-      date: "2 hours ago",
-      replies: 24,
-      views: 156,
-      category: "Tools & Resources",
-      excerpt: "I've been using Trello for years but I'm wondering if there are better alternatives specifically designed for freelancers. What do you all use to manage multiple clients and projects?"
-    },
-    {
-      id: 2,
-      title: "How to handle clients who constantly request revisions?",
-      author: "Michael Chen",
-      authorImage: "https://img.heroui.chat/image/avatar?w=60&h=60&u=michael1",
-      date: "5 hours ago",
-      replies: 37,
-      views: 243,
-      category: "Client Management",
-      excerpt: "I'm currently dealing with a client who keeps asking for revisions beyond what was initially agreed upon. How do you set boundaries without damaging the relationship?"
-    },
-    {
-      id: 3,
-      title: "Share your biggest freelancing win this month!",
-      author: "Jessica Williams",
-      authorImage: "https://img.heroui.chat/image/avatar?w=60&h=60&u=jessica1",
-      date: "1 day ago",
-      replies: 42,
-      views: 318,
-      category: "Success Stories",
-      excerpt: "Let's celebrate our achievements! I just landed my biggest client yet - a six-month contract with a major tech company. What's your recent win?"
-    },
-    {
-      id: 4,
-      title: "Tax tips for freelancers - What deductions are you taking?",
-      author: "David Wilson",
-      authorImage: "https://img.heroui.chat/image/avatar?w=60&h=60&u=david1",
-      date: "2 days ago",
-      replies: 29,
-      views: 276,
-      category: "Finance",
-      excerpt: "Tax season is approaching and I want to make sure I'm not missing any important deductions. What are some lesser-known expenses that freelancers can write off?"
-    }
-  ];
-  
-  const events = [
-    {
-      id: 1,
-      title: "Virtual Coworking Session",
-      date: "Tomorrow, 2:00 PM EST",
-      attendees: 18,
-      type: "Online",
-      image: "https://img.heroui.chat/image/ai?w=400&h=200&u=event1"
-    },
-    {
-      id: 2,
-      title: "Freelancer Mastermind Group",
-      date: "January 25, 2023, 1:00 PM EST",
-      attendees: 12,
-      type: "Online",
-      image: "https://img.heroui.chat/image/ai?w=400&h=200&u=event2"
-    },
-    {
-      id: 3,
-      title: "Beamly NYC Meetup",
-      date: "February 5, 2023, 6:30 PM EST",
-      attendees: 45,
-      type: "In-Person",
-      image: "https://img.heroui.chat/image/ai?w=400&h=200&u=event3"
-    }
-  ];
-  
-  const members = [
-    {
-      id: 1,
+interface CommunityPost {
+  id: string;
+  author: {
+    name: string;
+    avatar: string;
+    badge?: string;
+  };
+  title: string;
+  content: string;
+  category: string;
+  likes: number;
+  comments: number;
+  timestamp: string;
+  tags: string[];
+}
+
+const communityPosts: CommunityPost[] = [
+  {
+    id: "1",
+    author: {
       name: "Sarah Johnson",
-      image: "https://img.heroui.chat/image/avatar?w=80&h=80&u=sarah1",
-      role: "Graphic Designer",
-      joined: "Member since 2021",
-      contributions: 156
+      avatar: "https://i.pravatar.cc/150?u=sarah",
+      badge: "Top Contributor"
     },
-    {
-      id: 2,
+    title: "Tips for Writing Winning Proposals",
+    content: "After years of freelancing, I've learned that the key to winning projects isn't just about having the lowest price. Here are my top 5 tips for writing proposals that actually get accepted...",
+    category: "Tips & Tricks",
+    likes: 234,
+    comments: 45,
+    timestamp: "2 hours ago",
+    tags: ["proposals", "freelancing", "tips"]
+  },
+  {
+    id: "2",
+    author: {
       name: "Michael Chen",
-      image: "https://img.heroui.chat/image/avatar?w=80&h=80&u=michael1",
-      role: "Web Developer",
-      joined: "Member since 2020",
-      contributions: 243
+      avatar: "https://i.pravatar.cc/150?u=michael",
+      badge: "Moderator"
     },
-    {
-      id: 3,
-      name: "Jessica Williams",
-      image: "https://img.heroui.chat/image/avatar?w=80&h=80&u=jessica1",
-      role: "Content Writer",
-      joined: "Member since 2022",
-      contributions: 87
+    title: "New Feature Announcement: Real-time Collaboration Tools",
+    content: "We're excited to announce the launch of our new real-time collaboration tools! Now you can work with clients more efficiently with built-in video calls, screen sharing, and collaborative whiteboards...",
+    category: "Announcements",
+    likes: 567,
+    comments: 89,
+    timestamp: "5 hours ago",
+    tags: ["updates", "features", "collaboration"]
+  },
+  {
+    id: "3",
+    author: {
+      name: "Emily Davis",
+      avatar: "https://i.pravatar.cc/150?u=emily"
     },
-    {
-      id: 4,
-      name: "David Wilson",
-      image: "https://img.heroui.chat/image/avatar?w=80&h=80&u=david1",
-      role: "Marketing Specialist",
-      joined: "Member since 2019",
-      contributions: 312
-    },
-    {
-      id: 5,
-      name: "Emily Rodriguez",
-      image: "https://img.heroui.chat/image/avatar?w=80&h=80&u=emily1",
-      role: "UI/UX Designer",
-      joined: "Member since 2021",
-      contributions: 178
-    },
-    {
-      id: 6,
-      name: "James Thompson",
-      image: "https://img.heroui.chat/image/avatar?w=80&h=80&u=james1",
-      role: "Video Editor",
-      joined: "Member since 2020",
-      contributions: 205
-    }
-  ];
+    title: "How I Scaled My Freelance Business to $100k/year",
+    content: "It took me 3 years to go from struggling freelancer to six-figure business owner. Here's my journey and the strategies that made the biggest difference...",
+    category: "Success Stories",
+    likes: 892,
+    comments: 156,
+    timestamp: "1 day ago",
+    tags: ["success", "business", "growth"]
+  }
+];
+
+const categories = [
+  { name: "All Posts", icon: "lucide:layout-grid", count: 1234 },
+  { name: "Announcements", icon: "lucide:megaphone", count: 23 },
+  { name: "Tips & Tricks", icon: "lucide:lightbulb", count: 456 },
+  { name: "Success Stories", icon: "lucide:trophy", count: 89 },
+  { name: "Questions", icon: "lucide:help-circle", count: 234 },
+  { name: "Feedback", icon: "lucide:message-square", count: 67 }
+];
+
+export const CommunityPage: React.FC = () => {
+  const [selectedCategory, setSelectedCategory] = useState("All Posts");
+  const [showNewPost, setShowNewPost] = useState(false);
+  const [newPost, setNewPost] = useState({
+    title: "",
+    content: "",
+    category: "Questions",
+    tags: ""
+  });
+
+  const handleCreatePost = () => {
+    console.log("Creating post:", newPost);
+    setShowNewPost(false);
+    setNewPost({ title: "", content: "", category: "Questions", tags: "" });
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <PageHeader 
-        title="Beamly Community"
-        subtitle="Connect, learn, and grow with fellow freelancers and clients"
-        showBackButton
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+      <PageHeader
+        title="Community Hub"
+        subtitle="Connect, share, and grow with fellow freelancers and clients"
       />
-      
-      <div className="glass-effect p-6 mb-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Welcome to our community!</h2>
-            <p className="text-gray-300">Join discussions, attend events, and connect with other members.</p>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            {/* Categories */}
+            <Card className="glass-effect mb-6">
+              <CardBody>
+                <h3 className="text-lg font-semibold mb-4 text-white">Categories</h3>
+                <div className="space-y-2">
+                  {categories.map((category) => (
+                    <Button
+                      key={category.name}
+                      variant={selectedCategory === category.name ? "flat" : "light"}
+                      className="justify-start w-full"
+                      startContent={<Icon icon={category.icon} />}
+                      onPress={() => setSelectedCategory(category.name)}
+                    >
+                      <span className="flex-1 text-left">{category.name}</span>
+                      <span className="text-sm text-gray-400">{category.count}</span>
+                    </Button>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+
+            {/* Top Contributors */}
+            <Card className="glass-effect">
+              <CardBody>
+                <h3 className="text-lg font-semibold mb-4 text-white">Top Contributors</h3>
+                <div className="space-y-3">
+                  {[
+                    { name: "Sarah Johnson", points: 2345, avatar: "sarah" },
+                    { name: "Alex Kumar", points: 1987, avatar: "alex" },
+                    { name: "Maria Garcia", points: 1654, avatar: "maria" }
+                  ].map((contributor, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <Avatar
+                        src={`https://i.pravatar.cc/150?u=${contributor.avatar}`}
+                        size="sm"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">{contributor.name}</p>
+                        <p className="text-xs text-gray-400">{contributor.points} points</p>
+                      </div>
+                      <div className="text-lg font-bold text-yellow-500">
+                        #{index + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
           </div>
-          <div className="flex gap-3">
-            <Button 
-              color="secondary"
-              className="font-medium font-outfit text-beamly-third"
-              startContent={<Icon icon="lucide:plus" />}
-            >
-              New Discussion
-            </Button>
-            <Button 
-              color="primary"
-              variant="bordered"
-              className="text-white border-white/30"
-            >
-              Browse Categories
-            </Button>
+
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {/* Create Post Button */}
+            <div className="mb-6">
+              <Button
+                color="secondary"
+                size="lg"
+                className="w-full"
+                startContent={<Icon icon="lucide:plus" />}
+                onPress={() => setShowNewPost(true)}
+              >
+                Create New Post
+              </Button>
+            </div>
+
+            {/* New Post Form */}
+            {showNewPost && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6"
+              >
+                <Card className="glass-effect">
+                  <CardBody>
+                    <h3 className="text-lg font-semibold mb-4 text-white">Create New Post</h3>
+                    <div className="space-y-4">
+                      <Input
+                        label="Title"
+                        placeholder="What's your post about?"
+                        value={newPost.title}
+                        onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                      />
+                      <Textarea
+                        label="Content"
+                        placeholder="Share your thoughts, tips, or questions..."
+                        minRows={4}
+                        value={newPost.content}
+                        onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                      />
+                      <div className="flex gap-4">
+                        <select
+                          className="flex-1 px-3 py-2 rounded-lg bg-white/10 text-white"
+                          value={newPost.category}
+                          onChange={(e) => setNewPost({ ...newPost, category: e.target.value })}
+                        >
+                          <option value="Questions">Questions</option>
+                          <option value="Tips & Tricks">Tips & Tricks</option>
+                          <option value="Success Stories">Success Stories</option>
+                          <option value="Feedback">Feedback</option>
+                        </select>
+                        <Input
+                          className="flex-1"
+                          placeholder="Tags (comma separated)"
+                          value={newPost.tags}
+                          onChange={(e) => setNewPost({ ...newPost, tags: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="light"
+                          onPress={() => setShowNewPost(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          color="secondary"
+                          onPress={handleCreatePost}
+                        >
+                          Post
+                        </Button>
+                      </div>
+                    </div>
+                  </CardBody>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Posts */}
+            <div className="space-y-6">
+              {communityPosts.map((post, index) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="glass-effect">
+                    <CardBody>
+                      <div className="flex items-start gap-4">
+                        <Avatar
+                          src={post.author.avatar}
+                          size="lg"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold text-white">{post.author.name}</h4>
+                                {post.author.badge && (
+                                  <Chip
+                                    size="sm"
+                                    color="secondary"
+                                    variant="flat"
+                                  >
+                                    {post.author.badge}
+                                  </Chip>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-400">{post.timestamp}</p>
+                            </div>
+                            <Chip
+                              color="primary"
+                              variant="flat"
+                              size="sm"
+                            >
+                              {post.category}
+                            </Chip>
+                          </div>
+
+                          <h3 className="text-xl font-semibold mb-2 text-white">{post.title}</h3>
+                          <p className="text-gray-300 mb-4">{post.content}</p>
+
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {post.tags.map((tag) => (
+                              <Chip
+                                key={tag}
+                                size="sm"
+                                variant="flat"
+                                className="bg-white/10"
+                              >
+                                #{tag}
+                              </Chip>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-4">
+                            <Button
+                              variant="light"
+                              size="sm"
+                              startContent={<Icon icon="lucide:heart" />}
+                            >
+                              {post.likes}
+                            </Button>
+                            <Button
+                              variant="light"
+                              size="sm"
+                              startContent={<Icon icon="lucide:message-circle" />}
+                            >
+                              {post.comments}
+                            </Button>
+                            <Button
+                              variant="light"
+                              size="sm"
+                              startContent={<Icon icon="lucide:share-2" />}
+                            >
+                              Share
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardBody>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Load More */}
+            <div className="text-center mt-8">
+              <Button
+                variant="flat"
+                endContent={<Icon icon="lucide:arrow-down" />}
+              >
+                Load More Posts
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <Tabs 
-        aria-label="Community sections"
-        selectedKey={selectedTab}
-        onSelectionChange={setSelectedTab as any}
-        color="secondary"
-        variant="underlined"
-        classNames={{
-          tab: "data-[selected=true]:text-beamly-secondary",
-          tabList: "gap-6",
-          cursor: "bg-beamly-secondary"
-        }}
-      >
-        <Tab 
-          key="discussions" 
-          title={
-            <div className="flex items-center gap-2">
-              <Icon icon="lucide:message-circle" />
-              <span>Discussions</span>
-            </div>
-          }
-        >
-          <div className="py-4">
-            <div className="space-y-4">
-              {discussions.map((discussion) => (
-                <motion.div
-                  key={discussion.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="glass-card p-5 card-hover"
-                >
-                  <div className="flex items-start gap-4">
-                    <Avatar
-                      src={discussion.authorImage}
-                      className="hidden sm:flex"
-                      size="lg"
-                    />
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2">
-                        <h3 className="text-lg font-semibold text-white">{discussion.title}</h3>
-                        <Chip
-                          color="primary"
-                          variant="flat"
-                          className="bg-beamly-primary/20 text-beamly-primary text-xs self-start sm:self-auto mt-1 sm:mt-0"
-                        >
-                          {discussion.category}
-                        </Chip>
-                      </div>
-                      <p className="text-gray-300 text-sm mb-3 line-clamp-2">{discussion.excerpt}</p>
-                      <div className="flex flex-wrap items-center justify-between">
-                        <div className="flex items-center text-sm text-gray-400">
-                          <span className="hidden sm:inline">{discussion.author}</span>
-                          <span className="hidden sm:inline mx-2">•</span>
-                          <span>{discussion.date}</span>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-400">
-                          <div className="flex items-center">
-                            <Icon icon="lucide:message-circle" className="mr-1" width={16} />
-                            <span>{discussion.replies}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Icon icon="lucide:eye" className="mr-1" width={16} />
-                            <span>{discussion.views}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-            
-            <div className="flex justify-center mt-6">
-              <Button 
-                color="default"
-                variant="flat"
-                className="text-white"
-              >
-                View All Discussions
-              </Button>
-            </div>
-          </div>
-        </Tab>
-        
-        <Tab 
-          key="events" 
-          title={
-            <div className="flex items-center gap-2">
-              <Icon icon="lucide:calendar" />
-              <span>Events</span>
-            </div>
-          }
-        >
-          <div className="py-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {events.map((event) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="glass-card overflow-hidden card-hover"
-                >
-                  <img 
-                    src={event.image} 
-                    alt={event.title} 
-                    className="w-full h-40 object-cover"
-                  />
-                  <div className="p-5">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-semibold text-white">{event.title}</h3>
-                      <Chip
-                        color={event.type === "Online" ? "primary" : "secondary"}
-                        variant="flat"
-                        className={event.type === "Online" ? "bg-beamly-primary/20 text-beamly-primary" : "bg-beamly-secondary/20 text-beamly-secondary"}
-                        size="sm"
-                      >
-                        {event.type}
-                      </Chip>
-                    </div>
-                    <div className="flex items-center text-gray-300 text-sm mb-4">
-                      <Icon icon="lucide:calendar" className="mr-2" width={16} />
-                      <span>{event.date}</span>
-                    </div>
-                    <div className="flex items-center text-gray-300 text-sm mb-4">
-                      <Icon icon="lucide:users" className="mr-2" width={16} />
-                      <span>{event.attendees} attending</span>
-                    </div>
-                    <Button 
-                      color="secondary"
-                      className="w-full text-beamly-third"
-                      size="sm"
-                    >
-                      RSVP
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-            
-            <div className="flex justify-center mt-6">
-              <Button 
-                color="default"
-                variant="flat"
-                className="text-white"
-              >
-                View All Events
-              </Button>
-            </div>
-          </div>
-        </Tab>
-        
-        <Tab 
-          key="members" 
-          title={
-            <div className="flex items-center gap-2">
-              <Icon icon="lucide:users" />
-              <span>Members</span>
-            </div>
-          }
-        >
-          <div className="py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {members.map((member) => (
-                <motion.div
-                  key={member.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="glass-card p-5 card-hover"
-                >
-                  <div className="flex items-center gap-4">
-                    <Avatar
-                      src={member.image}
-                      className="w-16 h-16"
-                      size="lg"
-                    />
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{member.name}</h3>
-                      <p className="text-beamly-secondary text-sm">{member.role}</p>
-                      <p className="text-gray-400 text-xs">{member.joined}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
-                    <div className="text-sm text-gray-300">
-                      <span className="font-semibold text-white">{member.contributions}</span> contributions
-                    </div>
-                    <Button 
-                      color="default"
-                      variant="light"
-                      size="sm"
-                      className="text-white"
-                    >
-                      View Profile
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-            
-            <div className="flex justify-center mt-6">
-              <Button 
-                color="default"
-                variant="flat"
-                className="text-white"
-              >
-                View All Members
-              </Button>
-            </div>
-          </div>
-        </Tab>
-      </Tabs>
-      
-      <div className="yellow-glass p-8 text-center mt-12">
-        <h2 className="text-2xl font-bold text-white mb-4">Join Our Community Today</h2>
-        <p className="text-gray-300 max-w-2xl mx-auto mb-6">
-          Connect with like-minded freelancers and clients, share knowledge, and grow your network.
-        </p>
-        <Button 
-          color="secondary"
-          size="lg"
-          className="font-medium font-outfit text-beamly-third"
-        >
-          Create an Account
-        </Button>
       </div>
     </div>
   );
