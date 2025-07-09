@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Input, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import { Input, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
@@ -15,7 +15,7 @@ interface ExplorePageProps {
 type SearchType = "jobs" | "freelancers";
 type SortBy = "newest" | "relevance" | "price";
 
-export const ExplorePage: React.FC<ExplorePageProps> = ({ isDarkMode = true }) => {
+export const ExplorePage: React.FC<ExplorePageProps> = ({ isDarkMode: _isDarkMode = true }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchType, setSearchType] = useState<SearchType>("jobs");
   const [sortBy, setSortBy] = useState<SortBy>("newest");
@@ -39,34 +39,38 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ isDarkMode = true }) =
     setLoading(true);
     try {
       const collectionName = searchType === "jobs" ? "jobs" : "users";
-      let q = query(collection(db, collectionName));
+      let q;
 
-      // Add filters
-      if (selectedCategory !== "all") {
-        q = query(q, where("category", "==", selectedCategory));
+      if (searchType === "jobs") {
+        const constraints = [
+          where("status", "==", "open"),
+          orderBy("createdAt", "desc"),
+          limit(20)
+        ];
+        
+        if (selectedCategory !== "all") {
+          constraints.unshift(where("category", "==", selectedCategory));
+        }
+        
+        q = query(collection(db, collectionName), ...constraints);
+      } else {
+        q = query(
+          collection(db, collectionName),
+          where("userType", "in", ["freelancer", "both"]),
+          orderBy("rating", "desc"),
+          limit(20)
+        );
       }
 
-      if (searchQuery) {
-        // In production, you'd want to use a proper full-text search solution
-        // For now, we'll just fetch and filter client-side
-      }
-
-      // Add sorting
-      if (sortBy === "newest") {
-        q = query(q, orderBy("createdAt", "desc"));
-      }
-
-      q = query(q, limit(20));
-
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({
+      const querySnapshot = await getDocs(q);
+      const data = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
 
       setResults(data);
     } catch (error) {
-      console.error("Search error:", error);
+      console.error("Error searching:", error);
     } finally {
       setLoading(false);
     }
@@ -77,111 +81,110 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ isDarkMode = true }) =
   }, [searchType, selectedCategory, sortBy]);
 
   return (
-    <div className="min-h-screen">
+    <div className="container mx-auto max-w-7xl px-4 py-8">
       <PageHeader
         title="Explore"
-        subtitle="Discover amazing opportunities and talented professionals"
+        subtitle="Discover talented freelancers and exciting projects"
       />
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Search Bar */}
-        <div className="mb-8">
-          <div className="flex gap-4 items-center flex-wrap">
-            <div className="flex-1 min-w-[300px]">
-              <Input
-                size="lg"
-                placeholder={`Search for ${searchType}...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                startContent={<Icon icon="lucide:search" />}
-                onKeyPress={(e) => e.key === "Enter" && performSearch()}
-              />
-            </div>
-
-            <Dropdown>
-              <DropdownTrigger>
-                <Button variant="flat">
-                  {searchType === "jobs" ? "Jobs" : "Freelancers"}
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                selectedKeys={new Set([searchType])}
-                onSelectionChange={(keys) => setSearchType(Array.from(keys)[0] as SearchType)}
-                selectionMode="single"
-              >
-                <DropdownItem key="jobs">Jobs</DropdownItem>
-                <DropdownItem key="freelancers">Freelancers</DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-
-            <Dropdown>
-              <DropdownTrigger>
-                <Button variant="flat">
-                  {categories.find(c => c.key === selectedCategory)?.label || "All Categories"}
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                selectedKeys={new Set([selectedCategory])}
-                onSelectionChange={(keys) => setSelectedCategory(Array.from(keys)[0] as string)}
-                selectionMode="single"
-              >
-                {categories.map(category => (
-                  <DropdownItem key={category.key}>
-                    {category.label}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-
-            <Dropdown>
-              <DropdownTrigger>
-                <Button variant="flat">
-                  Sort by: {sortBy}
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                selectedKeys={new Set([sortBy])}
-                onSelectionChange={(keys) => setSortBy(Array.from(keys)[0] as SortBy)}
-                selectionMode="single"
-              >
-                <DropdownItem key="newest">Newest</DropdownItem>
-                <DropdownItem key="relevance">Relevance</DropdownItem>
-                <DropdownItem key="price">Price</DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-
-            <Button color="secondary" onPress={performSearch}>
-              Search
-            </Button>
-          </div>
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="flex-1">
+          <Input
+            placeholder={`Search for ${searchType === "jobs" ? "jobs" : "freelancers"}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            startContent={<Icon icon="lucide:search" />}
+            size="lg"
+            classNames={{
+              inputWrapper: "bg-white/10 border-white/20"
+            }}
+          />
         </div>
 
-        {/* Results */}
-        <div className="grid gap-4">
-          {loading ? (
-            <div className="text-center py-12">Loading...</div>
-          ) : results.length > 0 ? (
-            results.map((result, index) => (
-              <motion.div
-                key={result.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                {searchType === "jobs" ? (
-                  <JobCard job={result} />
-                ) : (
-                  <FreelancerCard freelancer={result} />
-                )}
-              </motion.div>
-            ))
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-400">No results found</p>
-            </div>
-          )}
+        <div className="flex gap-2">
+          <Dropdown>
+            <DropdownTrigger>
+              <Button variant="bordered" className="capitalize">
+                {searchType}
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu 
+              aria-label="Search type"
+              selectedKeys={[searchType]}
+              onSelectionChange={(keys) => setSearchType(Array.from(keys)[0] as SearchType)}
+            >
+              <DropdownItem key="jobs">Jobs</DropdownItem>
+              <DropdownItem key="freelancers">Freelancers</DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+
+          <Dropdown>
+            <DropdownTrigger>
+              <Button variant="bordered" className="capitalize">
+                {categories.find(c => c.key === selectedCategory)?.label || "All Categories"}
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu 
+              aria-label="Category"
+              selectedKeys={[selectedCategory]}
+              onSelectionChange={(keys) => setSelectedCategory(Array.from(keys)[0] as string)}
+            >
+              {categories.map((category) => (
+                <DropdownItem key={category.key}>{category.label}</DropdownItem>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
+
+          <Dropdown>
+            <DropdownTrigger>
+              <Button variant="bordered" className="capitalize">
+                Sort: {sortBy}
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu 
+              aria-label="Sort by"
+              selectedKeys={[sortBy]}
+              onSelectionChange={(keys) => setSortBy(Array.from(keys)[0] as SortBy)}
+            >
+              <DropdownItem key="newest">Newest</DropdownItem>
+              <DropdownItem key="relevance">Relevance</DropdownItem>
+              <DropdownItem key="price">Price</DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
         </div>
       </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-400">Searching...</p>
+          </div>
+        </div>
+      ) : (
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          {results.map((item) => (
+            searchType === "jobs" ? (
+              <JobCard key={item.id} job={item} />
+            ) : (
+              <FreelancerCard key={item.id} freelancer={item} />
+            )
+          ))}
+        </motion.div>
+      )}
+
+      {results.length === 0 && !loading && (
+        <div className="text-center py-12">
+          <Icon icon="lucide:search-x" className="text-6xl text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-white mb-2">No results found</h3>
+          <p className="text-gray-400">Try adjusting your filters or search terms</p>
+        </div>
+      )}
     </div>
   );
 };

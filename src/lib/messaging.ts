@@ -13,7 +13,7 @@ export const markMessageAsRead = async (conversationId: string, messageId: strin
   }
 };
 
-export const sendMessage = async (conversationId: string, message: any) => {
+export const sendMessage = async (_conversationId: string, message: any) => {
   try {
     // Implementation would go here
     console.log('Sending message:', message);

@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-// FIXED: Removed unused motion import
 import { Card, CardBody, Input, Textarea, Button, Select, SelectItem } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { PageHeader } from "../page-header";
@@ -91,61 +90,42 @@ export const ContactUsPage: React.FC = () => {
         subtitle="We're here to help. Reach out to us anytime!"
       />
 
-      <div className="container mx-auto px-4 py-12">
-        {/* Contact Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {contactInfo.map((info, index) => (
-            <Card key={index} className="glass-effect">
-              <CardBody className="text-center p-6">
-                <div className="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center mx-auto mb-4">
-                  <Icon icon={info.icon} className="text-2xl text-secondary" />
-                </div>
-                <h3 className="font-semibold text-white mb-2">{info.title}</h3>
-                <p className="text-white font-medium">{info.details}</p>
-                <p className="text-sm text-gray-400 mt-1">{info.description}</p>
-              </CardBody>
-            </Card>
-          ))}
-        </div>
-
-        {/* Contact Form */}
-        <div className="max-w-4xl mx-auto">
-          <Card className="glass-effect">
-            <CardBody className="p-8">
-              <h2 className="text-2xl font-bold text-white mb-6">Send Us a Message</h2>
-              
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input
-                    label="Your Name"
-                    placeholder="John Doe"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <Card className="glass-effect">
+              <CardBody className="p-8">
+                <h2 className="text-2xl font-bold text-white mb-6">Send us a message</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Name"
+                      placeholder="Your name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      variant="bordered"
+                    />
+                    <Input
+                      type="email"
+                      label="Email"
+                      placeholder="your@email.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      variant="bordered"
+                    />
+                  </div>
                   
-                  <Input
-                    label="Email Address"
-                    type="email"
-                    placeholder="john@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Select
                     label="Category"
                     placeholder="Select a category"
-                    selectedKeys={new Set([formData.category])}
-                    onSelectionChange={(keys) => {
-                      const selectedKey = Array.from(keys)[0] as string;
-                      setFormData({ ...formData, category: selectedKey });
-                    }}
+                    selectedKeys={[formData.category]}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    variant="bordered"
                   >
                     {contactCategories.map((category) => (
-                      <SelectItem key={category.value} value={category.value}>
+                      <SelectItem key={category.value} textValue={category.label}>
                         {category.label}
                       </SelectItem>
                     ))}
@@ -157,77 +137,51 @@ export const ContactUsPage: React.FC = () => {
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     required
+                    variant="bordered"
                   />
-                </div>
-
-                <Textarea
-                  label="Message"
-                  placeholder="Tell us more about how we can help you..."
-                  minRows={6}
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  required
-                />
-
-                <div className="flex justify-end gap-4">
-                  <Button
-                    variant="light"
-                    onPress={() => setFormData({
-                      name: "",
-                      email: "",
-                      subject: "",
-                      category: "general",
-                      message: ""
-                    })}
-                  >
-                    Clear
-                  </Button>
+                  
+                  <Textarea
+                    label="Message"
+                    placeholder="Tell us more about your inquiry..."
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    required
+                    minRows={5}
+                    variant="bordered"
+                  />
                   
                   <Button
                     type="submit"
                     color="secondary"
+                    size="lg"
+                    className="w-full"
                     isLoading={isSubmitting}
-                    startContent={!isSubmitting && <Icon icon="lucide:send" />}
                   >
                     Send Message
                   </Button>
-                </div>
-              </form>
-            </CardBody>
-          </Card>
-        </div>
-
-        {/* FAQ Section */}
-        <div className="max-w-4xl mx-auto mt-12">
-          <Card className="glass-effect">
-            <CardBody className="p-8">
-              <h2 className="text-2xl font-bold text-white mb-6">Frequently Asked Questions</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-white mb-2">What are your response times?</h3>
-                  <p className="text-gray-300">We typically respond to all inquiries within 24 hours during business days. For urgent matters, we recommend using our live chat feature.</p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold text-white mb-2">Do you offer phone support?</h3>
-                  <p className="text-gray-300">Yes, phone support is available Monday through Friday, 9AM to 6PM EST. For after-hours support, please use our live chat or email.</p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold text-white mb-2">How can I report a technical issue?</h3>
-                  <p className="text-gray-300">For technical issues, please select "Technical Support" as the category in the contact form above and provide as much detail as possible about the issue you're experiencing.</p>
-                </div>
-              </div>
-              
-              <div className="mt-6 pt-6 border-t border-white/10">
-                <p className="text-gray-400 text-center">
-                  Can't find what you're looking for? Check out our{" "}
-                  <a href="/help" className="text-secondary hover:underline">Help Center</a>
-                </p>
-              </div>
-            </CardBody>
-          </Card>
+                </form>
+              </CardBody>
+            </Card>
+          </div>
+          
+          <div className="space-y-4">
+            {contactInfo.map((info, index) => (
+              <Card key={index} className="glass-effect">
+                <CardBody className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-beamly-secondary/20 p-3 rounded-full">
+                      <Icon icon={info.icon} className="text-2xl text-beamly-secondary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-white mb-1">{info.title}</h3>
+                      <p className="text-white font-medium">{info.details}</p>
+                      <p className="text-gray-400 text-sm">{info.description}</p>
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     </div>

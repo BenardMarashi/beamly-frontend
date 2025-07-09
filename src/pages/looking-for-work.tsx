@@ -1,7 +1,6 @@
 import React from "react";
 import { LookingForWorkPage as LookingForWorkPageComponent } from "../components/looking-for-work-page";
 import { useTheme } from "../contexts/theme-context";
-import { BeamlyLogo } from "../components/beamly-logo"; // Add missing BeamlyLogo import
 
 interface LookingForWorkPageProps {}
 

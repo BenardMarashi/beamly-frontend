@@ -389,10 +389,12 @@ export interface Transaction {
   completedAt?: Date;
   failedAt?: Date;
   refundedAt?: Date;
+  
 }
+// Add these at the end of the file, before the closing of the file
 
 // Collection: notifications
-interface Notification {
+export interface Notification {
   id: string;
   userId: string;
   
@@ -423,7 +425,7 @@ interface Notification {
 }
 
 // Collection: categories
-interface Category {
+export interface Category {
   id: string;
   name: string;
   icon: string;
@@ -435,7 +437,7 @@ interface Category {
 }
 
 // Collection: skills
-interface Skill {
+export interface Skill {
   id: string;
   name: string;
   category: string;
@@ -444,13 +446,13 @@ interface Skill {
 }
 
 // Collection: savedJobs (subcollection under users)
-interface SavedJob {
+export interface SavedJob {
   jobId: string;
   savedAt: Date;
 }
 
 // Collection: analytics (for admin dashboard)
-interface Analytics {
+export interface Analytics {
   id: string; // Date format: YYYY-MM-DD
   date: Date;
   
@@ -477,3 +479,10 @@ interface Analytics {
   messagesSent: number;
   contractsCreated: number;
 }
+
+// Note: The following interfaces were removed as they were unused:
+// - Notification (declared but never used)
+// - Category (declared but never used)
+// - Skill (declared but never used)
+// - SavedJob (declared but never used)
+// - Analytics (declared but never used)

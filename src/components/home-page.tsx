@@ -1,484 +1,244 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { Input, Button, Card, CardBody, Avatar, Badge, Chip, Spinner } from "@nextui-org/react";
+import { Input, Button, Card, CardBody, Avatar, AvatarGroup, Chip } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { useAuth } from "../contexts/AuthContext";
-import { collection, query, where, orderBy, limit, getDocs, doc, getDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-hot-toast";
+import { useTheme } from "../contexts/theme-context";
+import { useAuth } from "../contexts/AuthContext";
 
 interface HomePageProps {
-  setCurrentPage: (page: string) => void;
+  setCurrentPage?: (page: string) => void;
   isDarkMode?: boolean;
 }
 
-interface UserData {
-  displayName: string;
-  photoURL?: string;
-  userType: 'freelancer' | 'client' | 'both';
-  skills?: string[];
-  bio?: string;
-  isAvailable?: boolean;
-}
-
-interface Job {
-  id: string;
-  title: string;
-  description: string;
-  clientName: string;
-  category: string;
-  budgetType: 'fixed' | 'hourly';
-  budgetMin: number;
-  budgetMax: number;
-  skills: string[];
-  createdAt: any;
-  proposalCount: number;
-}
-
-interface Freelancer {
-  id: string;
-  displayName: string;
-  photoURL?: string;
-  skills: string[];
-  hourlyRate?: number;
-  rating?: number;
-  completedProjects?: number;
-  bio?: string;
-}
-
-export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode = true }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const { user } = useAuth();
+export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage: _setCurrentPage, isDarkMode = true }) => {
   const navigate = useNavigate();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [featuredJobs, setFeaturedJobs] = useState<Job[]>([]);
-  const [topFreelancers, setTopFreelancers] = useState<Freelancer[]>([]);
-  const [userStats, setUserStats] = useState({
-    activeJobs: 0,
-    proposals: 0,
-    earnings: 0,
-    notifications: 0
-  });
-  const [loading, setLoading] = useState(true);
+  const { isDarkMode: contextDarkMode } = useTheme();
+  const { user } = useAuth();
+  const finalDarkMode = isDarkMode || contextDarkMode;
   
-  useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      await Promise.all([
-        fetchUserData(),
-        fetchFeaturedJobs(),
-        fetchTopFreelancers(),
-        fetchUserStats()
-      ]);
-    } finally {
-      setLoading(false);
-    }
+  // Note: setCurrentPage is passed from parent but we're using React Router navigation
+  // This prop is kept for backward compatibility but not used internally
+  // finalDarkMode is available if needed for conditional styling
+  
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate('/looking-for-work');
   };
 
-  const fetchUserData = async () => {
-    if (!user) return;
-    try {
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (userDoc.exists()) {
-        setUserData(userDoc.data() as UserData);
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    }
-  };
-
-  const fetchFeaturedJobs = async () => {
-    try {
-      const jobsQuery = query(
-        collection(db, "jobs"),
-        where("status", "==", "open"),
-        orderBy("createdAt", "desc"),
-        limit(4)
-      );
-      const snapshot = await getDocs(jobsQuery);
-      const jobs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Job[];
-      setFeaturedJobs(jobs);
-    } catch (error) {
-      console.error("Error fetching featured jobs:", error);
-    }
-  };
-
-  const fetchTopFreelancers = async () => {
-    try {
-      const freelancersQuery = query(
-        collection(db, "users"),
-        where("userType", "in", ["freelancer", "both"]),
-        where("isAvailable", "==", true),
-        orderBy("rating", "desc"),
-        limit(4)
-      );
-      const snapshot = await getDocs(freelancersQuery);
-      const freelancers = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Freelancer[];
-      setTopFreelancers(freelancers);
-    } catch (error) {
-      console.error("Error fetching top freelancers:", error);
-    }
-  };
-
-  const fetchUserStats = async () => {
-    if (!user) return;
-    
-    try {
-      // Fetch active jobs/proposals based on user type
-      if (userData?.userType === 'freelancer' || userData?.userType === 'both') {
-        // Count active proposals
-        const proposalsQuery = query(
-          collection(db, "proposals"),
-          where("freelancerId", "==", user.uid),
-          where("status", "==", "pending")
-        );
-        const proposalsSnapshot = await getDocs(proposalsQuery);
-        
-        // Count active contracts
-        const contractsQuery = query(
-          collection(db, "contracts"),
-          where("freelancerId", "==", user.uid),
-          where("status", "==", "active")
-        );
-        const contractsSnapshot = await getDocs(contractsQuery);
-        
-        setUserStats(prev => ({
-          ...prev,
-          proposals: proposalsSnapshot.size,
-          activeJobs: contractsSnapshot.size
-        }));
-      } else if (userData?.userType === 'client') {
-        // Count active job postings
-        const jobsQuery = query(
-          collection(db, "jobs"),
-          where("clientId", "==", user.uid),
-          where("status", "==", "open")
-        );
-        const jobsSnapshot = await getDocs(jobsQuery);
-        
-        setUserStats(prev => ({
-          ...prev,
-          activeJobs: jobsSnapshot.size
-        }));
-      }
-      
-      // Count unread notifications
-      const notificationsQuery = query(
-        collection(db, "notifications"),
-        where("userId", "==", user.uid),
-        where("read", "==", false)
-      );
-      const notificationsSnapshot = await getDocs(notificationsQuery);
-      
-      setUserStats(prev => ({
-        ...prev,
-        notifications: notificationsSnapshot.size
-      }));
-    } catch (error) {
-      console.error("Error fetching user stats:", error);
-    }
-  };
-
-  const handleSearch = () => {
-    if (!searchQuery.trim()) {
-      toast.error("Please enter a search term");
-      return;
-    }
-    navigate(`/jobs?search=${encodeURIComponent(searchQuery)}`);
-  };
-
-  const formatBudget = (job: Job) => {
-    if (job.budgetType === 'fixed') {
-      return `$${job.budgetMin}`;
-    } else {
-      return `$${job.budgetMin}-${job.budgetMax}/hr`;
-    }
-  };
-
-  const categories = [
-    { name: "Design", icon: "lucide:palette", color: "bg-purple-500" },
-    { name: "Development", icon: "lucide:code-2", color: "bg-blue-500" },
-    { name: "Writing", icon: "lucide:pen-tool", color: "bg-green-500" },
-    { name: "Marketing", icon: "lucide:megaphone", color: "bg-orange-500" }
+  const stats = [
+    { label: "Active Freelancers", value: "50,000+", icon: "lucide:users" },
+    { label: "Jobs Posted", value: "10,000+", icon: "lucide:briefcase" },
+    { label: "Happy Clients", value: "15,000+", icon: "lucide:smile" },
+    { label: "Success Rate", value: "95%", icon: "lucide:trending-up" }
   ];
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Spinner color="secondary" size="lg" />
-      </div>
-    );
-  }
+  const popularCategories = [
+    { name: "Web Development", icon: "lucide:code", count: "2.5k+ jobs" },
+    { name: "Graphic Design", icon: "lucide:palette", count: "1.8k+ jobs" },
+    { name: "Content Writing", icon: "lucide:pen-tool", count: "1.2k+ jobs" },
+    { name: "Digital Marketing", icon: "lucide:megaphone", count: "900+ jobs" },
+    { name: "Video Editing", icon: "lucide:video", count: "750+ jobs" },
+    { name: "Mobile Development", icon: "lucide:smartphone", count: "600+ jobs" }
+  ];
 
   return (
-    <div className="container mx-auto max-w-7xl">
+    <div className={`container mx-auto max-w-7xl px-4 pb-20 ${finalDarkMode ? '' : ''}`}>
       {/* Hero Section */}
-      <div className="px-4 py-8 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className={`text-4xl md:text-5xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-            {user ? `Welcome back, ${userData?.displayName || 'User'}!` : 'Find the perfect freelance services'}
-          </h1>
-          <p className={`text-lg mb-8 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            {user ? 'What would you like to work on today?' : 'Connect with talented professionals for your projects'}
-          </p>
-          
-          <div className="max-w-2xl mx-auto flex gap-4">
+      <motion.section 
+        className="py-20 text-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-5xl md:text-6xl font-bold mb-6 font-outfit">
+          Find the perfect <span className="text-beamly-secondary">freelance</span><br />
+          services for your business
+        </h1>
+        <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          Connect with talented freelancers and get your projects done quickly and efficiently on Beamly.
+        </p>
+        
+        <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-8">
+          <div className="flex gap-2">
             <Input
-              placeholder="Search for services..."
-              value={searchQuery}
-              onValueChange={setSearchQuery}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              startContent={<Icon icon="lucide:search" className="text-gray-400" />}
+              placeholder="Try 'building a website' or 'logo design'"
               size="lg"
-              variant="bordered"
               className="flex-1"
+              classNames={{
+                inputWrapper: "bg-white/10 backdrop-blur-md border-white/20",
+                input: "text-white placeholder:text-gray-400"
+              }}
+              startContent={<Icon icon="lucide:search" className="text-gray-400" />}
             />
             <Button 
+              type="submit"
               color="secondary" 
-              size="lg"
-              className="text-beamly-third font-medium"
-              onPress={handleSearch}
+              size="lg" 
+              className="px-8 font-medium text-beamly-third"
             >
               Search
             </Button>
           </div>
-        </motion.div>
-      </div>
-      
-      {/* User Stats (if logged in) */}
-      {user && (
-        <div className="px-4 mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="glass-card border-none">
-              <CardBody className="p-4 text-center">
-                <div className="text-3xl font-bold text-beamly-secondary">{userStats.activeJobs}</div>
-                <div className="text-sm text-gray-400">Active Jobs</div>
-              </CardBody>
-            </Card>
-            <Card className="glass-card border-none">
-              <CardBody className="p-4 text-center">
-                <div className="text-3xl font-bold text-beamly-secondary">{userStats.proposals}</div>
-                <div className="text-sm text-gray-400">Proposals</div>
-              </CardBody>
-            </Card>
-            <Card className="glass-card border-none">
-              <CardBody className="p-4 text-center">
-                <div className="text-3xl font-bold text-beamly-secondary">${userStats.earnings}</div>
-                <div className="text-sm text-gray-400">Earnings</div>
-              </CardBody>
-            </Card>
-            <Card className="glass-card border-none">
-              <CardBody className="p-4 text-center">
-                <Badge content={userStats.notifications} color="danger" isInvisible={userStats.notifications === 0}>
-                  <div className="text-3xl font-bold text-beamly-secondary">{userStats.notifications}</div>
-                </Badge>
-                <div className="text-sm text-gray-400">Notifications</div>
-              </CardBody>
-            </Card>
+        </form>
+
+        <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
+          <span>Popular:</span>
+          <div className="flex gap-2 flex-wrap justify-center">
+            {["Website Design", "Logo Design", "WordPress", "AI Services"].map((item) => (
+              <Chip 
+                key={item} 
+                variant="bordered" 
+                className="border-white/20 text-gray-300 cursor-pointer hover:bg-white/10"
+                onClick={() => navigate('/looking-for-work')}
+              >
+                {item}
+              </Chip>
+            ))}
           </div>
         </div>
-      )}
-      
-      {/* Categories */}
-      <div className="px-4 mb-8">
-        <h2 className={`text-2xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-          Browse by Category
+      </motion.section>
+
+      {/* Stats Section */}
+      <motion.section 
+        className="py-16"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {stats.map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card className="glass-effect text-center p-6">
+                <CardBody>
+                  <Icon icon={stat.icon} className="text-4xl text-beamly-secondary mb-2 mx-auto" />
+                  <h3 className="text-2xl font-bold text-white">{stat.value}</h3>
+                  <p className="text-gray-400">{stat.label}</p>
+                </CardBody>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* Popular Categories */}
+      <motion.section 
+        className="py-16"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+      >
+        <h2 className="text-3xl font-bold text-center mb-12 text-white">
+          Explore Popular Categories
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {categories.map((category, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {popularCategories.map((category, index) => (
             <motion.div
               key={category.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ scale: 1.02 }}
             >
               <Card 
-                className={`${isDarkMode ? 'glass-card' : 'yellow-glass'} border-none card-hover`}
+                className="glass-effect cursor-pointer hover:bg-white/5 transition-colors"
                 isPressable
-                onPress={() => navigate(`/jobs?category=${category.name.toLowerCase()}`)}
+                onPress={() => navigate('/looking-for-work')}
               >
-                <CardBody className="p-4 text-center">
-                  <div className={`${category.color} w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2`}>
-                    <Icon icon={category.icon} className="text-white" width={24} />
+                <CardBody className="p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-lg bg-beamly-secondary/20">
+                      <Icon icon={category.icon} className="text-2xl text-beamly-secondary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">{category.name}</h3>
+                      <p className="text-sm text-gray-400">{category.count}</p>
+                    </div>
                   </div>
-                  <p className="font-medium text-white">{category.name}</p>
                 </CardBody>
               </Card>
             </motion.div>
           ))}
         </div>
-      </div>
-      
-      {/* Featured Jobs */}
-      <div className="px-4 mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-            Featured Jobs
+      </motion.section>
+
+      {/* Featured Freelancers */}
+      <motion.section 
+        className="py-16"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
+      >
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4 text-white">
+            Top Rated Freelancers
           </h2>
-          <Button 
-            variant="light" 
-            endContent={<Icon icon="lucide:arrow-right" />}
-            className={isDarkMode ? "text-white" : "text-gray-800"}
-            onPress={() => navigate('/looking-for-work')}
-          >
-            View All
-          </Button>
+          <p className="text-gray-400">
+            Work with talented professionals who deliver exceptional results
+          </p>
         </div>
         
-        <div className="grid md:grid-cols-2 gap-4">
-          {featuredJobs.map((job, index) => (
-            <motion.div
-              key={job.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
-              <Card 
-                className={`${isDarkMode ? 'glass-card' : 'bg-white'} border-none card-hover`}
-                isPressable
-                onPress={() => navigate(`/jobs/${job.id}`)}
-              >
-                <CardBody className="p-5">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                        {job.title}
-                      </h3>
-                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        by {job.clientName}
-                      </p>
-                    </div>
-                    <Chip color="secondary" variant="flat">
-                      {formatBudget(job)}
-                    </Chip>
-                  </div>
-                  
-                  <p className={`text-sm mb-3 line-clamp-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    {job.description}
-                  </p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-wrap gap-1">
-                      {job.skills.slice(0, 3).map((skill, idx) => (
-                        <Chip key={idx} size="sm" variant="flat" className="text-xs">
-                          {skill}
-                        </Chip>
-                      ))}
-                    </div>
-                    <span className="text-xs text-gray-400">
-                      {job.proposalCount} proposals
-                    </span>
-                  </div>
-                </CardBody>
-              </Card>
-            </motion.div>
-          ))}
+        <div className="flex justify-center items-center">
+          <AvatarGroup isBordered max={7} total={50000}>
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <Avatar
+                key={i}
+                src={`https://i.pravatar.cc/150?u=${i}`}
+                className="w-20 h-20"
+              />
+            ))}
+          </AvatarGroup>
         </div>
-      </div>
-      
-      {/* Top Freelancers */}
-      <div className="px-4 mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-            Top Freelancers
-          </h2>
-          <Button 
-            variant="light" 
-            endContent={<Icon icon="lucide:arrow-right" />}
-            className={isDarkMode ? "text-white" : "text-gray-800"}
+        
+        <div className="text-center mt-8">
+          <Button
+            color="primary"
+            size="lg"
+            variant="bordered"
+            className="text-white border-white"
             onPress={() => navigate('/browse-freelancers')}
+            endContent={<Icon icon="lucide:arrow-right" />}
           >
-            View All
+            Browse All Freelancers
           </Button>
         </div>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {topFreelancers.map((freelancer, index) => (
-            <motion.div
-              key={freelancer.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
-              <Card 
-                className={`${isDarkMode ? 'glass-card' : 'bg-white'} border-none card-hover`}
-                isPressable
-                onPress={() => navigate(`/freelancer/${freelancer.id}`)}
-              >
-                <CardBody className="p-4 text-center">
-                  <Avatar
-                    src={freelancer.photoURL}
-                    name={freelancer.displayName}
-                    className="mx-auto mb-3"
-                    size="lg"
-                  />
-                  <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                    {freelancer.displayName}
-                  </h3>
-                  <div className="flex items-center justify-center mb-2">
-                    <Icon icon="lucide:star" className="text-yellow-400 mr-1" width={16} />
-                    <span className="text-sm text-gray-400">
-                      {freelancer.rating?.toFixed(1) || '5.0'} ({freelancer.completedProjects || 0} jobs)
-                    </span>
-                  </div>
-                  <p className={`text-sm mb-2 line-clamp-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {freelancer.bio || freelancer.skills.join(', ')}
-                  </p>
-                  {freelancer.hourlyRate && (
-                    <div className="text-beamly-secondary font-bold">
-                      ${freelancer.hourlyRate}/hr
-                    </div>
-                  )}
-                </CardBody>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Call to Action */}
+      </motion.section>
+
+      {/* CTA Section */}
       {!user && (
-        <div className="px-4 py-12 text-center">
-          <Card className="yellow-glass border-none p-8">
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Ready to get started?
-            </h2>
-            <p className="text-gray-200 mb-6">
-              Join thousands of freelancers and clients on Beamly
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Button
-                color="secondary"
-                size="lg"
-                className="text-beamly-third font-medium"
-                onPress={() => navigate('/signup')}
-              >
-                Sign Up Free
-              </Button>
-              <Button
-                variant="bordered"
-                size="lg"
-                className="text-white border-white"
-                onPress={() => navigate('/how-it-works')}
-              >
-                Learn More
-              </Button>
-            </div>
+        <div className="py-16">
+          <Card className="yellow-glass p-8 text-center">
+            <CardBody>
+              <h2 className="text-3xl font-bold mb-4 text-white">
+                Ready to get started?
+              </h2>
+              <p className="text-gray-200 mb-6">
+                Join thousands of freelancers and clients on Beamly
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Button
+                  color="secondary"
+                  size="lg"
+                  className="text-beamly-third font-medium"
+                  onPress={() => navigate('/signup')}
+                >
+                  Sign Up Free
+                </Button>
+                <Button
+                  variant="bordered"
+                  size="lg"
+                  className="text-white border-white"
+                  onPress={() => navigate('/how-it-works')}
+                >
+                  Learn More
+                </Button>
+              </div>
+            </CardBody>
           </Card>
         </div>
       )}

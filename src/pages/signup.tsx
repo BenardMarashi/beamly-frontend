@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Card, CardBody, Input, Button, RadioGroup, Radio, Checkbox, Divider } from "@nextui-org/react";
+import { Card, CardBody, Input, Button, RadioGroup, Radio, Checkbox } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -57,8 +57,16 @@ export const SignupPage: React.FC = () => {
       return;
     }
     
-    // Map account type - convert 'both' to a valid userType
-    const userType = formData.accountType === 'freelancer' ? 'freelancer' : 'client';
+    // Map account type - ensure proper type
+    let userType: 'freelancer' | 'client' | 'both';
+    
+    if (formData.accountType === 'freelancer') {
+      userType = 'freelancer';
+    } else if (formData.accountType === 'client') {
+      userType = 'client';
+    } else {
+      userType = 'both';
+    }
     
     const result = await signUp(
       formData.email,
@@ -137,7 +145,7 @@ export const SignupPage: React.FC = () => {
               <Input
                 type={showPassword ? "text" : "password"}
                 label="Password"
-                placeholder="Create a strong password"
+                placeholder="Create a password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 variant="bordered"
@@ -163,7 +171,7 @@ export const SignupPage: React.FC = () => {
               <Input
                 type={showConfirmPassword ? "text" : "password"}
                 label="Confirm Password"
-                placeholder="Re-enter your password"
+                placeholder="Confirm your password"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 variant="bordered"
