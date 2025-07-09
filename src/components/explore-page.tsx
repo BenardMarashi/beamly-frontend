@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Input, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react"; // FIXED: Removed unused Card
+import { Input, Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
@@ -20,7 +20,6 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ isDarkMode = true }) =
   const [searchType, setSearchType] = useState<SearchType>("jobs");
   const [sortBy, setSortBy] = useState<SortBy>("newest");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -106,8 +105,9 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ isDarkMode = true }) =
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
-                aria-label="Search type"
-                onAction={(key) => setSearchType(key as SearchType)}
+                selectedKeys={new Set([searchType])}
+                onSelectionChange={(keys) => setSearchType(Array.from(keys)[0] as SearchType)}
+                selectionMode="single"
               >
                 <DropdownItem key="jobs">Jobs</DropdownItem>
                 <DropdownItem key="freelancers">Freelancers</DropdownItem>
@@ -117,14 +117,15 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ isDarkMode = true }) =
             <Dropdown>
               <DropdownTrigger>
                 <Button variant="flat">
-                  {categories.find(c => c.key === selectedCategory)?.label || "Category"}
+                  {categories.find(c => c.key === selectedCategory)?.label || "All Categories"}
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
-                aria-label="Categories"
-                onAction={(key) => setSelectedCategory(key as string)}
+                selectedKeys={new Set([selectedCategory])}
+                onSelectionChange={(keys) => setSelectedCategory(Array.from(keys)[0] as string)}
+                selectionMode="single"
               >
-                {categories.map((category) => (
+                {categories.map(category => (
                   <DropdownItem key={category.key}>
                     {category.label}
                   </DropdownItem>
@@ -139,8 +140,9 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ isDarkMode = true }) =
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
-                aria-label="Sort by"
-                onAction={(key) => setSortBy(key as SortBy)}
+                selectedKeys={new Set([sortBy])}
+                onSelectionChange={(keys) => setSortBy(Array.from(keys)[0] as SortBy)}
+                selectionMode="single"
               >
                 <DropdownItem key="newest">Newest</DropdownItem>
                 <DropdownItem key="relevance">Relevance</DropdownItem>
@@ -148,60 +150,37 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({ isDarkMode = true }) =
               </DropdownMenu>
             </Dropdown>
 
-            <Button
-              color="primary"
-              onPress={performSearch}
-              isLoading={loading}
-            >
+            <Button color="secondary" onPress={performSearch}>
               Search
             </Button>
           </div>
         </div>
 
         {/* Results */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-gray-500">Searching...</p>
-          </div>
-        ) : results.length === 0 ? (
-          <div className="text-center py-12">
-            <Icon icon="lucide:search-x" className="text-6xl text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No results found</h3>
-            <p className="text-gray-500">Try adjusting your filters or search terms</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results.map((item, index) => (
+        <div className="grid gap-4">
+          {loading ? (
+            <div className="text-center py-12">Loading...</div>
+          ) : results.length > 0 ? (
+            results.map((result, index) => (
               <motion.div
-                key={item.id}
+                key={result.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
+                transition={{ delay: index * 0.1 }}
               >
                 {searchType === "jobs" ? (
-                  <JobCard job={item} isDarkMode={isDarkMode} />
+                  <JobCard job={result} />
                 ) : (
-                  <FreelancerCard freelancer={item} isDarkMode={isDarkMode} />
+                  <FreelancerCard freelancer={result} />
                 )}
               </motion.div>
-            ))}
-          </div>
-        )}
-
-        {/* Load More */}
-        {results.length > 0 && results.length % 20 === 0 && (
-          <div className="text-center mt-8">
-            <Button
-              variant="flat"
-              onPress={() => {
-                // Load more logic
-              }}
-            >
-              Load More
-            </Button>
-          </div>
-        )}
+            ))
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-400">No results found</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

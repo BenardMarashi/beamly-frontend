@@ -9,7 +9,9 @@ import {
   Input
 } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import { usePasswordReset } from "../hooks/use-auth";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../lib/firebase";
+import { toast } from "react-hot-toast";
 import { useTheme } from "../contexts/theme-context";
 
 interface PasswordResetModalProps {
@@ -22,30 +24,51 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
   onClose
 }) => {
   const { isDarkMode } = useTheme();
-  const { sendResetEmail, loading, error, success } = usePasswordReset();
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email) {
+      toast.error('Please enter your email');
       return;
     }
     
-    const result = await sendResetEmail(email);
+    setLoading(true);
     
-    if (result) {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setSuccess(true);
+      toast.success('Password reset email sent!');
+      
       // Keep modal open to show success message
       setTimeout(() => {
         onClose();
         setEmail("");
+        setSuccess(false);
       }, 3000);
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      let errorMessage = 'Failed to send reset email';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      }
+      
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
   
   const handleClose = () => {
     onClose();
     setEmail("");
+    setSuccess(false);
   };
   
   return (
@@ -75,15 +98,6 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
                   className={isDarkMode ? "bg-white/10" : ""}
                   isRequired
                 />
-                
-                {error && (
-                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                    <p className="text-red-500 text-sm flex items-center gap-2">
-                      <Icon icon="lucide:alert-circle" />
-                      {error}
-                    </p>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="text-center py-6">
@@ -93,8 +107,8 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
                 <h4 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                   Email Sent!
                 </h4>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Check your inbox for password reset instructions.
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Check your inbox for password reset instructions
                 </p>
               </div>
             )}
@@ -103,29 +117,20 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
           <ModalFooter>
             {!success ? (
               <>
-                <Button
-                  variant="flat"
-                  onPress={handleClose}
-                  isDisabled={loading}
-                >
+                <Button variant="light" onPress={handleClose}>
                   Cancel
                 </Button>
                 <Button
-                  type="submit"
                   color="secondary"
-                  className="text-beamly-third"
+                  type="submit"
                   isLoading={loading}
-                  isDisabled={loading || !email}
+                  disabled={loading}
                 >
                   Send Reset Email
                 </Button>
               </>
             ) : (
-              <Button
-                color="secondary"
-                className="text-beamly-third"
-                onPress={handleClose}
-              >
+              <Button color="secondary" onPress={handleClose}>
                 Close
               </Button>
             )}
@@ -134,4 +139,39 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
       </ModalContent>
     </Modal>
   );
+};
+
+// Export a hook to use password reset functionality
+export const usePasswordReset = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  
+  const sendResetEmail = async (email: string) => {
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+    
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setSuccess(true);
+      return true;
+    } catch (err: any) {
+      console.error('Password reset error:', err);
+      let errorMessage = 'Failed to send reset email';
+      
+      if (err.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      }
+      
+      setError(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return { sendResetEmail, loading, error, success };
 };

@@ -30,7 +30,7 @@ export const redirectToCheckout = async (planId: string) => {
     
     // Call the Cloud Function to create a checkout session
     const createCheckoutSession = httpsCallable(fns, 'createStripeCheckoutSession');
-    const { data } = await createCheckoutSession({ planId });
+    const { data } = await createCheckoutSession({ planId }) as { data: { sessionId: string } };
     
     // Redirect to Stripe Checkout
     const result = await stripe.redirectToCheckout({

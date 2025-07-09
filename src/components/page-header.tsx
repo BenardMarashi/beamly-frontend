@@ -1,5 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
+import { Button } from "@heroui/react";
+import { Icon } from "@iconify/react";
+import { useNavigate } from "react-router-dom";
 
 interface PageHeaderProps {
   title: string;
@@ -7,7 +10,7 @@ interface PageHeaderProps {
   className?: string;
   titleClassName?: string;
   subtitleClassName?: string;
-  // FIXED: Removed isDarkMode as it's not used in the basic version
+  showBackButton?: boolean;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -15,8 +18,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   subtitle,
   className = "",
   titleClassName = "",
-  subtitleClassName = ""
+  subtitleClassName = "",
+  showBackButton = false
 }) => {
+  const navigate = useNavigate();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -24,6 +30,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       transition={{ duration: 0.5 }}
       className={`text-center py-12 px-4 ${className}`}
     >
+      {showBackButton && (
+        <Button
+          variant="light"
+          className="mb-4"
+          startContent={<Icon icon="lucide:arrow-left" />}
+          onPress={() => navigate(-1)}
+        >
+          Back
+        </Button>
+      )}
       <h1 className={`text-4xl md:text-5xl font-bold text-white mb-4 ${titleClassName}`}>
         {title}
       </h1>

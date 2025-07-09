@@ -4,30 +4,6 @@ import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/theme-context";
 
-const testimonials = [
-  {
-    name: "Sarah Johnson",
-    role: "Marketing Director",
-    company: "TechCorp",
-    image: "https://img.heroui.chat/image/avatar?w=100&h=100&u=sarah1",
-    content: "Beamly has transformed how we find creative talent. The quality of work and speed of delivery has been exceptional."
-  },
-  {
-    name: "Michael Chen",
-    role: "Startup Founder",
-    company: "InnovateLabs",
-    image: "https://img.heroui.chat/image/avatar?w=100&h=100&u=michael1",
-    content: "As a startup founder, Beamly has been invaluable. I've found amazing developers and designers who've helped bring my vision to life."
-  },
-  {
-    name: "Jessica Williams",
-    role: "Freelance Designer",
-    company: "Self-employed",
-    image: "https://img.heroui.chat/image/avatar?w=100&h=100&u=jessica1",
-    content: "The zero commission policy is a game-changer! I've been able to grow my freelance business significantly since joining Beamly."
-  }
-];
-
 export const TestimonialsSection: React.FC = () => {
   const { t } = useTranslation();
   const { isDarkMode } = useTheme();
@@ -73,9 +49,9 @@ export const TestimonialsSection: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
         >
-          {t('testimonials.subtitle', 'Join thousands of satisfied clients and freelancers')}
+          {t('testimonials.subtitle')}
         </motion.p>
       </div>
       
@@ -86,26 +62,31 @@ export const TestimonialsSection: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 * index }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
           >
-            <div className={`${index === 1 ? 'yellow-glass' : 'glass-card'} p-6 h-full card-hover`}>
-              <div className="flex items-center gap-4 mb-4">
-                <img 
-                  src={testimonial.image} 
-                  alt={testimonial.name} 
-                  className="w-12 h-12 rounded-full object-cover border-2 border-beamly-secondary"
-                />
-                <div>
-                  <h4 className={`font-semibold font-outfit ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{testimonial.name}</h4>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} font-outfit font-light`}>{testimonial.role}, {testimonial.company}</p>
+            <div className={`h-full ${isDarkMode ? 'glass-card' : 'yellow-glass'} card-hover`}>
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <img
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    className="w-12 h-12 rounded-full mr-4"
+                  />
+                  <div>
+                    <h4 className="font-semibold text-white">{testimonial.name}</h4>
+                    <p className="text-sm text-gray-300">{testimonial.role}</p>
+                    <p className="text-xs text-gray-400">{testimonial.company}</p>
+                  </div>
                 </div>
+                <div className="flex mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Icon key={i} icon="lucide:star" className="text-beamly-secondary" width={16} />
+                  ))}
+                </div>
+                <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-100'} italic`}>
+                  "{testimonial.content}"
+                </p>
               </div>
-              <div className="mb-4">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Icon key={star} icon="lucide:star" className="inline-block text-beamly-secondary" />
-                ))}
-              </div>
-              <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} font-outfit font-light`}>"{testimonial.content}"</p>
             </div>
           </motion.div>
         ))}

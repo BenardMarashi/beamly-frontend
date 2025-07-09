@@ -1,6 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
-import { Tabs, Tab, Card, CardBody, Button } from "@heroui/react";
+import { Tabs, Tab, Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { PageHeader } from "./page-header";
 
@@ -87,200 +86,124 @@ const reviews = [
 ];
 
 export const ServicesPage: React.FC = () => {
-  const [selectedTab, setSelectedTab] = React.useState("overview");
-  
   return (
     <div className="container mx-auto px-4 py-8">
       <PageHeader 
-        title="Professional Logo Design"
-        subtitle="Create a stunning logo for your business or brand"
+        title="Professional Logo Design Services"
+        subtitle="Get a unique, custom logo that represents your brand"
         showBackButton
       />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <div className="glass-effect p-6 mb-8">
-            <div className="flex flex-wrap gap-4 mb-6">
-              <img 
-                src="https://img.heroui.chat/image/ai?w=800&h=500&u=logodesign1" 
-                alt="Logo Design Service" 
-                className="w-full rounded-lg"
-              />
-            </div>
-            
-            <Tabs 
-              aria-label="Service details"
-              selectedKey={selectedTab}
-              onSelectionChange={setSelectedTab as any}
-              color="secondary"
-              variant="underlined"
-              classNames={{
-                tab: "data-[selected=true]:text-beamly-secondary",
-                tabList: "gap-6",
-                cursor: "bg-beamly-secondary"
-              }}
-            >
-              <Tab 
-                key="overview" 
-                title={
-                  <div className="flex items-center gap-2">
-                    <Icon icon="lucide:info" />
-                    <span>Overview</span>
+
+      <div className="glass-effect p-6 md:p-8">
+        <Tabs aria-label="Service packages" color="secondary" variant="underlined">
+          {servicePackages.map((pkg) => (
+            <Tab key={pkg.id} title={pkg.title}>
+              <div className="py-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white mb-2">{pkg.title}</h3>
+                    <p className="text-gray-300">{pkg.description}</p>
                   </div>
-                }
-              >
-                <div className="py-4">
-                  <h3 className="text-xl font-semibold text-white mb-4">Service Description</h3>
-                  <p className="text-gray-300 mb-4">
-                    I will create a modern, unique, and memorable logo design for your business, brand, or personal project. With over 8 years of experience in graphic design, I specialize in creating logos that stand out and effectively communicate your brand's message.
-                  </p>
-                  <p className="text-gray-300 mb-4">
-                    Each logo is created with careful attention to detail, ensuring it's not only visually appealing but also versatile and scalable for various applications - from business cards to billboards.
-                  </p>
-                  
-                  <h3 className="text-xl font-semibold text-white mb-4 mt-8">What You'll Get</h3>
-                  <ul className="space-y-2 text-gray-300">
-                    <li className="flex items-center gap-2">
-                      <Icon icon="lucide:check" className="text-beamly-secondary" />
-                      <span>High-resolution logo files (PNG, JPG, PDF)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Icon icon="lucide:check" className="text-beamly-secondary" />
-                      <span>Vector source files (AI, EPS, SVG)</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Icon icon="lucide:check" className="text-beamly-secondary" />
-                      <span>Full copyright ownership</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Icon icon="lucide:check" className="text-beamly-secondary" />
-                      <span>Prompt revisions based on your package</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Icon icon="lucide:check" className="text-beamly-secondary" />
-                      <span>Professional communication throughout the process</span>
-                    </li>
-                  </ul>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold text-beamly-secondary">${pkg.price}</p>
+                    <p className="text-sm text-gray-400">Starting at</p>
+                  </div>
                 </div>
-              </Tab>
-              <Tab 
-                key="reviews" 
-                title={
-                  <div className="flex items-center gap-2">
-                    <Icon icon="lucide:star" />
-                    <span>Reviews</span>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="glass-card p-4">
+                    <Icon icon="lucide:clock" className="text-beamly-secondary mb-2" />
+                    <p className="text-sm text-gray-400">Delivery Time</p>
+                    <p className="font-semibold text-white">{pkg.deliveryTime}</p>
                   </div>
-                }
-              >
-                <div className="py-4">
-                  <div className="flex items-center mb-6">
-                    <div className="flex items-center mr-4">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Icon key={star} icon="lucide:star" className="text-beamly-secondary" />
-                      ))}
-                    </div>
-                    <span className="text-white font-semibold text-lg">4.9</span>
-                    <span className="text-gray-400 ml-2">(253 reviews)</span>
+                  <div className="glass-card p-4">
+                    <Icon icon="lucide:refresh-cw" className="text-beamly-secondary mb-2" />
+                    <p className="text-sm text-gray-400">Revisions</p>
+                    <p className="font-semibold text-white">{pkg.revisions}</p>
                   </div>
-                  
-                  <div className="space-y-6">
-                    {reviews.map((review) => (
-                      <div key={review.id} className="glass-card p-4">
-                        <div className="flex items-center mb-3">
-                          <img 
-                            src={review.avatar} 
-                            alt={review.name} 
-                            className="w-10 h-10 rounded-full mr-3"
-                          />
-                          <div>
-                            <h4 className="text-white font-medium">{review.name}</h4>
-                            <div className="flex items-center">
-                              <div className="flex">
-                                {[...Array(5)].map((_, i) => (
-                                  <Icon 
-                                    key={i} 
-                                    icon="lucide:star" 
-                                    className={i < review.rating ? "text-beamly-secondary" : "text-gray-600"} 
-                                    width={14}
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-gray-400 text-xs ml-2">{review.date}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-gray-300 text-sm">{review.comment}</p>
-                      </div>
-                    ))}
+                  <div className="glass-card p-4">
+                    <Icon icon="lucide:check-circle" className="text-beamly-secondary mb-2" />
+                    <p className="text-sm text-gray-400">Features</p>
+                    <p className="font-semibold text-white">{pkg.features.length} included</p>
                   </div>
-                  
-                  <Button 
-                    color="default"
-                    variant="flat"
-                    className="mt-6 text-white"
-                  >
-                    Show all reviews
-                  </Button>
                 </div>
-              </Tab>
-            </Tabs>
-          </div>
-        </div>
-        
-        <div>
-          <div className="glass-effect p-6 sticky top-24">
-            <h3 className="text-xl font-semibold text-white mb-6">Choose a Package</h3>
-            
-            <div className="space-y-4">
-              {servicePackages.map((pkg) => (
-                <div 
-                  key={pkg.id}
-                  className={`glass-card p-4 border ${pkg.id === 'standard' ? 'border-beamly-secondary' : 'border-white/10'}`}
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <h4 className="text-lg font-medium text-white">{pkg.title}</h4>
-                    <span className="text-beamly-secondary font-bold">${pkg.price}</span>
-                  </div>
-                  <p className="text-gray-300 text-sm mb-4">{pkg.description}</p>
-                  
-                  <div className="flex items-center text-sm text-gray-300 mb-2">
-                    <Icon icon="lucide:clock" className="mr-2" />
-                    <span>Delivery in {pkg.deliveryTime}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-300 mb-4">
-                    <Icon icon="lucide:refresh-cw" className="mr-2" />
-                    <span>{pkg.revisions} revision{pkg.revisions !== 1 ? 's' : ''}</span>
-                  </div>
-                  
-                  <ul className="space-y-2 mb-4">
+
+                <div className="mb-6">
+                  <h4 className="font-semibold text-white mb-3">What's included:</h4>
+                  <ul className="space-y-2">
                     {pkg.features.map((feature, index) => (
-                      <li key={index} className="flex items-center text-sm">
-                        <Icon icon="lucide:check" className="text-beamly-secondary mr-2" width={16} />
-                        <span className="text-gray-300">{feature}</span>
+                      <li key={index} className="flex items-center text-gray-300">
+                        <Icon icon="lucide:check" className="text-beamly-secondary mr-2" />
+                        {feature}
                       </li>
                     ))}
                   </ul>
-                  
-                  <Button 
-                    color={pkg.id === 'standard' ? 'secondary' : 'default'}
-                    variant={pkg.id === 'standard' ? 'solid' : 'bordered'}
-                    className="w-full"
-                  >
-                    Select {pkg.title}
-                  </Button>
                 </div>
-              ))}
+
+                <Button 
+                  color="secondary" 
+                  size="lg" 
+                  className="w-full font-medium text-beamly-third"
+                >
+                  Continue (${pkg.price})
+                </Button>
+              </div>
+            </Tab>
+          ))}
+        </Tabs>
+
+        {/* Reviews Section */}
+        <div className="mt-12">
+          <h3 className="text-2xl font-bold text-white mb-6">What clients say</h3>
+          <div className="space-y-4">
+            {reviews.map((review) => (
+              <div key={review.id} className="glass-card p-5">
+                <div className="flex items-start gap-4">
+                  <img 
+                    src={review.avatar} 
+                    alt={review.name}
+                    className="w-12 h-12 rounded-full"
+                  />
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-semibold text-white">{review.name}</h4>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Icon 
+                              key={i}
+                              icon={i < review.rating ? "lucide:star" : "lucide:star"}
+                              className={i < review.rating ? "text-yellow-500" : "text-gray-600"}
+                              width={16}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <span className="text-sm text-gray-400">{review.date}</span>
+                    </div>
+                    <p className="text-gray-300">{review.comment}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="mt-12">
+          <h3 className="text-2xl font-bold text-white mb-6">Frequently Asked Questions</h3>
+          <div className="space-y-4">
+            <div className="glass-card p-5">
+              <h4 className="font-semibold text-white mb-2">How many concepts will I receive?</h4>
+              <p className="text-gray-300">The number of initial concepts depends on the package you choose. Basic includes 1 concept, Standard includes 3, and Premium includes 5 unique concepts.</p>
             </div>
-            
-            <div className="mt-6 text-center">
-              <p className="text-gray-300 text-sm mb-2">Need something custom?</p>
-              <Button 
-                color="primary"
-                variant="ghost"
-                className="text-beamly-primary"
-              >
-                Contact Seller
-              </Button>
+            <div className="glass-card p-5">
+              <h4 className="font-semibold text-white mb-2">What file formats will I receive?</h4>
+              <p className="text-gray-300">You'll receive your logo in multiple formats including PNG, JPG, SVG, and the source file (AI or PSD). This ensures you can use your logo anywhere.</p>
+            </div>
+            <div className="glass-card p-5">
+              <h4 className="font-semibold text-white mb-2">Can I request revisions?</h4>
+              <p className="text-gray-300">Yes! Each package includes a different number of revisions. Basic includes 1 revision, Standard includes 3, and Premium includes unlimited revisions.</p>
             </div>
           </div>
         </div>

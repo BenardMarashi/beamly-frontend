@@ -1,7 +1,5 @@
-// Firestore Database Structure for Freelance Marketplace
-
 // Collection: users
-interface User {
+export interface User {
   uid: string;
   email: string;
   displayName: string;
@@ -10,122 +8,188 @@ interface User {
   
   // Profile Information
   bio?: string;
+  title?: string;
   skills?: string[];
   hourlyRate?: number;
   location?: string;
+  timezone?: string;
   languages?: string[];
-  
-  // Freelancer specific
   portfolio?: string;
-  completedProjects?: number;
-  rating?: number;
-  totalEarnings?: number;
+  experienceLevel?: 'entry' | 'intermediate' | 'expert';
+  
+  // Availability
   isAvailable?: boolean;
-  featuredUntil?: Date; // For featured boost
+  availabilityStatus?: string;
   
-  // Client specific
-  companyName?: string;
+  // Stats
+  completedProjects?: number;
+  totalEarnings?: number;
   totalSpent?: number;
-  activeJobs?: number;
+  rating?: number;
+  reviewCount?: number;
   
-  // Subscription info
-  subscription?: {
-    plan: 'free' | 'monthly' | 'quarterly' | 'yearly';
-    startDate: Date;
-    endDate: Date;
-    status: 'active' | 'cancelled' | 'expired';
+  // Company (for clients)
+  companyName?: string;
+  companySize?: string;
+  industry?: string;
+  
+  // Settings
+  notifications?: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
   };
   
-  // System fields
+  privacy?: {
+    profileVisibility: 'public' | 'clients-only' | 'private';
+    showEmail: boolean;
+    showPhone: boolean;
+  };
+  
+  // Subscription
+  subscription?: {
+    plan: 'free' | 'monthly' | 'quarterly' | 'yearly';
+    status: 'active' | 'cancelled' | 'expired';
+    startDate: Date;
+    endDate: Date;
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+  };
+  
+  // Verification
+  isVerified: boolean;
+  verificationDocuments?: string[];
+  
+  // Social Links
+  socialLinks?: {
+    linkedin?: string;
+    github?: string;
+    website?: string;
+    twitter?: string;
+  };
+  
+  // Timestamps
   createdAt: Date;
   updatedAt: Date;
-  lastActive: Date;
-  fcmToken?: string;
-  isVerified: boolean;
-  isBlocked: boolean;
+  lastActive?: Date;
+  
+  // Account Status
+  isBlocked?: boolean;
+  blockedReason?: string;
+  profileCompleted?: boolean;
 }
 
 // Collection: jobs
-interface Job {
+export interface Job {
   id: string;
-  clientId: string;
-  clientName: string;
   
-  // Job Details
+  // Basic Info
   title: string;
   description: string;
   category: string;
   subcategory?: string;
   skills: string[];
   
-  // Budget & Timeline
+  // Budget
   budgetType: 'fixed' | 'hourly';
-  budgetMin?: number;
-  budgetMax?: number;
+  budgetMin: number;
+  budgetMax: number;
   fixedPrice?: number;
-  hourlyRate?: number;
-  duration?: string; // "1-3 months", "Less than 1 month", etc.
-  deadline?: Date;
   
-  // Job Settings
+  // Project Details
+  duration: string;
   experienceLevel: 'entry' | 'intermediate' | 'expert';
   projectSize: 'small' | 'medium' | 'large';
-  visibility: 'public' | 'invite-only';
   
   // Location
   locationType: 'remote' | 'onsite' | 'hybrid';
   location?: string;
+  timezone?: string;
+  
+  // Client Info
+  clientId: string;
+  clientName: string;
+  clientPhotoURL?: string;
+  clientCompany?: string;
+  clientCountry?: string;
+  clientRating?: number;
+  clientJobsPosted?: number;
+  clientTotalSpent?: number;
   
   // Status
   status: 'draft' | 'open' | 'in-progress' | 'completed' | 'cancelled';
+  visibility: 'public' | 'invite-only' | 'private';
   
-  // Proposals & Hiring
+  // Metrics
+  viewCount: number;
   proposalCount: number;
   invitesSent: number;
-  hiredFreelancerId?: string;
-  hiredFreelancerName?: string;
-  hiredAt?: Date;
+  
+  // Features
+  featured: boolean;
+  urgent: boolean;
+  verified: boolean;
   
   // Attachments
-  attachments?: {
-    name: string;
-    url: string;
-    size: number;
-    type: string;
-  }[];
+  attachments?: string[];
   
-  // Metadata
+  // Hired Freelancer (when job is awarded)
+  hiredFreelancerId?: string;
+  hiredAt?: Date;
+  
+  // Timestamps
   createdAt: Date;
   updatedAt: Date;
+  publishedAt?: Date;
   completedAt?: Date;
-  featured?: boolean;
-  featuredUntil?: Date;
+  
+  // SEO
+  slug?: string;
+  tags?: string[];
 }
 
 // Collection: proposals
-interface Proposal {
+export interface Proposal {
   id: string;
+  
+  // Job Reference
   jobId: string;
+  jobTitle: string;
+  clientId: string;
+  clientName: string;
+  
+  // Freelancer Info
   freelancerId: string;
   freelancerName: string;
-  freelancerAvatar?: string;
+  freelancerPhotoURL?: string;
+  freelancerRating?: number;
+  freelancerCompletedJobs?: number;
   
   // Proposal Details
   coverLetter: string;
   proposedRate: number;
-  rateType: 'fixed' | 'hourly';
-  estimatedDuration?: string;
-  
-  // Status
-  status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+  estimatedDuration: string;
+  budgetType: 'fixed' | 'hourly';
   
   // Attachments
-  attachments?: {
-    name: string;
-    url: string;
-    size: number;
-    type: string;
-  }[];
+  attachments?: string[];
+  portfolio?: string[];
+  
+  // Status
+  status: 'pending' | 'shortlisted' | 'interviewed' | 'accepted' | 'rejected' | 'withdrawn';
+  
+  // Client Actions
+  clientViewed: boolean;
+  clientViewedAt?: Date;
+  clientNotes?: string;
+  
+  // Interview
+  interviewScheduled?: boolean;
+  interviewDate?: Date;
+  
+  // Boost
+  isBoosted: boolean;
+  boostExpiresAt?: Date;
   
   // Timestamps
   createdAt: Date;
@@ -134,162 +198,194 @@ interface Proposal {
 }
 
 // Collection: contracts
-interface Contract {
+export interface Contract {
   id: string;
+  
+  // References
   jobId: string;
-  clientId: string;
-  freelancerId: string;
+  jobTitle: string;
   proposalId: string;
+  clientId: string;
+  clientName: string;
+  freelancerId: string;
+  freelancerName: string;
   
-  // Contract Terms
-  title: string;
-  scope: string;
-  rate: number;
-  rateType: 'fixed' | 'hourly';
-  paymentSchedule?: 'milestone' | 'weekly' | 'monthly' | 'on-completion';
+  // Contract Details
+  description: string;
+  terms?: string;
   
-  // Milestones (for fixed projects)
-  milestones?: {
-    id: string;
-    title: string;
-    description: string;
-    amount: number;
-    dueDate: Date;
-    status: 'pending' | 'in-progress' | 'submitted' | 'approved' | 'paid';
-    submittedAt?: Date;
-    approvedAt?: Date;
-    paidAt?: Date;
-  }[];
+  // Payment
+  paymentType: 'fixed' | 'hourly' | 'milestone';
+  totalBudget: number;
+  hourlyRate?: number;
+  weeklyLimit?: number;
   
-  // Time Tracking (for hourly)
-  totalHoursLogged?: number;
-  weeklyHourLimit?: number;
+  // Milestones (for milestone contracts)
+  milestones?: Milestone[];
   
-  // Status & Payments
-  status: 'active' | 'paused' | 'completed' | 'terminated';
+  // Escrow
+  escrowAmount: number;
+  escrowStatus: 'pending' | 'funded' | 'released' | 'disputed';
+  
+  // Time Tracking (for hourly contracts)
+  totalHoursWorked?: number;
+  timeEntries?: TimeEntry[];
+  
+  // Status
+  status: 'pending' | 'active' | 'paused' | 'completed' | 'cancelled' | 'disputed';
+  
+  // Payments
   totalPaid: number;
   totalDue: number;
-  lastPaymentDate?: Date;
+  paymentSchedule?: 'weekly' | 'biweekly' | 'monthly' | 'milestone';
   
-  // Dates
+  // Feedback
+  clientFeedback?: Review;
+  freelancerFeedback?: Review;
+  
+  // Timestamps
   startDate: Date;
   endDate?: Date;
+  actualEndDate?: Date;
   createdAt: Date;
   updatedAt: Date;
-  completedAt?: Date;
+}
+
+// Sub-types for Contract
+interface Milestone {
+  id: string;
+  title: string;
+  description: string;
+  amount: number;
+  dueDate: Date;
+  status: 'pending' | 'in-progress' | 'submitted' | 'approved' | 'paid';
+  submittedAt?: Date;
+  approvedAt?: Date;
+  paidAt?: Date;
+}
+
+interface TimeEntry {
+  id: string;
+  date: Date;
+  hours: number;
+  description: string;
+  status: 'pending' | 'approved' | 'disputed';
+  rate: number;
+  amount: number;
+}
+
+interface Review {
+  rating: number;
+  comment: string;
+  skills?: string[];
+  wouldRecommend: boolean;
+  createdAt: Date;
 }
 
 // Collection: messages
-interface Message {
+export interface Message {
   id: string;
-  conversationId: string; // Format: `${userId1}_${userId2}` (sorted)
+  conversationId: string;
   senderId: string;
   senderName: string;
   senderAvatar?: string;
+  text: string;
+  attachments?: string[];
   
-  // Message Content
-  text?: string;
-  attachments?: {
-    name: string;
-    url: string;
-    size: number;
-    type: string;
-  }[];
+  // Read receipts
+  read: boolean;
+  readAt?: Date;
+  
+  // Message type
+  type: 'text' | 'attachment' | 'system' | 'offer';
+  
+  // For offer messages
+  offer?: {
+    amount: number;
+    description: string;
+    milestones?: Milestone[];
+  };
   
   // Status
   status: 'sent' | 'delivered' | 'read';
-  readAt?: Date;
-  
-  // Related Context
-  jobId?: string; // If message is about a specific job
-  contractId?: string; // If message is about a contract
+  edited: boolean;
+  editedAt?: Date;
   
   createdAt: Date;
-  editedAt?: Date;
 }
 
 // Collection: conversations
-interface Conversation {
-  id: string; // Format: `${userId1}_${userId2}` (sorted)
-  participants: string[]; // Array of user IDs
-  participantNames: string[];
+export interface Conversation {
+  id: string;
+  participants: string[];
+  participantNames: { [userId: string]: string };
+  participantAvatars: { [userId: string]: string };
   
-  // Last Message Info (for listing)
+  // Context
+  context?: {
+    type: 'job' | 'contract' | 'general';
+    jobId?: string;
+    contractId?: string;
+  };
+  
+  // Last Message
   lastMessage?: string;
   lastMessageTime?: Date;
   lastMessageSenderId?: string;
   
-  // Unread counts
-  unreadCount: {
-    [userId: string]: number;
-  };
+  // Unread counts per participant
+  unreadCount: { [userId: string]: number };
   
-  // Context
-  jobId?: string;
-  jobTitle?: string;
+  // Status
+  isActive: boolean;
+  isArchived: { [userId: string]: boolean };
   
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Collection: reviews
-interface Review {
-  id: string;
-  contractId: string;
-  jobId: string;
-  
-  // Review from client to freelancer
-  clientToFreelancer?: {
-    reviewerId: string;
-    revieweeId: string;
-    rating: number; // 1-5
-    comment: string;
-    skills?: string[]; // Skills endorsed
-    wouldHireAgain: boolean;
-  };
-  
-  // Review from freelancer to client
-  freelancerToClient?: {
-    reviewerId: string;
-    revieweeId: string;
-    rating: number; // 1-5
-    comment: string;
-    wouldWorkAgain: boolean;
-  };
-  
-  createdAt: Date;
-}
-
 // Collection: transactions
-interface Transaction {
+export interface Transaction {
   id: string;
-  type: 'subscription' | 'feature-boost' | 'job-fee' | 'milestone-payment' | 'hourly-payment';
   
-  // User Info
-  userId: string;
-  userEmail: string;
+  // Type
+  type: 'payment' | 'withdrawal' | 'subscription' | 'refund' | 'fee';
   
-  // Transaction Details
-  amount: number;
-  currency: string;
-  description: string;
+  // Parties
+  fromUserId?: string;
+  toUserId?: string;
   
-  // Payment Provider Info
-  provider: 'stripe' | 'paddle';
-  providerId: string; // Stripe/Paddle transaction ID
-  paymentMethod?: string;
-  
-  // Related Entities
-  jobId?: string;
+  // References
   contractId?: string;
   milestoneId?: string;
   subscriptionId?: string;
   
+  // Amount
+  amount: number;
+  currency: string;
+  
+  // Fees
+  platformFee?: number;
+  processingFee?: number;
+  netAmount?: number;
+  
+  // Payment Method
+  paymentMethod?: 'card' | 'bank' | 'paypal' | 'stripe';
+  paymentMethodDetails?: any;
+  
   // Status
-  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+  
+  // External References
+  stripePaymentIntentId?: string;
+  stripeChargeId?: string;
+  
+  // Description
+  description: string;
   
   // Timestamps
   createdAt: Date;
+  processedAt?: Date;
   completedAt?: Date;
   failedAt?: Date;
   refundedAt?: Date;
@@ -378,6 +474,6 @@ interface Analytics {
   
   // Engagement Metrics
   proposalsSubmitted: number;
-  messagessSent: number;
+  messagesSent: number;
   contractsCreated: number;
 }
