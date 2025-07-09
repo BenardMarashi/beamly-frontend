@@ -6,7 +6,6 @@ import {
   NavbarContent, 
   NavbarItem,
   Button,
-  Avatar,
   Badge,
   User
 } from '@nextui-org/react';
@@ -15,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../contexts/theme-context';
 import { BeamlyLogo } from '../components/beamly-logo';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -121,69 +120,40 @@ const DashboardLayout: React.FC = () => {
               className={isDarkMode ? "text-white" : "text-gray-800"}
               aria-label={t('navigation.notifications')}
             >
-              <Badge content={notificationCount > 0 ? notificationCount : undefined} color="secondary" shape="circle">
+              <Badge content={notificationCount > 0 ? notificationCount.toString() : "0"} color="danger" size="sm">
                 <Icon icon="lucide:bell" width={20} />
               </Badge>
             </Button>
-          </NavbarItem>
-          <NavbarItem className="hidden md:flex">
-            <Avatar 
-              as={RouterLink}
-              to="/settings"
-              src={profilePicture} 
-              className="w-8 h-8 cursor-pointer"
-              aria-label={t('navigation.profile')}
-              name={userData?.displayName || user?.displayName || "User"}
-            />
           </NavbarItem>
           <NavbarItem className="md:hidden">
             <Button
               isIconOnly
               variant="light"
-              onPress={() => setMenuOpen(true)}
+              onPress={() => setMenuOpen(!menuOpen)}
               className={isDarkMode ? "text-white" : "text-gray-800"}
+              aria-label="Toggle menu"
             >
-              <Icon icon="lucide:menu" width={24} />
+              <Icon icon={menuOpen ? "lucide:x" : "lucide:menu"} width={24} />
             </Button>
           </NavbarItem>
         </NavbarContent>
       </Navbar>
       
-      {/* Mobile Menu Overlay */}
-      {menuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
-          onClick={() => setMenuOpen(false)}
-        />
-      )}
-      
-      {/* Mobile Menu Panel */}
-      <div className={`fixed inset-y-0 right-0 w-72 z-50 transform transition-transform duration-300 md:hidden ${
-        menuOpen ? 'translate-x-0' : 'translate-x-full'
-      } ${isDarkMode ? 'bg-beamly-third' : 'bg-white'}`}>
-        <div className="p-4 h-full flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+      {/* Mobile Menu */}
+      <div className={`md:hidden fixed inset-0 z-30 transform ${menuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300`}>
+        <div className={`w-64 h-full ${isDarkMode ? 'bg-black/95' : 'bg-white/95'} backdrop-blur-md p-4`}>
+          <div className="mb-6">
             <User
               name={userData?.displayName || user?.displayName || "User"}
               description={userData?.userType === 'both' ? 'Freelancer & Client' : userData?.userType || 'Member'}
               avatarProps={{
                 src: profilePicture,
-                size: "lg"
+                size: "sm"
               }}
             />
-            <Button
-              isIconOnly
-              variant="light"
-              onPress={() => setMenuOpen(false)}
-              className={isDarkMode ? "text-white" : "text-gray-800"}
-            >
-              <Icon icon="lucide:x" />
-            </Button>
           </div>
           
-          {/* Menu Items */}
-          <div className="flex-1 space-y-2">
+          <div className="space-y-2">
             {menuItems.map((item) => (
               <Button
                 key={item.path}

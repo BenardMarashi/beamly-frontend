@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardBody, CardHeader, Button, Input, Select, SelectItem, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@nextui-org/react';
+import { Card, CardBody, CardHeader, Button, Input, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,7 +28,6 @@ interface Transaction {
 export const BillingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, userData } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -48,10 +47,7 @@ export const BillingPage: React.FC = () => {
   const fetchBillingData = async () => {
     if (!user) return;
     
-    setLoading(true);
-    
     try {
-      // Fetch transactions
       const transactionsQuery = query(
         collection(db, 'transactions'),
         where(userData?.userType === 'freelancer' ? 'freelancerId' : 'clientId', '==', user.uid),
@@ -70,7 +66,6 @@ export const BillingPage: React.FC = () => {
       
       setTransactions(transactionsData);
       
-      // Calculate balance (for freelancers)
       if (userData?.userType === 'freelancer' || userData?.userType === 'both') {
         const earnings = transactionsData
           .filter(t => t.type === 'payment' && t.status === 'completed')
@@ -81,7 +76,6 @@ export const BillingPage: React.FC = () => {
         setBalance(earnings - withdrawals);
       }
       
-      // Mock payment methods (in real app, would fetch from Stripe or payment provider)
       setPaymentMethods([
         {
           id: '1',
@@ -94,8 +88,6 @@ export const BillingPage: React.FC = () => {
     } catch (error) {
       console.error('Error fetching billing data:', error);
       toast.error('Failed to load billing data');
-    } finally {
-      setLoading(false);
     }
   };
   
@@ -112,7 +104,6 @@ export const BillingPage: React.FC = () => {
       return;
     }
     
-    // TODO: Implement withdrawal logic
     toast.success(`Withdrawal of $${amount} initiated`);
     onWithdrawClose();
     setWithdrawAmount('');
@@ -140,34 +131,63 @@ export const BillingPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="container mx-auto px-4 py-8"
       >
-        <h1 className="text-3xl font-bold text-white mb-8">Billing & Payments</h1>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Billing</h1>
+            <p className="text-gray-400">Manage your payments and transactions</p>
+          </div>
+          {(userData?.userType === 'freelancer' || userData?.userType === 'both') && (
+            <Button
+              color="primary"
+              onPress={onWithdrawOpen}
+              startContent={<Icon icon="lucide:banknote" />}
+            >
+              Withdraw Funds
+            </Button>
+          )}
+        </div>
         
-        {/* Balance Card (for freelancers) */}
-        {(userData?.userType === 'freelancer' || userData?.userType === 'both') && (
-          <Card className="glass-card mb-6">
-            <CardBody>
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-gray-400 mb-1">Available Balance</p>
-                  <h2 className="text-3xl font-bold text-white">${balance.toFixed(2)}</h2>
-                </div>
-                <Button
-                  color="secondary"
-                  onPress={onWithdrawOpen}
-                  disabled={balance <= 0}
-                >
-                  Withdraw Funds
-                </Button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="glass-effect border-none">
+            <CardBody className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Icon icon="lucide:wallet" className="text-green-400" width={32} />
               </div>
+              <h3 className="text-gray-400 text-sm">Available Balance</h3>
+              <p className="text-3xl font-bold text-white">${balance.toFixed(2)}</p>
             </CardBody>
           </Card>
-        )}
+          
+          <Card className="glass-effect border-none">
+            <CardBody className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Icon icon="lucide:credit-card" className="text-blue-400" width={32} />
+              </div>
+              <h3 className="text-gray-400 text-sm">Payment Methods</h3>
+              <p className="text-3xl font-bold text-white">{paymentMethods.length}</p>
+            </CardBody>
+          </Card>
+          
+          <Card className="glass-effect border-none">
+            <CardBody className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Icon icon="lucide:activity" className="text-purple-400" width={32} />
+              </div>
+              <h3 className="text-gray-400 text-sm">Transactions</h3>
+              <p className="text-3xl font-bold text-white">{transactions.length}</p>
+            </CardBody>
+          </Card>
+        </div>
         
-        {/* Payment Methods */}
-        <Card className="glass-card mb-6">
+        <Card className="glass-effect border-none mb-8">
           <CardHeader className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-white">Payment Methods</h3>
-            <Button size="sm" color="secondary" onPress={onAddPaymentOpen}>
+            <h2 className="text-xl font-semibold text-white">Payment Methods</h2>
+            <Button
+              size="sm"
+              color="primary"
+              variant="flat"
+              onPress={onAddPaymentOpen}
+            >
               Add New
             </Button>
           </CardHeader>
@@ -177,26 +197,22 @@ export const BillingPage: React.FC = () => {
             ) : (
               <div className="space-y-3">
                 {paymentMethods.map((method) => (
-                  <div key={method.id} className="flex justify-between items-center p-4 glass-card">
-                    <div className="flex items-center gap-3">
+                  <div key={method.id} className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50">
+                    <div className="flex items-center gap-4">
                       <Icon 
-                        icon={
-                          method.type === 'card' ? 'lucide:credit-card' :
-                          method.type === 'bank' ? 'lucide:building' :
-                          'lucide:wallet'
-                        } 
-                        className="text-2xl text-beamly-secondary"
+                        icon={method.type === 'card' ? 'lucide:credit-card' : 'lucide:building-2'} 
+                        className="text-2xl text-gray-400"
                       />
                       <div>
                         <p className="text-white font-medium">
                           {method.brand} •••• {method.last4}
                         </p>
                         {method.isDefault && (
-                          <span className="text-xs text-gray-400">Default</span>
+                          <p className="text-sm text-gray-400">Default</p>
                         )}
                       </div>
                     </div>
-                    <Button size="sm" variant="light">
+                    <Button size="sm" variant="light" color="danger">
                       Remove
                     </Button>
                   </div>
@@ -206,10 +222,9 @@ export const BillingPage: React.FC = () => {
           </CardBody>
         </Card>
         
-        {/* Transactions */}
-        <Card className="glass-card">
+        <Card className="glass-effect border-none">
           <CardHeader>
-            <h3 className="text-lg font-semibold text-white">Transaction History</h3>
+            <h2 className="text-xl font-semibold text-white">Transaction History</h2>
           </CardHeader>
           <CardBody>
             {transactions.length === 0 ? (
@@ -273,7 +288,6 @@ export const BillingPage: React.FC = () => {
           </CardBody>
         </Card>
         
-        {/* Withdraw Modal */}
         <Modal isOpen={isWithdrawOpen} onClose={onWithdrawClose}>
           <ModalContent>
             <ModalHeader>Withdraw Funds</ModalHeader>
@@ -304,7 +318,6 @@ export const BillingPage: React.FC = () => {
           </ModalContent>
         </Modal>
         
-        {/* Add Payment Method Modal */}
         <Modal isOpen={isAddPaymentOpen} onClose={onAddPaymentClose}>
           <ModalContent>
             <ModalHeader>Add Payment Method</ModalHeader>

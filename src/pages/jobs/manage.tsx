@@ -38,34 +38,28 @@ export const ManageJobsPage: React.FC = () => {
     } else {
       fetchJobs();
     }
-  }, [user, canPostJobs, navigate, selectedTab]);
+  }, [user, canPostJobs, navigate]);
   
   const fetchJobs = async () => {
     if (!user) return;
     
     setLoading(true);
-    
     try {
-      let q = query(
+      const jobsQuery = query(
         collection(db, 'jobs'),
         where('clientId', '==', user.uid),
         orderBy('createdAt', 'desc')
       );
       
-      if (selectedTab !== 'all') {
-        q = query(
-          collection(db, 'jobs'),
-          where('clientId', '==', user.uid),
-          where('status', '==', selectedTab),
-          orderBy('createdAt', 'desc')
-        );
-      }
+      const querySnapshot = await getDocs(jobsQuery);
+      const jobsData: Job[] = [];
       
-      const snapshot = await getDocs(q);
-      const jobsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Job[];
+      querySnapshot.forEach((doc) => {
+        jobsData.push({
+          id: doc.id,
+          ...doc.data()
+        } as Job);
+      });
       
       setJobs(jobsData);
     } catch (error) {
@@ -76,37 +70,52 @@ export const ManageJobsPage: React.FC = () => {
     }
   };
   
-  const handleStatusChange = async (jobId: string, newStatus: string) => {
+  const handleCloseJob = async () => {
+    if (!selectedJob) return;
+    
     try {
-      await updateDoc(doc(db, 'jobs', jobId), {
-        status: newStatus,
+      await updateDoc(doc(db, 'jobs', selectedJob.id), {
+        status: 'cancelled',
         updatedAt: new Date()
       });
       
-      toast.success('Job status updated');
+      toast.success('Job closed successfully');
       fetchJobs();
+      onClose();
     } catch (error) {
-      console.error('Error updating job:', error);
-      toast.error('Failed to update job status');
+      console.error('Error closing job:', error);
+      toast.error('Failed to close job');
     }
   };
   
+  const filteredJobs = jobs.filter(job => {
+    if (selectedTab === 'all') return true;
+    if (selectedTab === 'active') return job.status === 'open' || job.status === 'in-progress';
+    if (selectedTab === 'completed') return job.status === 'completed';
+    return job.status === selectedTab;
+  });
+  
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'draft':
-        return 'default';
-      case 'open':
-        return 'success';
-      case 'in-progress':
-        return 'warning';
-      case 'completed':
-        return 'primary';
-      case 'cancelled':
-        return 'danger';
-      default:
-        return 'default';
+      case 'open': return 'success';
+      case 'in-progress': return 'primary';
+      case 'completed': return 'secondary';
+      case 'cancelled': return 'danger';
+      case 'draft': return 'warning';
+      default: return 'default';
     }
   };
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading jobs...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-mesh">
@@ -116,51 +125,42 @@ export const ManageJobsPage: React.FC = () => {
         className="container mx-auto px-4 py-8"
       >
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Manage Jobs</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Manage Jobs</h1>
+            <p className="text-gray-400">View and manage your posted jobs</p>
+          </div>
           <Button
-            color="secondary"
-            onPress={() => navigate('/post-job')}
+            color="primary"
             startContent={<Icon icon="lucide:plus" />}
+            onPress={() => navigate('/post-job')}
           >
             Post New Job
           </Button>
         </div>
         
-        <Card className="glass-card">
+        <Card className="glass-effect border-none">
           <CardBody>
             <Tabs
               selectedKey={selectedTab}
-              onSelectionChange={(key) => setSelectedTab(key as string)}
-              color="secondary"
-              variant="underlined"
+              onSelectionChange={(key) => setSelectedTab(key.toString())}
               classNames={{
-                tabList: "border-b border-white/10",
+                tabList: "bg-transparent",
+                cursor: "bg-primary",
                 tab: "text-gray-400",
-                selectedTab: "text-white"
+                tabContent: "text-white group-data-[selected=true]:text-white"
               }}
             >
-              <Tab key="all" title="All Jobs" />
-              <Tab key="open" title="Open" />
-              <Tab key="in-progress" title="In Progress" />
-              <Tab key="completed" title="Completed" />
-              <Tab key="draft" title="Drafts" />
+              <Tab key="all" title={`All (${jobs.length})`} />
+              <Tab key="active" title={`Active (${jobs.filter(j => j.status === 'open' || j.status === 'in-progress').length})`} />
+              <Tab key="completed" title={`Completed (${jobs.filter(j => j.status === 'completed').length})`} />
+              <Tab key="cancelled" title={`Cancelled (${jobs.filter(j => j.status === 'cancelled').length})`} />
             </Tabs>
             
             <div className="mt-6">
-              {loading ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-400">Loading jobs...</p>
-                </div>
-              ) : jobs.length === 0 ? (
-                <div className="text-center py-8">
+              {filteredJobs.length === 0 ? (
+                <div className="text-center py-12">
+                  <Icon icon="lucide:briefcase" className="text-6xl text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-400">No jobs found</p>
-                  <Button
-                    color="secondary"
-                    className="mt-4"
-                    onPress={() => navigate('/post-job')}
-                  >
-                    Post Your First Job
-                  </Button>
                 </div>
               ) : (
                 <Table
@@ -176,29 +176,33 @@ export const ManageJobsPage: React.FC = () => {
                     <TableColumn>BUDGET</TableColumn>
                     <TableColumn>PROPOSALS</TableColumn>
                     <TableColumn>STATUS</TableColumn>
-                    <TableColumn>POSTED</TableColumn>
                     <TableColumn>ACTIONS</TableColumn>
                   </TableHeader>
                   <TableBody>
-                    {jobs.map((job) => (
+                    {filteredJobs.map((job) => (
                       <TableRow key={job.id}>
                         <TableCell>
-                          <p className="font-medium text-white">{job.title}</p>
+                          <Button
+                            variant="light"
+                            onPress={() => navigate(`/jobs/${job.id}`)}
+                            className="text-white hover:text-primary p-0"
+                          >
+                            {job.title}
+                          </Button>
                         </TableCell>
                         <TableCell>{job.category}</TableCell>
                         <TableCell>
                           ${job.budget} {job.budgetType === 'hourly' && '/hr'}
                         </TableCell>
-                        <TableCell>{job.proposals || 0}</TableCell>
+                        <TableCell>{job.proposals}</TableCell>
                         <TableCell>
-                          <Chip size="sm" color={getStatusColor(job.status)} variant="flat">
+                          <Chip
+                            size="sm"
+                            color={getStatusColor(job.status)}
+                            variant="flat"
+                          >
                             {job.status}
                           </Chip>
-                        </TableCell>
-                        <TableCell>
-                          {job.createdAt?.toDate ? 
-                            new Date(job.createdAt.toDate()).toLocaleDateString() : 
-                            'Recently'}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
@@ -206,21 +210,24 @@ export const ManageJobsPage: React.FC = () => {
                               size="sm"
                               variant="light"
                               isIconOnly
-                              onPress={() => navigate(`/jobs/${job.id}`)}
-                            >
-                              <Icon icon="lucide:eye" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="light"
-                              isIconOnly
-                              onPress={() => {
-                                setSelectedJob(job);
-                                onOpen();
-                              }}
+                              onPress={() => navigate(`/jobs/${job.id}/edit`)}
                             >
                               <Icon icon="lucide:edit" />
                             </Button>
+                            {job.status === 'open' && (
+                              <Button
+                                size="sm"
+                                variant="light"
+                                color="danger"
+                                isIconOnly
+                                onPress={() => {
+                                  setSelectedJob(job);
+                                  onOpen();
+                                }}
+                              >
+                                <Icon icon="lucide:x" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -232,33 +239,18 @@ export const ManageJobsPage: React.FC = () => {
           </CardBody>
         </Card>
         
-        {/* Edit Job Modal */}
         <Modal isOpen={isOpen} onClose={onClose}>
           <ModalContent>
-            <ModalHeader>Edit Job Status</ModalHeader>
+            <ModalHeader>Close Job</ModalHeader>
             <ModalBody>
-              {selectedJob && (
-                <div className="space-y-4">
-                  <p className="text-gray-400">Job: {selectedJob.title}</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {['open', 'in-progress', 'completed', 'cancelled'].map((status) => (
-                      <Button
-                        key={status}
-                        size="sm"
-                        color={getStatusColor(status)}
-                        variant={selectedJob.status === status ? 'solid' : 'flat'}
-                        onPress={() => handleStatusChange(selectedJob.id, status)}
-                      >
-                        {status}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <p>Are you sure you want to close this job? This action cannot be undone.</p>
             </ModalBody>
             <ModalFooter>
               <Button variant="light" onPress={onClose}>
-                Close
+                Cancel
+              </Button>
+              <Button color="danger" onPress={handleCloseJob}>
+                Close Job
               </Button>
             </ModalFooter>
           </ModalContent>
@@ -267,3 +259,5 @@ export const ManageJobsPage: React.FC = () => {
     </div>
   );
 };
+
+export default ManageJobsPage;

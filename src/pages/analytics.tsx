@@ -1,34 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardBody, Progress, Select, SelectItem } from '@nextui-org/react';
+import { Card, CardBody, Select, SelectItem, Progress } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 interface AnalyticsData {
   totalEarnings: number;
   totalJobs: number;
   completedJobs: number;
-  activeJobs: number;
   avgRating: number;
   totalProposals: number;
   acceptedProposals: number;
-  monthlyEarnings: Array<{ month: string; amount: number }>;
-  categoryBreakdown: Array<{ name: string; value: number }>;
+  monthlyEarnings: { month: string; amount: number }[];
+  categoryBreakdown: { name: string; value: number }[];
 }
 
-export const AnalyticsPage: React.FC = () => {
-  const navigate = useNavigate();
+const AnalyticsPage: React.FC = () => {
   const { user, userData } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('last30days');
+  const [loading, setLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     totalEarnings: 0,
     totalJobs: 0,
     completedJobs: 0,
-    activeJobs: 0,
     avgRating: 0,
     totalProposals: 0,
     acceptedProposals: 0,
@@ -37,62 +33,97 @@ export const AnalyticsPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
-    } else {
+    if (user) {
       fetchAnalytics();
     }
-  }, [user, navigate, timeRange]);
+  }, [user, timeRange]);
 
   const fetchAnalytics = async () => {
-    if (!user) return;
-
+    if (!user || !userData) return;
+    
     setLoading(true);
     try {
-      // Fetch jobs data
-      const jobsQuery = query(
-        collection(db, userData?.userType === 'client' ? 'jobs' : 'proposals'),
-        where(userData?.userType === 'client' ? 'clientId' : 'freelancerId', '==', user.uid)
-      );
-      const jobsSnapshot = await getDocs(jobsQuery);
-      
+      let totalEarnings = 0;
       let totalJobs = 0;
       let completedJobs = 0;
-      let activeJobs = 0;
-      const categoryMap = new Map<string, number>();
-      
-      jobsSnapshot.forEach((doc) => {
-        const data = doc.data();
-        totalJobs++;
+      let totalProposals = 0;
+      let acceptedProposals = 0;
+      const categoryMap: { [key: string]: number } = {};
+
+      if (userData.userType === 'freelancer' || userData.userType === 'both') {
+        // Fetch freelancer contracts
+        const contractsQuery = query(
+          collection(db, 'contracts'),
+          where('freelancerId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        );
         
-        if (data.status === 'completed') {
-          completedJobs++;
-        } else if (data.status === 'active' || data.status === 'in-progress') {
-          activeJobs++;
-        }
+        const contractsSnapshot = await getDocs(contractsQuery);
+        contractsSnapshot.forEach((doc) => {
+          const contract = doc.data();
+          if (contract.status === 'completed') {
+            totalEarnings += contract.totalPaid || 0;
+            completedJobs++;
+          }
+          totalJobs++;
+        });
+
+        // Fetch proposals
+        const proposalsQuery = query(
+          collection(db, 'proposals'),
+          where('freelancerId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        );
         
-        // Count categories
-        const category = data.category || 'Other';
-        categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
-      });
-      
+        const proposalsSnapshot = await getDocs(proposalsQuery);
+        proposalsSnapshot.forEach((doc) => {
+          const proposal = doc.data();
+          totalProposals++;
+          if (proposal.status === 'accepted') {
+            acceptedProposals++;
+          }
+        });
+      }
+
+      if (userData.userType === 'client' || userData.userType === 'both') {
+        // Fetch client jobs
+        const jobsQuery = query(
+          collection(db, 'jobs'),
+          where('clientId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        );
+        
+        const jobsSnapshot = await getDocs(jobsQuery);
+        jobsSnapshot.forEach((doc) => {
+          const job = doc.data();
+          totalJobs++;
+          if (job.status === 'completed') {
+            completedJobs++;
+          }
+          
+          // Category breakdown
+          if (job.category) {
+            categoryMap[job.category] = (categoryMap[job.category] || 0) + 1;
+          }
+        });
+      }
+
       // Convert category map to array
-      const categoryBreakdown = Array.from(categoryMap.entries()).map(([name, value]) => ({
-        name,
-        value
-      }));
-      
-      // Generate mock monthly earnings data
+      const categoryBreakdown = Object.entries(categoryMap)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5);
+
+      // Generate monthly data (mock for now)
       const monthlyEarnings = generateMonthlyData();
-      
+
       setAnalyticsData({
-        totalEarnings: userData?.totalEarnings || 0,
-        totalJobs,
-        completedJobs,
-        activeJobs,
-        avgRating: userData?.rating || 0,
-        totalProposals: userData?.userType === 'freelancer' ? totalJobs : 0,
-        acceptedProposals: userData?.userType === 'freelancer' ? activeJobs : 0,
+        totalEarnings: userData.userType === 'client' ? userData.totalSpent || 0 : totalEarnings,
+        totalJobs: userData.userType === 'client' ? totalJobs : userData.completedProjects || 0,
+        completedJobs: userData.userType === 'client' ? completedJobs : userData.completedProjects || 0,
+        avgRating: userData.rating || 0,
+        totalProposals,
+        acceptedProposals: userData.userType === 'freelancer' ? acceptedProposals : 0,
         monthlyEarnings,
         categoryBreakdown
       });
@@ -111,7 +142,9 @@ export const AnalyticsPage: React.FC = () => {
     }));
   };
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+  // COLORS array for future chart implementation
+  // Keeping this for when chart visualization is implemented
+  // const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   if (loading) {
     return (
@@ -170,7 +203,7 @@ export const AnalyticsPage: React.FC = () => {
                 <Icon icon="lucide:briefcase" className="text-blue-400" width={32} />
                 <span className="text-blue-400 text-sm">+8%</span>
               </div>
-              <h3 className="text-gray-400 text-sm">Total {userData?.userType === 'client' ? 'Jobs Posted' : 'Proposals'}</h3>
+              <h3 className="text-gray-400 text-sm">Total {userData?.userType === 'client' ? 'Jobs Posted' : 'Jobs'}</h3>
               <p className="text-2xl font-bold text-white">{analyticsData.totalJobs}</p>
             </CardBody>
           </Card>
@@ -178,8 +211,8 @@ export const AnalyticsPage: React.FC = () => {
           <Card className="glass-effect border-none">
             <CardBody className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <Icon icon="lucide:check-circle" className="text-purple-400" width={32} />
-                <span className="text-purple-400 text-sm">{completedPercentage}%</span>
+                <Icon icon="lucide:check-circle" className="text-green-400" width={32} />
+                <span className="text-green-400 text-sm">{completedPercentage}%</span>
               </div>
               <h3 className="text-gray-400 text-sm">Completed</h3>
               <p className="text-2xl font-bold text-white">{analyticsData.completedJobs}</p>
@@ -191,11 +224,11 @@ export const AnalyticsPage: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <Icon icon="lucide:star" className="text-yellow-400" width={32} />
                 <div className="flex">
-                  {[1, 2, 3, 4, 5].map((star) => (
+                  {[...Array(5)].map((_, i) => (
                     <Icon 
-                      key={star} 
-                      icon="lucide:star" 
-                      className={star <= Math.round(analyticsData.avgRating) ? "text-yellow-400" : "text-gray-600"} 
+                      key={i} 
+                      icon={i < Math.floor(analyticsData.avgRating) ? "lucide:star" : "lucide:star-outline"} 
+                      className={i < Math.floor(analyticsData.avgRating) ? "text-yellow-400" : "text-gray-600"} 
                       width={16} 
                     />
                   ))}

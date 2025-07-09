@@ -137,7 +137,7 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
         status: "pending" as const
       };
       
-      const result = await ProposalService.submitProposal(proposalData);
+      const result = await ProposalService.createProposal(proposalData);
       
       if (result.success) {
         toast.success("Application submitted successfully!");

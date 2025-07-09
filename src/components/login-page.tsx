@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import { BeamlyLogo } from "./beamly-logo";
 
 interface LoginPageProps {
-  onLogin?: () => void;
   onEmailLogin?: (email: string, password: string) => Promise<void>;
   onGoogleLogin?: () => Promise<void>;
   loading?: boolean;
@@ -15,7 +14,6 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ 
-  onLogin,
   onEmailLogin,
   onGoogleLogin,
   loading = false,

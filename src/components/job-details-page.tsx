@@ -35,7 +35,7 @@ interface JobDetailsPageProps {
   isDarkMode?: boolean;
 }
 
-export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({ isDarkMode = true }) => {
+export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, userData } = useAuth();
@@ -82,7 +82,6 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({ isDarkMode = tru
       return;
     }
     
-    // Navigate to proposal submission page or open modal
     navigate(`/jobs/${id}/apply`);
   };
 
@@ -164,101 +163,68 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({ isDarkMode = tru
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
       <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumbs */}
         <Breadcrumbs className="mb-6">
           <BreadcrumbItem onPress={() => navigate('/')}>Home</BreadcrumbItem>
           <BreadcrumbItem onPress={() => navigate('/looking-for-work')}>Jobs</BreadcrumbItem>
-          <BreadcrumbItem>{job.category}</BreadcrumbItem>
+          <BreadcrumbItem>{job.title}</BreadcrumbItem>
         </Breadcrumbs>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Job Header */}
+          <div className="lg:col-span-2">
             <Card className="glass-effect">
-              <CardBody>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h1 className="text-2xl font-bold text-white mb-2">{job.title}</h1>
-                    <div className="flex items-center gap-4 text-sm text-gray-400">
-                      <span className="flex items-center gap-1">
-                        <Icon icon="lucide:briefcase" />
-                        {job.category}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Icon icon="lucide:clock" />
-                        Posted {formatPostedDate(job.postedAt)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Icon icon="lucide:users" />
-                        {job.proposals} proposals
-                      </span>
-                    </div>
-                  </div>
-                  <Chip 
-                    color={job.status === 'open' ? 'success' : 'default'} 
-                    variant="flat"
-                  >
-                    {job.status}
+              <CardBody className="p-6">
+                <h1 className="text-2xl font-bold text-white mb-4">{job.title}</h1>
+                
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <Chip color="secondary" variant="flat">
+                    <Icon icon="lucide:folder" className="mr-1" />
+                    {job.category}
+                  </Chip>
+                  <Chip variant="flat">
+                    <Icon icon="lucide:clock" className="mr-1" />
+                    {formatPostedDate(job.postedAt)}
+                  </Chip>
+                  <Chip variant="flat">
+                    <Icon icon="lucide:map-pin" className="mr-1" />
+                    {job.clientCountry || 'Remote'}
                   </Chip>
                 </div>
 
-                {/* Budget and Duration */}
-                <div className="flex gap-6 mb-6">
+                <div className="space-y-6">
                   <div>
-                    <h4 className="text-sm text-gray-400 mb-1">Budget</h4>
-                    <p className="text-xl font-semibold text-white">{formatBudget()}</p>
+                    <h2 className="text-xl font-semibold text-white mb-3">Description</h2>
+                    <p className="text-gray-300 whitespace-pre-wrap">{job.description}</p>
                   </div>
+
                   <div>
-                    <h4 className="text-sm text-gray-400 mb-1">Duration</h4>
-                    <p className="text-xl font-semibold text-white">{job.projectDuration}</p>
+                    <h2 className="text-xl font-semibold text-white mb-3">Skills Required</h2>
+                    <div className="flex flex-wrap gap-2">
+                      {job.skills.map((skill) => (
+                        <Chip key={skill} variant="flat">{skill}</Chip>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                {/* Skills */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-white mb-3">Required Skills</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {job.skills.map((skill, index) => (
-                      <Chip key={index} variant="flat" size="sm">
-                        {skill}
-                      </Chip>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-3">Description</h3>
-                  <p className="text-gray-300 whitespace-pre-wrap">{job.description}</p>
-                </div>
-
-                {/* Additional Details */}
-                <div className="mt-6 pt-6 border-t border-white/10">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-medium text-gray-400 mb-1">Experience Level</h4>
-                      <p className="text-white">{job.experienceLevel}</p>
+                      <h3 className="text-gray-400 mb-1">Experience Level</h3>
+                      <p className="text-white capitalize">{job.experienceLevel}</p>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-400 mb-1">Project Duration</h4>
+                      <h3 className="text-gray-400 mb-1">Project Duration</h3>
                       <p className="text-white">{job.projectDuration}</p>
                     </div>
                   </div>
 
                   {job.attachments && job.attachments.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="text-lg font-semibold text-white mb-3">Attachments</h3>
+                    <div>
+                      <h2 className="text-xl font-semibold text-white mb-3">Attachments</h2>
                       <div className="space-y-2">
-                        {job.attachments.map((attachment, index) => (
-                          <Button
-                            key={index}
-                            variant="bordered"
-                            size="sm"
-                            startContent={<Icon icon="lucide:paperclip" />}
-                          >
-                            Attachment {index + 1}
-                          </Button>
+                        {job.attachments.map((_, index) => (
+                          <div key={index} className="flex items-center gap-2 text-gray-300">
+                            <Icon icon="lucide:paperclip" />
+                            <span>Attachment {index + 1}</span>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -266,98 +232,80 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = ({ isDarkMode = tru
                 </div>
               </CardBody>
             </Card>
-
-            {/* Action Buttons for Freelancers */}
-            {isFreelancer && job.status === 'open' && (
-              <Card className="glass-effect">
-                <CardBody>
-                  <div className="flex gap-4">
-                    <Button
-                      color="secondary"
-                      size="lg"
-                      className="flex-1"
-                      onPress={handleApply}
-                    >
-                      Submit Proposal
-                    </Button>
-                    <Button
-                      variant="bordered"
-                      size="lg"
-                      startContent={<Icon icon="lucide:heart" />}
-                    >
-                      Save Job
-                    </Button>
-                  </div>
-                </CardBody>
-              </Card>
-            )}
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Budget Card */}
             <Card className="glass-effect">
-              <CardBody>
-                <h3 className="font-semibold text-white mb-4">Budget</h3>
-                <p className="text-3xl font-bold text-white mb-2">{formatBudget()}</p>
-                <p className="text-sm text-gray-400">
-                  {job.budgetType === 'fixed' ? 'Fixed Price' : 'Hourly Rate'}
-                </p>
-              </CardBody>
-            </Card>
+              <CardBody className="p-6">
+                <div className="text-center mb-6">
+                  <p className="text-gray-400 mb-2">Budget</p>
+                  <p className="text-3xl font-bold text-white">{formatBudget()}</p>
+                  <p className="text-sm text-gray-400 capitalize">{job.budgetType} Price</p>
+                </div>
 
-            {/* Client Info Card */}
-            <Card className="glass-effect">
-              <CardBody>
-                <h3 className="font-semibold text-white mb-4">About the Client</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar
-                      src={job.clientAvatar || `https://i.pravatar.cc/150?u=${job.clientId}`}
-                      size="lg"
-                    />
-                    <div>
-                      <p className="font-semibold text-white">{job.clientName}</p>
-                      {job.clientRating && (
-                        <div className="flex items-center gap-1">
-                          <Icon icon="lucide:star" className="text-yellow-500 text-sm" />
-                          <span className="text-sm text-white">{job.clientRating}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-sm">
-                    {job.clientCountry && (
-                      <div className="flex items-center gap-2">
-                        <Icon icon="lucide:map-pin" className="text-gray-400" />
-                        <span className="text-gray-300">{job.clientCountry}</span>
-                      </div>
-                    )}
-                    {job.clientJobsPosted && (
-                      <div className="flex items-center gap-2">
-                        <Icon icon="lucide:briefcase" className="text-gray-400" />
-                        <span className="text-gray-300">{job.clientJobsPosted} jobs posted</span>
-                      </div>
-                    )}
-                  </div>
-
+                {isFreelancer && (
                   <Button
-                    variant="bordered"
-                    className="w-full"
-                    startContent={<Icon icon="lucide:message-square" />}
+                    color="secondary"
+                    size="lg"
+                    className="w-full mb-4"
+                    onPress={handleApply}
                   >
-                    Contact Client
+                    Apply Now
                   </Button>
+                )}
+
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Proposals</span>
+                    <span className="text-white">{job.proposals}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Status</span>
+                    <Chip
+                      size="sm"
+                      color={job.status === 'open' ? 'success' : 'default'}
+                      variant="flat"
+                    >
+                      {job.status}
+                    </Chip>
+                  </div>
                 </div>
               </CardBody>
             </Card>
 
-            {/* Similar Jobs */}
             <Card className="glass-effect">
-              <CardBody>
-                <h3 className="font-semibold text-white mb-4">Similar Jobs</h3>
-                <p className="text-sm text-gray-400">Coming soon...</p>
+              <CardBody className="p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">About the Client</h3>
+                <div className="flex items-center gap-3 mb-4">
+                  <Avatar
+                    src={job.clientAvatar}
+                    name={job.clientName}
+                    size="lg"
+                  />
+                  <div>
+                    <p className="text-white font-medium">{job.clientName}</p>
+                    {job.clientRating && (
+                      <div className="flex items-center gap-1">
+                        <Icon icon="lucide:star" className="text-yellow-500" />
+                        <span className="text-gray-400">{job.clientRating}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm">
+                  {job.clientJobsPosted && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Jobs Posted</span>
+                      <span className="text-white">{job.clientJobsPosted}</span>
+                    </div>
+                  )}
+                  {job.clientCountry && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400">Location</span>
+                      <span className="text-white">{job.clientCountry}</span>
+                    </div>
+                  )}
+                </div>
               </CardBody>
             </Card>
           </div>
