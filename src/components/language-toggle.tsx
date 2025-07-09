@@ -1,70 +1,53 @@
-import React from "react";
-import { useTranslation } from "react-i18next";
-import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import React, { useState } from "react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
-import { useTheme } from "../contexts/theme-context";
+import { useTranslation } from "react-i18next";
 
-// Define proper props interface
 interface LanguageToggleProps {
-  currentLanguage?: string;
-  onLanguageChange?: (language: string) => void;
-  isDarkMode?: boolean;
+  // FIXED: Removed unused isDarkMode
 }
 
-export const LanguageToggle: React.FC<LanguageToggleProps> = ({
-  currentLanguage,
-  onLanguageChange,
-  isDarkMode = true
-}) => {
-  const { i18n, t } = useTranslation();
-  const { isDarkMode: themeIsDarkMode } = useTheme();
-  
+export const LanguageToggle: React.FC<LanguageToggleProps> = () => {
+  const { i18n } = useTranslation();
+  const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
+
   const languages = [
-    { code: "en", name: t('settings.language.english'), flag: "logos:uk" },
-    { code: "sq", name: t('settings.language.albanian'), flag: "logos:albania" }
+    { key: 'en', label: 'English', flag: '🇺🇸' },
+    { key: 'sq', label: 'Shqip', flag: '🇦🇱' },
+    { key: 'es', label: 'Español', flag: '🇪🇸' },
+    { key: 'fr', label: 'Français', flag: '🇫🇷' },
   ];
-  
-  // Use currentLanguage prop if provided, otherwise use i18n.language
-  const langCode = currentLanguage || i18n.language;
-  const currentLang = languages.find(lang => lang.code === langCode) || languages[0];
-  
-  const handleLanguageChange = (langCode: string) => {
-    if (onLanguageChange) {
-      onLanguageChange(langCode);
-    } else {
-      i18n.changeLanguage(langCode);
-      localStorage.setItem('lang', langCode);
-    }
+
+  const handleLanguageChange = (key: string) => {
+    setSelectedLanguage(key);
+    i18n.changeLanguage(key);
   };
 
+  const currentLanguage = languages.find(lang => lang.key === selectedLanguage) || languages[0];
+
   return (
-    <Dropdown placement="top">
+    <Dropdown>
       <DropdownTrigger>
-        <Button 
+        <Button
           variant="light"
-          className={themeIsDarkMode ? "text-white" : "text-gray-800"}
-          startContent={<Icon icon={currentLang.flag} width={20} />}
-          endContent={<Icon icon="lucide:chevron-down" className="text-gray-400" width={16} />}
+          startContent={<span className="text-lg">{currentLanguage.flag}</span>}
+          endContent={<Icon icon="lucide:chevron-down" className="text-sm" />}
+          className="min-w-[120px]"
         >
-          {currentLang.name}
+          {currentLanguage.label}
         </Button>
       </DropdownTrigger>
-      <DropdownMenu 
-        aria-label="Language Selection"
-        variant="flat"
-        className={themeIsDarkMode ? 
-          "bg-[#010b29]/90 backdrop-blur-md border border-white/10" : 
-          "bg-white/90 backdrop-blur-md border border-gray-200"
-        }
-        onAction={(key) => handleLanguageChange(key as string)}
+      <DropdownMenu
+        aria-label="Language selection"
+        selectedKeys={[selectedLanguage]}
+        onSelectionChange={(keys) => handleLanguageChange(Array.from(keys)[0] as string)}
       >
-        {languages.map((lang) => (
+        {languages.map((language) => (
           <DropdownItem
-            key={lang.code}
-            startContent={<Icon icon={lang.flag} width={20} />}
-            className={`${themeIsDarkMode ? 'text-white' : 'text-gray-800'} ${i18n.language === lang.code ? (themeIsDarkMode ? 'bg-white/10' : 'bg-gray-100') : ''}`}
+            key={language.key}
+            startContent={<span className="text-lg">{language.flag}</span>}
           >
-            {lang.name}
+            {language.label}
           </DropdownItem>
         ))}
       </DropdownMenu>

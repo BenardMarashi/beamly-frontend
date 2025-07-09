@@ -1,47 +1,37 @@
 import React from "react";
-import { Button } from "@heroui/react";
-import { Icon } from "@iconify/react";
-import { useNavigate } from "react-router-dom";
-import { useTheme } from "../contexts/theme-context";
+import { motion } from "framer-motion";
 
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
-  showBackButton?: boolean;
+  className?: string;
+  titleClassName?: string;
+  subtitleClassName?: string;
+  // FIXED: Removed isDarkMode as it's not used in the basic version
 }
 
-export const PageHeader: React.FC<PageHeaderProps> = ({ 
-  title, 
-  subtitle, 
-  showBackButton = false,
+export const PageHeader: React.FC<PageHeaderProps> = ({
+  title,
+  subtitle,
   className = "",
   titleClassName = "",
   subtitleClassName = ""
 }) => {
-  const { isDarkMode } = useTheme();
-  const navigate = useNavigate();
-  
   return (
-    <div className={`mb-6 ${className}`}>
-      {showBackButton && (
-        <Button
-          variant="light"
-          size="sm"
-          startContent={<Icon icon="lucide:arrow-left" />}
-          onPress={() => navigate(-1)}
-          className="mb-4"
-        >
-          Back
-        </Button>
-      )}
-      <h1 className={`text-2xl md:text-3xl font-bold mb-2 ${isDarkMode ? "text-white" : "text-gray-900"} ${titleClassName}`}>
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={`text-center py-12 px-4 ${className}`}
+    >
+      <h1 className={`text-4xl md:text-5xl font-bold text-white mb-4 ${titleClassName}`}>
         {title}
       </h1>
       {subtitle && (
-        <p className={`text-sm md:text-base ${isDarkMode ? "text-gray-300" : "text-gray-600"} ${subtitleClassName}`}>
+        <p className={`text-lg text-gray-300 max-w-2xl mx-auto ${subtitleClassName}`}>
           {subtitle}
         </p>
       )}
-    </div>
+    </motion.div>
   );
 };

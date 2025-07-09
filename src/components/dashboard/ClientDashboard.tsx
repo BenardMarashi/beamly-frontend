@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardBody, Button, Chip, Avatar, Spinner } from '@heroui/react';
+import { Card, CardBody, Button, Chip, Spinner } from '@heroui/react'; // FIXED: Removed unused Avatar
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
@@ -186,16 +186,15 @@ export const ClientDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode 
 
       {/* Recent Jobs */}
       <Card className={isDarkMode ? 'glass-effect' : ''}>
-        <CardBody className="p-6">
+        <CardBody>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Your Jobs</h3>
+            <h3 className="text-lg font-semibold">Recent Jobs</h3>
             {canPostJobs && (
               <Button
+                color="secondary"
                 size="sm"
-                color="primary"
-                variant="flat"
-                onPress={() => navigate('/post-job')}
                 startContent={<Icon icon="lucide:plus" />}
+                onPress={() => navigate('/post-job')}
               >
                 Post New Job
               </Button>
@@ -204,39 +203,43 @@ export const ClientDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode 
           
           {jobs.length === 0 ? (
             <div className="text-center py-8">
-              <Icon icon="lucide:briefcase" className="text-4xl text-gray-400 mx-auto mb-2" />
+              <Icon icon="lucide:briefcase" className="text-4xl text-gray-400 mb-2" />
               <p className="text-gray-500">No jobs posted yet</p>
-              <Button
-                color="secondary"
-                variant="flat"
-                size="sm"
-                className="mt-4"
-                onPress={() => navigate('/post-job')}
-              >
-                Post Your First Job
-              </Button>
+              {canPostJobs && (
+                <Button
+                  color="secondary"
+                  variant="flat"
+                  className="mt-4"
+                  onPress={() => navigate('/post-job')}
+                >
+                  Post Your First Job
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
               {jobs.map((job) => (
                 <div
                   key={job.id}
-                  className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                    isDarkMode ? 'border-gray-700 hover:border-gray-600' : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
                   onClick={() => navigate(`/jobs/${job.id}`)}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h4 className="font-medium mb-1">{job.title}</h4>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <h4 className="font-medium">{job.title}</h4>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                         <span>{formatBudget(job)}</span>
+                        <span>•</span>
                         <span>{job.proposalCount} proposals</span>
+                        <span>•</span>
+                        <span>
+                          {job.createdAt?.toDate?.()?.toLocaleDateString() || 'Recently'}
+                        </span>
                       </div>
                     </div>
                     <Chip
-                      size="sm"
                       color={getStatusColor(job.status)}
+                      size="sm"
                       variant="flat"
                     >
                       {job.status}
@@ -244,11 +247,13 @@ export const ClientDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode 
                   </div>
                 </div>
               ))}
-              
+            </div>
+          )}
+          
+          {jobs.length > 0 && (
+            <div className="mt-4 text-center">
               <Button
                 variant="light"
-                color="primary"
-                fullWidth
                 onPress={() => navigate('/jobs/manage')}
               >
                 View All Jobs
@@ -257,6 +262,45 @@ export const ClientDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode 
           )}
         </CardBody>
       </Card>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card 
+          isPressable
+          className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+          onPress={() => navigate('/browse-freelancers')}
+        >
+          <CardBody className="text-center p-6">
+            <Icon icon="lucide:users" className="text-4xl text-secondary mb-3" />
+            <h4 className="font-semibold">Browse Freelancers</h4>
+            <p className="text-sm text-gray-500 mt-1">Find talent for your projects</p>
+          </CardBody>
+        </Card>
+        
+        <Card 
+          isPressable
+          className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+          onPress={() => navigate('/contracts')}
+        >
+          <CardBody className="text-center p-6">
+            <Icon icon="lucide:file-text" className="text-4xl text-secondary mb-3" />
+            <h4 className="font-semibold">Manage Contracts</h4>
+            <p className="text-sm text-gray-500 mt-1">View active contracts</p>
+          </CardBody>
+        </Card>
+        
+        <Card 
+          isPressable
+          className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+          onPress={() => navigate('/billing')}
+        >
+          <CardBody className="text-center p-6">
+            <Icon icon="lucide:credit-card" className="text-4xl text-secondary mb-3" />
+            <h4 className="font-semibold">Billing & Payments</h4>
+            <p className="text-sm text-gray-500 mt-1">Manage your transactions</p>
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 };

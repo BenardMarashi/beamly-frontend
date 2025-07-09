@@ -1,6 +1,6 @@
 import React from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { Button, Link, Avatar } from "@heroui/react";
+import { useNavigate } from "react-router-dom"; // FIXED: Removed unused RouterLink
+import { Button, Avatar } from "@heroui/react"; // FIXED: Removed unused Link
 import { Icon } from "@iconify/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -14,7 +14,7 @@ interface HamburgerMenuProps {
   onClose: () => void;
   isLoggedIn: boolean;
   onLogout: () => void;
-  isDashboard?: boolean;
+  // FIXED: Removed unused isDashboard prop
 }
 
 // Add memo to optimize rerenders
@@ -22,12 +22,11 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
   isOpen, 
   onClose, 
   isLoggedIn = false, 
-  onLogout,
-  isDashboard = false
+  onLogout
 }) => {
   const { t } = useTranslation();
   const { isDarkMode } = useTheme();
-  const navigate = useNavigate(); // Add the missing navigate hook
+  const navigate = useNavigate();
   
   // Fix navigation function to properly use navigate and close menu
   const handleNavigation = (path: string) => {
@@ -50,11 +49,12 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
     { name: t('navigation.howItWorks'), path: "/help-support", icon: "lucide:help-circle" }
   ];
   
+  // FIXED: Added 'as const' to fix type issues
   const menuVariants = {
     closed: {
       x: "100%",
       transition: {
-        type: "spring",
+        type: "spring" as const,
         damping: 20,
         stiffness: 250,
       },
@@ -62,28 +62,14 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
     open: {
       x: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         damping: 20,
         stiffness: 100,
       },
     },
   };
 
-  const publicMenuItems = [
-    { name: t('navigation.home'), path: "/", icon: "lucide:home" },
-    { name: t('navigation.freelancers'), path: "/browse-freelancers", icon: "lucide:users" },
-    { name: t('navigation.lookingForWork'), path: "/looking-for-work", icon: "lucide:briefcase" },
-    { name: t('navigation.howItWorks'), path: "/how-it-works", icon: "lucide:help-circle" }
-  ];
-
-  const dashboardMenuItems = [
-    { name: t('common.dashboard'), path: "/dashboard", icon: "lucide:layout-dashboard" },
-    { name: "Jobs", path: "/jobs", icon: "lucide:briefcase" },
-    { name: "Messages", path: "/chat", icon: "lucide:message-square" },
-    { name: "Notifications", path: "/notifications", icon: "lucide:bell" },
-    { name: "Billing", path: "/billing", icon: "lucide:credit-card" },
-    { name: "Settings", path: "/settings", icon: "lucide:settings" }
-  ];
+  // FIXED: Removed unused publicMenuItems and dashboardMenuItems
   
   return (
     <AnimatePresence>
@@ -164,79 +150,60 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
                   </Button>
                   <Button
                     variant="light"
-                    className={`w-full justify-start ${isDarkMode ? 'text-white' : 'text-gray-800'} hover:bg-${isDarkMode ? 'white/10' : 'gray-100'} py-6 text-lg`}
-                    startContent={<Icon icon="lucide:credit-card" width={24} height={24} />}
-                    onPress={() => handleNavigation("/billing")}
-                  >
-                    {t('navigation.billing')}
-                  </Button>
-                </div>
-              )}
-              
-              {/* Login/signup buttons */}
-              {!isLoggedIn && (
-                <div className={`border-t pt-6 mt-4 w-full max-w-md ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
-                  <div className="flex flex-col gap-3">
-                    <Button
-                      color="default"
-                      variant="flat"
-                      className={`w-full ${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'} py-6 text-lg`}
-                      onPress={() => handleNavigation("/login")}
-                    >
-                      {t('common.login')}
-                    </Button>
-                    <Button
-                      color="secondary"
-                      className="w-full text-beamly-third font-medium py-6 text-lg"
-                      onPress={() => handleNavigation("/signup")}
-                    >
-                      {t('common.signup')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Logout button for logged in users */}
-              {isLoggedIn && (
-                <div className={`border-t pt-6 mt-4 w-full max-w-md ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
-                  <Button
-                    color="default"
-                    variant="flat"
-                    className={`w-full ${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'} py-6 text-lg`}
+                    className={`w-full justify-start ${isDarkMode ? 'text-red-400' : 'text-red-600'} hover:bg-red-500/10 py-6 text-lg`}
                     startContent={<Icon icon="lucide:log-out" width={24} height={24} />}
-                    onPress={() => {
-                      onLogout();
-                      onClose();
-                    }}
+                    onPress={onLogout}
                   >
-                    {t('common.logout')}
+                    {t('navigation.logout')}
                   </Button>
                 </div>
               )}
               
-              <div className={`border-t pt-6 mt-8 w-full max-w-md ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
-                <p className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`}>
-                  {isLoggedIn ? t('navigation.accountSettings') : t('navigation.preferences')}
-                </p>
-                
-                {/* Add language and theme toggles to mobile menu */}
-                <div className="flex justify-center items-center gap-6 mt-6">
-                  <LanguageToggle />
-                  <ThemeToggle />
+              {/* Auth buttons for non-logged in users */}
+              {!isLoggedIn && (
+                <div className="space-y-3 mb-8 w-full max-w-md">
+                  <Button
+                    color="secondary"
+                    className="w-full py-6 text-lg"
+                    onPress={() => handleNavigation("/login")}
+                  >
+                    {t('auth.login')}
+                  </Button>
+                  <Button
+                    variant="bordered"
+                    className="w-full py-6 text-lg"
+                    onPress={() => handleNavigation("/signup")}
+                  >
+                    {t('auth.signUp')}
+                  </Button>
                 </div>
+              )}
+              
+              <div className={`w-full p-6 rounded-lg ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'} mt-auto`}>
+                <div className={`pb-6 border-b ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
+                  <p className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`}>
+                    {isLoggedIn ? t('navigation.accountSettings') : t('navigation.preferences')}
+                  </p>
+                  
+                  {/* Add language and theme toggles to mobile menu */}
+                  <div className="flex justify-center items-center gap-6 mt-6">
+                    <LanguageToggle />
+                    <ThemeToggle />
+                  </div>
 
-                <div className="flex justify-center gap-4 mt-8">
-                  {["lucide:facebook", "lucide:twitter", "lucide:instagram", "lucide:linkedin"].map((social, index) => (
-                    <Button
-                      key={index}
-                      isIconOnly
-                      variant="light"
-                      className={`${isDarkMode ? 'text-white bg-white/10' : 'text-gray-800 bg-gray-100'} rounded-full w-12 h-12 min-w-0`}
-                      aria-label={t(`social.${social.split(':')[1]}`)}
-                    >
-                      <Icon icon={social} width={24} />
-                    </Button>
-                  ))}
+                  <div className="flex justify-center gap-4 mt-8">
+                    {["lucide:facebook", "lucide:twitter", "lucide:instagram", "lucide:linkedin"].map((social, index) => (
+                      <Button
+                        key={index}
+                        isIconOnly
+                        variant="light"
+                        className={`${isDarkMode ? 'text-white bg-white/10' : 'text-gray-800 bg-gray-100'} rounded-full w-12 h-12 min-w-0`}
+                        aria-label={t(`social.${social.split(':')[1]}`)}
+                      >
+                        <Icon icon={social} width={24} />
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

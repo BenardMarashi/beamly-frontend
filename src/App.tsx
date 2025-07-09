@@ -13,7 +13,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { LandingPage } from './components/landing-page';
 
 // Direct imports for pages that export as default
-import HomePage from './pages/home';
+// REMOVED UNUSED: import HomePage from './pages/home';
 import DashboardPage from './pages/dashboard';
 import LoginPage from './pages/login';
 import SignupPage from './pages/signup';
@@ -45,7 +45,7 @@ const LoadingFallback = () => (
 );
 
 const AppContent: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth(); // FIXED: Removed unused 'user'
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
