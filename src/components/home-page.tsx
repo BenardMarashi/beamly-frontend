@@ -1,247 +1,375 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Input, Button, Card, CardBody, Avatar, AvatarGroup, Chip } from "@nextui-org/react";
+import { Input, Button, Card, CardBody } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { useNavigate } from "react-router-dom";
-import { useTheme } from "../contexts/theme-context";
-import { useAuth } from "../contexts/AuthContext";
 
 interface HomePageProps {
-  setCurrentPage?: (page: string) => void;
+  setCurrentPage: (page: string) => void;
   isDarkMode?: boolean;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage: _setCurrentPage, isDarkMode = true }) => {
-  const navigate = useNavigate();
-  const { isDarkMode: contextDarkMode } = useTheme();
-  const { user } = useAuth();
-  const finalDarkMode = isDarkMode || contextDarkMode;
+export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode = true }) => {
+  const [searchQuery, setSearchQuery] = useState("");
   
-  // Note: setCurrentPage is passed from parent but we're using React Router navigation
-  // This prop is kept for backward compatibility but not used internally
-  // finalDarkMode is available if needed for conditional styling
-  
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate('/looking-for-work');
+  const categories = [
+    { 
+      name: "Graphic Design", 
+      icon: "lucide:palette", 
+      value: "design",
+      description: "Find talented freelancers",
+      iconColor: "#FF6B6B"
+    },
+    { 
+      name: "Web Development", 
+      icon: "lucide:code", 
+      value: "development",
+      description: "Find talented freelancers",
+      iconColor: "#4ECDC4"
+    },
+    { 
+      name: "Digital Marketing", 
+      icon: "lucide:megaphone", 
+      value: "marketing",
+      description: "Find talented freelancers",
+      iconColor: "#FFD93D"
+    },
+    { 
+      name: "Writing & Translation", 
+      icon: "lucide:pen-tool", 
+      value: "writing",
+      description: "Find talented freelancers",
+      iconColor: "#6A0572"
+    },
+    { 
+      name: "Video & Animation", 
+      icon: "lucide:video", 
+      value: "video",
+      description: "Find talented freelancers",
+      iconColor: "#1A936F"
+    },
+    { 
+      name: "Music & Audio", 
+      icon: "lucide:music", 
+      value: "music",
+      description: "Find talented freelancers",
+      iconColor: "#3D348B"
+    },
+    { 
+      name: "Programming", 
+      icon: "lucide:terminal", 
+      value: "programming",
+      description: "Find talented freelancers",
+      iconColor: "#F18701"
+    },
+    { 
+      name: "Business", 
+      icon: "lucide:briefcase", 
+      value: "business",
+      description: "Find talented freelancers",
+      iconColor: "#7678ED"
+    }
+  ];
+
+  const features = [
+    {
+      icon: "lucide:check-circle",
+      title: "Quality Work",
+      description: "Find the highest quality services and talents with our strict quality control and vetting process."
+    },
+    {
+      icon: "lucide:zap",
+      title: "Zero Commission", 
+      description: "Keep more of what you earn with our zero commission policy for freelancers."
+    },
+    {
+      icon: "lucide:shield",
+      title: "Secure Payments",
+      description: "Your payments are protected with our secure payment system and escrow service."
+    },
+    {
+      icon: "lucide:headphones",
+      title: "24/7 Support",
+      description: "Get help anytime you need with our dedicated customer support team available round the clock."
+    }
+  ];
+
+  const steps = [
+    {
+      number: "1",
+      title: "Create an Account",
+      description: "Sign up for free and complete your profile to get started"
+    },
+    {
+      number: "2", 
+      title: "Discover Services",
+      description: "Browse through thousands of services or post a request"
+    },
+    {
+      number: "3",
+      title: "Hire Freelancers", 
+      description: "Choose the perfect freelancer for your project and collaborate"
+    },
+    {
+      number: "4",
+      title: "Complete Project",
+      description: "Approve the work and release payment when satisfied"
+    }
+  ];
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      setCurrentPage(`browse-freelancers?search=${encodeURIComponent(searchQuery)}`);
+    } else {
+      setCurrentPage('browse-freelancers');
+    }
   };
 
-  const stats = [
-    { label: "Active Freelancers", value: "50,000+", icon: "lucide:users" },
-    { label: "Jobs Posted", value: "10,000+", icon: "lucide:briefcase" },
-    { label: "Happy Clients", value: "15,000+", icon: "lucide:smile" },
-    { label: "Success Rate", value: "95%", icon: "lucide:trending-up" }
-  ];
+  const handleCategoryClick = (categoryValue: string) => {
+    setCurrentPage(`browse-freelancers?category=${categoryValue}`);
+  };
 
-  const popularCategories = [
-    { name: "Web Development", icon: "lucide:code", count: "2.5k+ jobs" },
-    { name: "Graphic Design", icon: "lucide:palette", count: "1.8k+ jobs" },
-    { name: "Content Writing", icon: "lucide:pen-tool", count: "1.2k+ jobs" },
-    { name: "Digital Marketing", icon: "lucide:megaphone", count: "900+ jobs" },
-    { name: "Video Editing", icon: "lucide:video", count: "750+ jobs" },
-    { name: "Mobile Development", icon: "lucide:smartphone", count: "600+ jobs" }
-  ];
-
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+  
   return (
-    <div className={`container mx-auto max-w-7xl px-4 pb-20 ${finalDarkMode ? '' : ''}`}>
-      {/* Hero Section */}
-      <motion.section 
-        className="py-20 text-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h1 className="text-5xl md:text-6xl font-bold mb-6 font-outfit">
-          Find the perfect <span className="text-beamly-secondary">freelance</span><br />
-          services for your business
-        </h1>
-        <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-          Connect with talented freelancers and get your projects done quickly and efficiently on Beamly.
-        </p>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-mesh' : 'bg-white'}`}>
+      <div className="relative">
+        {/* Gradient accents */}
+        <div className="blue-accent blue-accent-1"></div>
+        <div className="blue-accent blue-accent-2"></div>
+        <div className="yellow-accent yellow-accent-1"></div>
+        <div className="yellow-accent yellow-accent-2"></div>
         
-        <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-8">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Try 'building a website' or 'logo design'"
-              size="lg"
-              className="flex-1"
-              classNames={{
-                inputWrapper: "bg-white/10 backdrop-blur-md border-white/20",
-                input: "text-white placeholder:text-gray-400"
-              }}
-              startContent={<Icon icon="lucide:search" className="text-gray-400" />}
-            />
-            <Button 
-              type="submit"
-              color="secondary" 
-              size="lg" 
-              className="px-8 font-medium text-beamly-third"
-            >
-              Search
-            </Button>
-          </div>
-        </form>
-
-        <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
-          <span>Popular:</span>
-          <div className="flex gap-2 flex-wrap justify-center">
-            {["Website Design", "Logo Design", "WordPress", "AI Services"].map((item) => (
-              <Chip 
-                key={item} 
-                variant="bordered" 
-                className="border-white/20 text-gray-300 cursor-pointer hover:bg-white/10"
-                onClick={() => navigate('/looking-for-work')}
-              >
-                {item}
-              </Chip>
-            ))}
-          </div>
-        </div>
-      </motion.section>
-
-      {/* Stats Section */}
-      <motion.section 
-        className="py-16"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-      >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
+        {/* Hero Section */}
+        <section className="relative py-20 px-4 z-10">
+          <div className="container mx-auto max-w-5xl">
             <motion.div
-              key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ duration: 0.6 }}
+              className="text-center"
             >
-              <Card className="glass-effect text-center p-6">
-                <CardBody>
-                  <Icon icon={stat.icon} className="text-4xl text-beamly-secondary mb-2 mx-auto" />
-                  <h3 className="text-2xl font-bold text-white">{stat.value}</h3>
-                  <p className="text-gray-400">{stat.label}</p>
-                </CardBody>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
-
-      {/* Popular Categories */}
-      <motion.section 
-        className="py-16"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-      >
-        <h2 className="text-3xl font-bold text-center mb-12 text-white">
-          Explore Popular Categories
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {popularCategories.map((category, index) => (
-            <motion.div
-              key={category.name}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
-              whileHover={{ scale: 1.02 }}
-            >
-              <Card 
-                className="glass-effect cursor-pointer hover:bg-white/5 transition-colors"
-                isPressable
-                onPress={() => navigate('/looking-for-work')}
-              >
-                <CardBody className="p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-beamly-secondary/20">
-                      <Icon icon={category.icon} className="text-2xl text-beamly-secondary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-white">{category.name}</h3>
-                      <p className="text-sm text-gray-400">{category.count}</p>
-                    </div>
-                  </div>
-                </CardBody>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
-
-      {/* Featured Freelancers */}
-      <motion.section 
-        className="py-16"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
-      >
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-white">
-            Top Rated Freelancers
-          </h2>
-          <p className="text-gray-400">
-            Work with talented professionals who deliver exceptional results
-          </p>
-        </div>
-        
-        <div className="flex justify-center items-center">
-          <AvatarGroup isBordered max={7} total={50000}>
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <Avatar
-                key={i}
-                src={`https://i.pravatar.cc/150?u=${i}`}
-                className="w-20 h-20"
-              />
-            ))}
-          </AvatarGroup>
-        </div>
-        
-        <div className="text-center mt-8">
-          <Button
-            color="primary"
-            size="lg"
-            variant="bordered"
-            className="text-white border-white"
-            onPress={() => navigate('/browse-freelancers')}
-            endContent={<Icon icon="lucide:arrow-right" />}
-          >
-            Browse All Freelancers
-          </Button>
-        </div>
-      </motion.section>
-
-      {/* CTA Section */}
-      {!user && (
-        <div className="py-16">
-          <Card className="yellow-glass p-8 text-center">
-            <CardBody>
-              <h2 className="text-3xl font-bold mb-4 text-white">
-                Ready to get started?
-              </h2>
-              <p className="text-gray-200 mb-6">
-                Join thousands of freelancers and clients on Beamly
+              <h1 className={`text-4xl md:text-5xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-6`}>
+                Find the perfect <span className="text-beamly-secondary">Beamly</span>
+              </h1>
+              <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 max-w-2xl mx-auto`}>
+                Connect with talented freelancers and get your projects done quickly and efficiently on Beamly
               </p>
-              <div className="flex gap-4 justify-center">
-                <Button
-                  color="secondary"
-                  size="lg"
-                  className="text-beamly-third font-medium"
-                  onPress={() => navigate('/signup')}
-                >
-                  Sign Up Free
-                </Button>
-                <Button
-                  variant="bordered"
-                  size="lg"
-                  className="text-white border-white"
-                  onPress={() => navigate('/how-it-works')}
-                >
-                  Learn More
-                </Button>
+              
+              {/* Search Bar */}
+              <div className="max-w-2xl mx-auto mb-8">
+                <div className="flex">
+                  <Input
+                    placeholder="Search for projects..."
+                    value={searchQuery}
+                    onValueChange={setSearchQuery}
+                    onKeyPress={handleKeyPress}
+                    size="lg"
+                    radius="lg"
+                    className="flex-1"
+                    classNames={{
+                      input: isDarkMode ? "text-white" : "text-gray-900",
+                      inputWrapper: `${isDarkMode ? 'bg-white/10 backdrop-blur-md border-white/20' : 'bg-gray-100 border-gray-300'} rounded-r-none`
+                    }}
+                  />
+                  <Button 
+                    size="lg"
+                    radius="lg"
+                    className="bg-beamly-secondary text-black font-medium px-6 rounded-l-none"
+                    onPress={handleSearch}
+                  >
+                    Search
+                  </Button>
+                </div>
               </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
+              
+              {/* Popular searches */}
+              <div className="flex flex-wrap justify-center gap-2 mb-12">
+                <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Popular:</span>
+                {["Web Design", "Logo Design", "Content Writing", "Video Editing"].map((term) => (
+                  <Button
+                    key={term}
+                    size="sm"
+                    variant="flat"
+                    className={`${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-700'} text-sm`}
+                    onPress={() => {
+                      setSearchQuery(term);
+                      handleSearch();
+                    }}
+                  >
+                    {term}
+                  </Button>
+                ))}
+              </div>
+              
+              {/* Trusted by */}
+              <div className="flex justify-center items-center gap-8 flex-wrap">
+                <span className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>Trusted by leading brands</span>
+                <div className="flex items-center gap-6 opacity-60">
+                  <Icon icon="logos:google" className="text-2xl" />
+                  <Icon icon="logos:microsoft-icon" className="text-2xl" />
+                  <Icon icon="tabler:brand-shopify" className="text-2xl text-green-500" />
+                  <Icon icon="logos:spotify-icon" className="text-2xl" />
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+        
+        {/* Categories Section */}
+        <section className="relative py-16 px-4 z-10">
+          <div className="container mx-auto max-w-6xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-center mb-10"
+            >
+              <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>
+                Explore Popular <span className="text-beamly-secondary">Categories</span>
+              </h2>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                Find and hire the top categories to help you achieve your goals
+              </p>
+            </motion.div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {categories.map((category, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 * index }}
+                >
+                  <Card
+                    isPressable
+                    className={`${isDarkMode ? 'glass-card' : 'bg-white border border-gray-200'} hover:scale-105 transition-all cursor-pointer`}
+                    onPress={() => handleCategoryClick(category.value)}
+                  >
+                    <CardBody className="p-6 text-center">
+                      <div 
+                        className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3"
+                        style={{ backgroundColor: `${category.iconColor}20` }}
+                      >
+                        <Icon 
+                          icon={category.icon} 
+                          className="text-2xl"
+                          style={{ color: category.iconColor }}
+                        />
+                      </div>
+                      <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} text-sm`}>
+                        {category.name}
+                      </h3>
+                      <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-600'} mt-1`}>
+                        {category.description}
+                      </p>
+                    </CardBody>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+            
+            <div className="text-center mt-8">
+              <Button
+                variant="bordered"
+                className="border-beamly-secondary text-beamly-secondary"
+                onPress={() => setCurrentPage('browse-freelancers')}
+              >
+                Browse All Categories
+              </Button>
+            </div>
+          </div>
+        </section>
+        
+        {/* Why Choose Beamly */}
+        <section className="relative py-16 px-4 z-10">
+          <div className="container mx-auto max-w-6xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center mb-10"
+            >
+              <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>
+                Why Choose <span className="text-beamly-secondary">Beamly</span>
+              </h2>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                We're committed to providing the best freelance experience for everyone
+              </p>
+            </motion.div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {features.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                >
+                  <Card className={isDarkMode ? 'glass-card' : 'bg-white border border-gray-200'}>
+                    <CardBody className="p-6 text-center">
+                      <div className="w-12 h-12 bg-beamly-secondary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <Icon icon={feature.icon} className="text-xl text-beamly-secondary" />
+                      </div>
+                      <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                        {feature.title}
+                      </h3>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} leading-relaxed`}>
+                        {feature.description}
+                      </p>
+                    </CardBody>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+        
+        {/* How Beamly Works */}
+        <section className="relative py-16 px-4 mb-16 z-10">
+          <div className="container mx-auto max-w-5xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center mb-10"
+            >
+              <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>
+                How <span className="text-beamly-secondary">Beamly</span> Works
+              </h2>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
+                Get your projects done in 4 simple steps
+              </p>
+            </motion.div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {steps.map((step, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                  className="text-center relative"
+                >
+                  {index < steps.length - 1 && (
+                    <div className={`hidden lg:block absolute top-12 left-[60%] w-full h-0.5 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'} -z-10`}></div>
+                  )}
+                  <div className="w-16 h-16 bg-beamly-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold text-black">
+                    {step.number}
+                  </div>
+                  <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                    {step.title}
+                  </h3>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {step.description}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 };
