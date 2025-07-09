@@ -68,11 +68,16 @@ export const SignupPage: React.FC = () => {
       userType = 'both';
     }
     
+    // Fix: Convert 'both' to 'client' for the signUp function
+    // The signUp function only accepts 'freelancer' | 'client'
+    const signUpUserType: 'freelancer' | 'client' = 
+      userType === 'both' ? 'client' : userType;
+    
     const result = await signUp(
       formData.email,
       formData.password,
       formData.fullName,
-      userType
+      signUpUserType  // Use the converted type here
     );
     
     if (result) {
@@ -105,7 +110,7 @@ export const SignupPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-white mb-2">
                 Join <span className="text-beamly-secondary">Beamly</span> today
               </h1>
-              <p className="text-gray-400">Create your account and start your journey</p>
+              <p className="text-gray-400">Create your account and start connecting</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">

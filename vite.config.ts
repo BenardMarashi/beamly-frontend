@@ -37,7 +37,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
           'ui-vendor': ['@nextui-org/react', 'framer-motion', '@headlessui/react', '@heroicons/react'],
-          'utils': ['date-fns', 'lodash', 'react-hot-toast'],
+          'utils': ['date-fns', 'react-hot-toast'], // Removed lodash
           'i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
           'charts': ['recharts'],
         },
