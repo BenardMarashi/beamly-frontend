@@ -800,3 +800,45 @@ button, input, select, textarea {
     text-align: center !important;
   }
 }
+
+/* ADD TO END OF index.css */
+@media (max-width: 768px) {
+  /* FORCE NAVBAR TO SHOW */
+  nav, .navbar, header {
+    display: flex !important;
+    position: fixed !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 56px !important;
+    background: #010b29 !important;
+    z-index: 999 !important;
+    padding: 0 1rem !important;
+  }
+  
+  /* SHOW HAMBURGER MENU */
+  .navbar-menu-toggle, [aria-label*="menu"] {
+    display: flex !important;
+    color: white !important;
+  }
+  
+  /* PUSH EVERYTHING DOWN */
+  body { padding-top: 56px !important; }
+  
+  /* REMOVE PROFILE PIC FROM MIDDLE */
+  main .avatar, main img { display: none !important; }
+  
+  /* FIX YOUR DASHBOARD */
+  .glass-effect { 
+    margin: 1rem !important;
+    width: calc(100% - 2rem) !important;
+  }
+  
+  /* STATS IN 2x2 GRID */
+  .grid { 
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* EVERYTHING FULL WIDTH */
+  input, button, select { width: 100% !important; }
+}
