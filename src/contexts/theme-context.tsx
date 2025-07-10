@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -10,7 +10,7 @@ type ThemeContextType = {
   systemThemeIsDark: boolean;
 };
 
-const ThemeContext = React.createContext<ThemeContextType>({
+const ThemeContext = createContext<ThemeContextType>({
   theme: 'dark',
   setTheme: () => {},
   isDarkMode: true,
@@ -23,27 +23,14 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ children }) => {
-  // Get initial theme from localStorage, default to dark
-  const [theme, setThemeState] = React.useState<Theme>(() => {
-    const storedTheme = localStorage.getItem('theme');
-    if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
-      return storedTheme as Theme;
-    }
-    
-    // Default to dark
-    return 'dark';
-  });
-
+  // Get initial theme - default to dark without localStorage
+  const [theme, setThemeState] = useState<Theme>('dark');
+  
   // Derived state
-  const [isDarkMode, setIsDarkMode] = React.useState<boolean>(() => {
-    if (theme === 'system') {
-      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return theme === 'dark';
-  });
-
+  const [isDarkMode, setIsDarkMode] = useState(theme === 'dark');
+  
   // Add system theme detection
-  const [systemThemeIsDark, setSystemThemeIsDark] = React.useState<boolean>(() => {
+  const [systemThemeIsDark, setSystemThemeIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
@@ -51,13 +38,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
   });
   
   // Listen for system theme changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       
       const handleChange = (e: MediaQueryListEvent) => {
         setSystemThemeIsDark(e.matches);
-        if (localStorage.getItem('theme') === 'system') {
+        if (theme === 'system') {
           setIsDarkMode(e.matches);
         }
       };
@@ -65,7 +52,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
-  }, []);
+  }, [theme]);
   
   // Define toggleTheme function
   const toggleTheme = () => {
@@ -81,28 +68,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
     } else {
       setIsDarkMode(newTheme === 'dark');
     }
-    localStorage.setItem('theme', newTheme);
   };
   
-  // Apply theme class to body immediately on mount and when theme changes
-  React.useEffect(() => {
-    // Remove all theme classes first
-    document.body.classList.remove('dark-mode', 'light-mode');
-    // Remove any background color inline styles that might have been set
-    document.body.style.backgroundColor = '';
-    
+  // Apply theme class to body
+  useEffect(() => {
     if (theme === 'system') {
       if (systemThemeIsDark) {
-        document.body.classList.add('dark-mode');
+        document.body.className = 'dark-mode';
       } else {
-        document.body.classList.add('light-mode');
+        document.body.className = 'light-mode';
       }
     } else {
-      document.body.classList.add(theme === 'dark' ? 'dark-mode' : 'light-mode');
+      document.body.className = theme === 'dark' ? 'dark-mode' : 'light-mode';
     }
-    
-    // Force a repaint to ensure styles are applied
-    document.body.offsetHeight;
   }, [theme, systemThemeIsDark]);
   
   // Expose system theme option
@@ -121,7 +99,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
   );
 });
 
-export const useTheme = () => React.useContext(ThemeContext);
+export const useTheme = () => useContext(ThemeContext);
 
 ThemeProvider.displayName = 'ThemeProvider';
-export const ThemeProviderProps = {};

@@ -1,7 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { Input, Button, Card, CardBody } from "@nextui-org/react";
+import { Input, Button, Card, CardBody, Avatar, Badge } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
+import { useTranslation } from "react-i18next";
+import { HeroSection } from "./hero-section";
+import { CategoriesSection } from "./categories-section";
+import { FeaturesSection } from "./features-section";
+import { HowItWorksSection } from "./how-it-works-section";
+import { TestimonialsSection } from "./testimonials-section";
+import { CTASection } from "./cta-section";
 
 interface HomePageProps {
   setCurrentPage: (page: string) => void;
@@ -9,366 +16,401 @@ interface HomePageProps {
 }
 
 export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode = true }) => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useTranslation();
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const userName = "Alexander"; // This would come from user context in a real app
   
   const categories = [
-    { 
-      name: "Graphic Design", 
-      icon: "lucide:palette", 
-      value: "design",
-      description: "Find talented freelancers",
-      iconColor: "#FF6B6B"
-    },
-    { 
-      name: "Web Development", 
-      icon: "lucide:code", 
-      value: "development",
-      description: "Find talented freelancers",
-      iconColor: "#4ECDC4"
-    },
-    { 
-      name: "Digital Marketing", 
-      icon: "lucide:megaphone", 
-      value: "marketing",
-      description: "Find talented freelancers",
-      iconColor: "#FFD93D"
-    },
-    { 
-      name: "Writing & Translation", 
-      icon: "lucide:pen-tool", 
-      value: "writing",
-      description: "Find talented freelancers",
-      iconColor: "#6A0572"
-    },
-    { 
-      name: "Video & Animation", 
-      icon: "lucide:video", 
-      value: "video",
-      description: "Find talented freelancers",
-      iconColor: "#1A936F"
-    },
-    { 
-      name: "Music & Audio", 
-      icon: "lucide:music", 
-      value: "music",
-      description: "Find talented freelancers",
-      iconColor: "#3D348B"
-    },
-    { 
-      name: "Programming", 
-      icon: "lucide:terminal", 
-      value: "programming",
-      description: "Find talented freelancers",
-      iconColor: "#F18701"
-    },
-    { 
-      name: "Business", 
-      icon: "lucide:briefcase", 
-      value: "business",
-      description: "Find talented freelancers",
-      iconColor: "#7678ED"
-    }
+    { name: t('categories.items.graphicDesign'), icon: "lucide:palette", page: "design-jobs" },
+    { name: t('categories.items.webDevelopment'), icon: "lucide:code", page: "development-jobs" },
+    { name: t('categories.items.writingTranslation'), icon: "lucide:pen-tool", page: "writing-jobs" },
+    { name: t('categories.items.digitalMarketing'), icon: "lucide:megaphone", page: "marketing-jobs" }
   ];
-
-  const features = [
-    {
-      icon: "lucide:check-circle",
-      title: "Quality Work",
-      description: "Find the highest quality services and talents with our strict quality control and vetting process."
-    },
-    {
-      icon: "lucide:zap",
-      title: "Zero Commission", 
-      description: "Keep more of what you earn with our zero commission policy for freelancers."
-    },
-    {
-      icon: "lucide:shield",
-      title: "Secure Payments",
-      description: "Your payments are protected with our secure payment system and escrow service."
-    },
-    {
-      icon: "lucide:headphones",
-      title: "24/7 Support",
-      description: "Get help anytime you need with our dedicated customer support team available round the clock."
-    }
-  ];
-
-  const steps = [
-    {
-      number: "1",
-      title: "Create an Account",
-      description: "Sign up for free and complete your profile to get started"
-    },
-    {
-      number: "2", 
-      title: "Discover Services",
-      description: "Browse through thousands of services or post a request"
-    },
-    {
-      number: "3",
-      title: "Hire Freelancers", 
-      description: "Choose the perfect freelancer for your project and collaborate"
-    },
-    {
-      number: "4",
-      title: "Complete Project",
-      description: "Approve the work and release payment when satisfied"
-    }
-  ];
-
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      setCurrentPage(`browse-freelancers?search=${encodeURIComponent(searchQuery)}`);
-    } else {
-      setCurrentPage('browse-freelancers');
-    }
-  };
-
-  const handleCategoryClick = (categoryValue: string) => {
-    setCurrentPage(`browse-freelancers?category=${categoryValue}`);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
   
-  return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-mesh' : 'bg-white'}`}>
-      <div className="relative">
-        {/* Gradient accents */}
-        <div className="blue-accent blue-accent-1"></div>
-        <div className="blue-accent blue-accent-2"></div>
-        <div className="yellow-accent yellow-accent-1"></div>
-        <div className="yellow-accent yellow-accent-2"></div>
-        
+  const featuredJobs = [
+    {
+      id: 1,
+      title: "Senior UI Designer",
+      company: "Apple Inc.",
+      price: "$55K - $80K",
+      image: "https://img.heroui.chat/image/ai?w=400&h=300&u=apple-logo",
+      type: "Full time",
+      location: "Remote"
+    },
+    {
+      id: 2,
+      title: "WordPress Developer",
+      company: "Microsoft",
+      price: "$45K - $60K",
+      image: "https://img.heroui.chat/image/ai?w=400&h=300&u=microsoft-logo",
+      type: "Contract",
+      location: "Hybrid"
+    }
+  ];
+  
+  const topFreelancers = [
+    {
+      id: 1,
+      name: "Sarah Johnson",
+      title: "UI/UX Designer",
+      avatar: "https://img.heroui.chat/image/avatar?w=100&h=100&u=sarah1",
+      rating: 4.9,
+      projectsCompleted: 124
+    },
+    {
+      id: 2,
+      name: "Michael Chen",
+      title: "Full Stack Developer",
+      avatar: "https://img.heroui.chat/image/avatar?w=100&h=100&u=michael1",
+      rating: 4.8,
+      projectsCompleted: 98
+    }
+  ];
+  
+  // Show landing page for non-logged in users
+  const isLoggedIn = false; // This should come from auth context
+  
+  if (!isLoggedIn) {
+    return (
+      <div>
         {/* Hero Section */}
-        <section className="relative py-20 px-4 z-10">
-          <div className="container mx-auto max-w-5xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center"
-            >
-              <h1 className={`text-4xl md:text-5xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-6`}>
-                Find the perfect <span className="text-beamly-secondary">Beamly</span>
-              </h1>
-              <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 max-w-2xl mx-auto`}>
-                Connect with talented freelancers and get your projects done quickly and efficiently on Beamly
-              </p>
-              
-              {/* Search Bar */}
-              <div className="max-w-2xl mx-auto mb-8">
-                <div className="flex">
-                  <Input
-                    placeholder="Search for projects..."
-                    value={searchQuery}
-                    onValueChange={setSearchQuery}
-                    onKeyPress={handleKeyPress}
-                    size="lg"
-                    radius="lg"
-                    className="flex-1"
-                    classNames={{
-                      input: isDarkMode ? "text-white" : "text-gray-900",
-                      inputWrapper: `${isDarkMode ? 'bg-white/10 backdrop-blur-md border-white/20' : 'bg-gray-100 border-gray-300'} rounded-r-none`
-                    }}
-                  />
-                  <Button 
-                    size="lg"
-                    radius="lg"
-                    className="bg-beamly-secondary text-black font-medium px-6 rounded-l-none"
-                    onPress={handleSearch}
-                  >
-                    Search
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Popular searches */}
-              <div className="flex flex-wrap justify-center gap-2 mb-12">
-                <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Popular:</span>
-                {["Web Design", "Logo Design", "Content Writing", "Video Editing"].map((term) => (
-                  <Button
-                    key={term}
-                    size="sm"
-                    variant="flat"
-                    className={`${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-700'} text-sm`}
-                    onPress={() => {
-                      setSearchQuery(term);
-                      handleSearch();
-                    }}
-                  >
-                    {term}
-                  </Button>
-                ))}
-              </div>
-              
-              {/* Trusted by */}
-              <div className="flex justify-center items-center gap-8 flex-wrap">
-                <span className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>Trusted by leading brands</span>
-                <div className="flex items-center gap-6 opacity-60">
-                  <Icon icon="logos:google" className="text-2xl" />
-                  <Icon icon="logos:microsoft-icon" className="text-2xl" />
-                  <Icon icon="tabler:brand-shopify" className="text-2xl text-green-500" />
-                  <Icon icon="logos:spotify-icon" className="text-2xl" />
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+        <HeroSection setCurrentPage={setCurrentPage} />
         
         {/* Categories Section */}
-        <section className="relative py-16 px-4 z-10">
-          <div className="container mx-auto max-w-6xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-center mb-10"
-            >
-              <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>
-                Explore Popular <span className="text-beamly-secondary">Categories</span>
-              </h2>
-              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                Find and hire the top categories to help you achieve your goals
-              </p>
-            </motion.div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {categories.map((category, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 * index }}
-                >
-                  <Card
-                    isPressable
-                    className={`${isDarkMode ? 'glass-card' : 'bg-white border border-gray-200'} hover:scale-105 transition-all cursor-pointer`}
-                    onPress={() => handleCategoryClick(category.value)}
-                  >
-                    <CardBody className="p-6 text-center">
-                      <div 
-                        className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3"
-                        style={{ backgroundColor: `${category.iconColor}20` }}
-                      >
-                        <Icon 
-                          icon={category.icon} 
-                          className="text-2xl"
-                          style={{ color: category.iconColor }}
-                        />
-                      </div>
-                      <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} text-sm`}>
-                        {category.name}
-                      </h3>
-                      <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-600'} mt-1`}>
-                        {category.description}
-                      </p>
-                    </CardBody>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-            
-            <div className="text-center mt-8">
-              <Button
-                variant="bordered"
-                className="border-beamly-secondary text-beamly-secondary"
-                onPress={() => setCurrentPage('browse-freelancers')}
-              >
-                Browse All Categories
+        <CategoriesSection setCurrentPage={setCurrentPage} />
+        
+        {/* How It Works Section */}
+        <HowItWorksSection />
+        
+        {/* Testimonials Section */}
+        <TestimonialsSection />
+        
+        {/* CTA Section */}
+        <CTASection setCurrentPage={setCurrentPage} />
+      </div>
+    );
+  }
+  
+  // Dashboard view for logged in users
+  return (
+    <div className="min-h-[calc(100vh-64px)] pb-16">
+      {/* Welcome section with search */}
+      <div className="glass-effect mx-4 mt-4 p-4 md:p-6 rounded-3xl">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-6">
+          <Avatar 
+            src="https://img.heroui.chat/image/avatar?w=100&h=100&u=user1" 
+            className="w-12 h-12 border-2 border-beamly-secondary"
+          />
+          <div className="flex-1">
+            <p className={isDarkMode ? "text-gray-300 text-sm" : "text-gray-600 text-sm"}>
+              {t('home.welcome', { name: userName })}
+            </p>
+            <h1 className={`text-xl md:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+              {t('home.whatJob')}
+            </h1>
+          </div>
+          <div className="ml-auto">
+            <Badge content="3" color="secondary" shape="circle">
+              <Button isIconOnly variant="light" className={isDarkMode ? "text-white" : "text-gray-800"}>
+                <Icon icon="lucide:bell" width={24} />
               </Button>
-            </div>
+            </Badge>
           </div>
-        </section>
+        </div>
         
-        {/* Why Choose Beamly */}
-        <section className="relative py-16 px-4 z-10">
-          <div className="container mx-auto max-w-6xl">
+        <div className="relative">
+          <Input
+            placeholder={t('home.searchPlaceholder')}
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            size="lg"
+            radius="lg"
+            className={isDarkMode ? "bg-white/10 border-white/20" : "bg-white border-gray-200"}
+            startContent={<Icon icon="lucide:search" className="text-gray-400" />}
+            endContent={
+              searchQuery && (
+                <Button isIconOnly size="sm" variant="light" className="text-gray-400" onPress={() => setSearchQuery("")}>
+                  <Icon icon="lucide:x" width={16} />
+                </Button>
+              )
+            }
+          />
+        </div>
+      </div>
+      
+      {/* Categories */}
+      <div className="px-4 mt-6">
+        <h2 className={`text-lg md:text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+          {t('home.jobCategories')}
+        </h2>
+        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+          {categories.map((category, index) => (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center mb-10"
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className="min-w-[100px] md:min-w-[120px]"
             >
-              <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>
-                Why Choose <span className="text-beamly-secondary">Beamly</span>
-              </h2>
-              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                We're committed to providing the best freelance experience for everyone
-              </p>
+              <Button
+                className={`w-full h-[70px] md:h-[80px] glass-card flex flex-col gap-2 py-3 md:py-4 ${!isDarkMode && 'border border-gray-200'}`}
+                onPress={() => setCurrentPage(category.page)}
+              >
+                <Icon icon={category.icon} className="text-beamly-secondary text-xl md:text-2xl" />
+                <span className={`${isDarkMode ? "text-white" : "text-gray-800"} text-xs md:text-sm`}>{category.name}</span>
+              </Button>
             </motion.div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * index }}
-                >
-                  <Card className={isDarkMode ? 'glass-card' : 'bg-white border border-gray-200'}>
-                    <CardBody className="p-6 text-center">
-                      <div className="w-12 h-12 bg-beamly-secondary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                        <Icon icon={feature.icon} className="text-xl text-beamly-secondary" />
-                      </div>
-                      <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
-                        {feature.title}
-                      </h3>
-                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} leading-relaxed`}>
-                        {feature.description}
-                      </p>
-                    </CardBody>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
+          ))}
+        </div>
+      </div>
+      
+      {/* Featured Jobs */}
+      <div className="px-4 mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className={`text-lg md:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+            {t('home.featuredJobs')}
+          </h2>
+          <Button
+            variant="light"
+            className="text-beamly-secondary p-0 text-sm"
+            endContent={<Icon icon="lucide:chevron-right" />}
+            onPress={() => setCurrentPage("all-jobs")}
+          >
+            {t('home.explore')}
+          </Button>
+        </div>
         
-        {/* How Beamly Works */}
-        <section className="relative py-16 px-4 mb-16 z-10">
-          <div className="container mx-auto max-w-5xl">
+        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+          {featuredJobs.map((job, index) => (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center mb-10"
+              transition={{ duration: 0.3, delay: 0.2 + index * 0.1 }}
+              className="min-w-[200px] md:min-w-[220px] max-w-[220px]"
             >
-              <h2 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>
-                How <span className="text-beamly-secondary">Beamly</span> Works
-              </h2>
-              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                Get your projects done in 4 simple steps
-              </p>
-            </motion.div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {steps.map((step, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * index }}
-                  className="text-center relative"
-                >
-                  {index < steps.length - 1 && (
-                    <div className={`hidden lg:block absolute top-12 left-[60%] w-full h-0.5 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'} -z-10`}></div>
-                  )}
-                  <div className="w-16 h-16 bg-beamly-secondary rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold text-black">
-                    {step.number}
+              <Card 
+                className={`glass-card border-none card-hover ${!isDarkMode && 'border border-gray-200'}`}
+                isPressable
+                onPress={() => setCurrentPage("job-details")}
+              >
+                <CardBody className="p-0 overflow-hidden">
+                  <div className="relative">
+                    <div className={`w-full h-28 md:h-32 ${isDarkMode ? 'bg-white/5' : 'bg-gray-50'} flex items-center justify-center`}>
+                      <img 
+                        src={job.image} 
+                        alt={job.company}
+                        className="w-14 h-14 md:w-16 md:h-16 object-contain"
+                      />
+                    </div>
+                    <div className="absolute top-2 right-2 bg-beamly-secondary text-beamly-third font-medium px-2 py-1 rounded-lg text-xs">
+                      {job.price}
+                    </div>
                   </div>
-                  <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
-                    {step.title}
-                  </h3>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {step.description}
-                  </p>
-                </motion.div>
-              ))}
+                  <div className="p-3">
+                    <h3 className={`font-semibold text-sm md:text-base ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{job.title}</h3>
+                    <p className="text-gray-400 text-xs">{job.company}</p>
+                    <div className="flex items-center mt-2 text-xs gap-2">
+                      <span className={`${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'} px-2 py-0.5 rounded`}>{job.type}</span>
+                      <span className={`${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'} px-2 py-0.5 rounded`}>{job.location}</span>
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Top Freelancers */}
+      <div className="px-4 mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className={`text-lg md:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+            {t('home.topFreelancers')}
+          </h2>
+          <Button
+            variant="light"
+            className="text-beamly-secondary p-0 text-sm"
+            endContent={<Icon icon="lucide:chevron-right" />}
+            onPress={() => setCurrentPage("freelancers")}
+          >
+            {t('common.seeMore')}
+          </Button>
+        </div>
+        
+        <div className="flex flex-col gap-3">
+          {topFreelancers.map((freelancer, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
+            >
+              <Card 
+                className={`${index % 2 === 0 ? 'glass-card' : 'yellow-glass'} border-none card-hover`}
+                isPressable
+                onPress={() => setCurrentPage("freelancer-profile")}
+              >
+                <CardBody className="p-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar 
+                      src={freelancer.avatar} 
+                      className="w-10 h-10 md:w-12 md:h-12"
+                    />
+                    <div className="flex-1">
+                      <h3 className={`font-semibold text-sm md:text-base ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                        {freelancer.name}
+                      </h3>
+                      <p className="text-gray-400 text-xs">{freelancer.title}</p>
+                      <div className="flex items-center mt-1 text-xs">
+                        <Icon icon="lucide:star" className="text-beamly-secondary mr-1" />
+                        <span className={isDarkMode ? 'text-white' : 'text-gray-800'}>{freelancer.rating}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-beamly-secondary font-semibold text-sm md:text-base">{freelancer.projectsCompleted}</div>
+                      <div className="text-gray-400 text-xs">{t('home.projects')}</div>
+                      <Button 
+                        size="sm" 
+                        color="secondary"
+                        className="mt-1 text-xs font-medium text-beamly-third"
+                        onPress={() => setCurrentPage("freelancer-profile")}
+                      >
+                        {t('common.view')}
+                      </Button>
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Recent Activity */}
+      <div className="px-4 mt-8 mb-20 md:mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className={`text-lg md:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+            {t('home.recentActivity')}
+          </h2>
+          <Button
+            variant="light"
+            className="text-beamly-secondary p-0 text-sm"
+            endContent={<Icon icon="lucide:chevron-right" />}
+            onPress={() => setCurrentPage("dashboard")}
+          >
+            {t('common.viewAll')}
+          </Button>
+        </div>
+        
+        <Card className="glass-effect border-none">
+          <CardBody className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-base md:text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                {t('home.activeProjects')}
+              </h3>
+              <Badge color="secondary" content="2" />
             </div>
-          </div>
-        </section>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-beamly-secondary/20 flex items-center justify-center">
+                    <Icon icon="lucide:code" className="text-beamly-secondary" />
+                  </div>
+                  <div>
+                    <p className={`${isDarkMode ? 'text-white' : 'text-gray-800'} font-medium text-sm md:text-base`}>
+                      Website Redesign
+                    </p>
+                    <p className="text-gray-400 text-xs">{t('home.dueInDays', { days: 3 })}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-beamly-secondary font-medium text-sm">75%</p>
+                  <div className="w-16 h-1 bg-white/20 rounded-full mt-1">
+                    <div className="h-full w-3/4 bg-beamly-secondary rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-beamly-primary/20 flex items-center justify-center">
+                    <Icon icon="lucide:image" className="text-beamly-primary" />
+                  </div>
+                  <div>
+                    <p className={`${isDarkMode ? 'text-white' : 'text-gray-800'} font-medium text-sm md:text-base`}>
+                      Logo Animation
+                    </p>
+                    <p className="text-gray-400 text-xs">{t('home.dueInDays', { days: 5 })}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-beamly-primary font-medium text-sm">40%</p>
+                  <div className="w-16 h-1 bg-white/20 rounded-full mt-1">
+                    <div className="h-full w-2/5 bg-beamly-primary rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <Button 
+              className={`w-full mt-4 ${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'}`}
+              variant="flat"
+              onPress={() => setCurrentPage("post-job")}
+            >
+              {t('home.postNewJob')}
+            </Button>
+          </CardBody>
+        </Card>
+      </div>
+      
+      {/* Bottom Navigation - Mobile Only */}
+      <div className="fixed bottom-0 left-0 right-0 glass-effect border-t border-white/10 py-2 px-6 flex justify-between items-center md:hidden">
+        <Button 
+          isIconOnly 
+          variant="light" 
+          className="text-beamly-secondary"
+          onPress={() => setCurrentPage("home")}
+        >
+          <Icon icon="lucide:home" width={24} />
+        </Button>
+        
+        <Button 
+          isIconOnly 
+          variant="light" 
+          className={isDarkMode ? "text-white" : "text-gray-800"}
+          onPress={() => setCurrentPage("messages")}
+        >
+          <Icon icon="lucide:message-circle" width={24} />
+        </Button>
+        
+        <Button 
+          isIconOnly 
+          color="secondary"
+          className="rounded-full w-14 h-14 text-beamly-third shadow-lg"
+          onPress={() => setCurrentPage("post-job")}
+        >
+          <Icon icon="lucide:plus" width={24} />
+        </Button>
+        
+        <Button 
+          isIconOnly 
+          variant="light" 
+          className={isDarkMode ? "text-white" : "text-gray-800"}
+          onPress={() => setCurrentPage("saved-jobs")}
+        >
+          <Icon icon="lucide:bookmark" width={24} />
+        </Button>
+        
+        <Button 
+          isIconOnly 
+          variant="light" 
+          className={isDarkMode ? "text-white" : "text-gray-800"}
+          onPress={() => setCurrentPage("profile")}
+        >
+          <Icon icon="lucide:user" width={24} />
+        </Button>
       </div>
     </div>
   );
