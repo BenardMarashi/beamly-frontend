@@ -5,7 +5,6 @@ import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
 import { HeroSection } from "./hero-section";
 import { CategoriesSection } from "./categories-section";
-import { FeaturesSection } from "./features-section";
 import { HowItWorksSection } from "./how-it-works-section";
 import { TestimonialsSection } from "./testimonials-section";
 import { CTASection } from "./cta-section";
@@ -309,7 +308,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
               <h3 className={`text-base md:text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 {t('home.activeProjects')}
               </h3>
-              <Badge color="secondary" content="2" />
+              <Badge color="secondary">2</Badge>
             </div>
             
             <div className="space-y-4">
