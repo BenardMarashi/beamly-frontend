@@ -33,252 +33,82 @@ body.light-mode {
     radial-gradient(at 10% 70%, rgba(15, 67, 238, 0.02) 0px, transparent 50%);
 }
 
-/* Dark mode - Fixed background */
+/* Dark mode */
 body.dark-mode {
-  background-color: #010b29 !important;
+  background-color: #010b29;
   color: #ffffff;
-  background-image: none !important;
 }
 
-/* Ensure no background overrides in dark mode */
-body.dark-mode #root,
-body.dark-mode main,
-body.dark-mode .text-foreground,
-body.dark-mode .bg-background {
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-/* AGGRESSIVE PURPLE TO YELLOW OVERRIDES - MUST BE AFTER TAILWIND */
-/* Override all HeroUI purple/violet button colors */
-button[class*="bg-purple"],
-button[class*="bg-violet"],
-a[class*="bg-purple"],
-a[class*="bg-violet"],
-div[class*="bg-purple"],
-div[class*="bg-violet"],
-[data-slot="base"][class*="bg-purple"],
-[data-slot="base"][class*="bg-violet"] {
-  background-color: #FCE90D !important;
-}
-
-/* Override text colors */
-button[class*="text-purple"],
-button[class*="text-violet"],
-a[class*="text-purple"],
-a[class*="text-violet"],
-div[class*="text-purple"],
-div[class*="text-violet"],
-span[class*="text-purple"],
-span[class*="text-violet"],
-p[class*="text-purple"],
-p[class*="text-violet"] {
-  color: #FCE90D !important;
-}
-
-/* Override border colors */
-button[class*="border-purple"],
-button[class*="border-violet"],
-a[class*="border-purple"],
-a[class*="border-violet"],
-div[class*="border-purple"],
-div[class*="border-violet"] {
-  border-color: #FCE90D !important;
-}
-
-/* Override HeroUI specific color classes */
-.bg-purple-50 { background-color: rgba(252, 233, 13, 0.05) !important; }
-.bg-purple-100 { background-color: rgba(252, 233, 13, 0.1) !important; }
-.bg-purple-200 { background-color: rgba(252, 233, 13, 0.2) !important; }
-.bg-purple-300 { background-color: rgba(252, 233, 13, 0.3) !important; }
-.bg-purple-400 { background-color: rgba(252, 233, 13, 0.4) !important; }
-.bg-purple-500 { background-color: #FCE90D !important; }
-.bg-purple-600 { background-color: #e6d70c !important; }
-.bg-purple-700 { background-color: #cfc10b !important; }
-.bg-purple-800 { background-color: #b8ab0a !important; }
-.bg-purple-900 { background-color: #a19509 !important; }
-
-.bg-violet-50 { background-color: rgba(252, 233, 13, 0.05) !important; }
-.bg-violet-100 { background-color: rgba(252, 233, 13, 0.1) !important; }
-.bg-violet-200 { background-color: rgba(252, 233, 13, 0.2) !important; }
-.bg-violet-300 { background-color: rgba(252, 233, 13, 0.3) !important; }
-.bg-violet-400 { background-color: rgba(252, 233, 13, 0.4) !important; }
-.bg-violet-500 { background-color: #FCE90D !important; }
-.bg-violet-600 { background-color: #e6d70c !important; }
-.bg-violet-700 { background-color: #cfc10b !important; }
-.bg-violet-800 { background-color: #b8ab0a !important; }
-.bg-violet-900 { background-color: #a19509 !important; }
-
-.text-purple-50 { color: rgba(252, 233, 13, 0.05) !important; }
-.text-purple-100 { color: rgba(252, 233, 13, 0.1) !important; }
-.text-purple-200 { color: rgba(252, 233, 13, 0.2) !important; }
-.text-purple-300 { color: rgba(252, 233, 13, 0.3) !important; }
-.text-purple-400 { color: rgba(252, 233, 13, 0.4) !important; }
-.text-purple-500 { color: #FCE90D !important; }
-.text-purple-600 { color: #e6d70c !important; }
-.text-purple-700 { color: #cfc10b !important; }
-.text-purple-800 { color: #b8ab0a !important; }
-.text-purple-900 { color: #a19509 !important; }
-
-.text-violet-50 { color: rgba(252, 233, 13, 0.05) !important; }
-.text-violet-100 { color: rgba(252, 233, 13, 0.1) !important; }
-.text-violet-200 { color: rgba(252, 233, 13, 0.2) !important; }
-.text-violet-300 { color: rgba(252, 233, 13, 0.3) !important; }
-.text-violet-400 { color: rgba(252, 233, 13, 0.4) !important; }
-.text-violet-500 { color: #FCE90D !important; }
-.text-violet-600 { color: #e6d70c !important; }
-.text-violet-700 { color: #cfc10b !important; }
-.text-violet-800 { color: #b8ab0a !important; }
-.text-violet-900 { color: #a19509 !important; }
-
-/* Override hover states */
-button:hover[class*="bg-purple"],
-button:hover[class*="bg-violet"],
-a:hover[class*="bg-purple"],
-a:hover[class*="bg-violet"] {
-  background-color: #e6d70c !important;
-}
-
-/* Override focus states */
-button:focus[class*="bg-purple"],
-button:focus[class*="bg-violet"],
-a:focus[class*="bg-purple"],
-a:focus[class*="bg-violet"] {
-  background-color: #cfc10b !important;
-}
-
-/* Override HeroUI button color prop */
-[data-color="purple"],
-[data-color="violet"] {
-  --color: #FCE90D !important;
-  --color-50: rgba(252, 233, 13, 0.05) !important;
-  --color-100: rgba(252, 233, 13, 0.1) !important;
-  --color-200: rgba(252, 233, 13, 0.2) !important;
-  --color-300: rgba(252, 233, 13, 0.3) !important;
-  --color-400: rgba(252, 233, 13, 0.4) !important;
-  --color-500: #FCE90D !important;
-  --color-600: #e6d70c !important;
-  --color-700: #cfc10b !important;
-  --color-800: #b8ab0a !important;
-  --color-900: #a19509 !important;
-}
-
-/* BUTTON COLOR OVERRIDES - #FCE90D for both dark and light modes */
-button[data-color="primary"],
-button[data-color="secondary"],
-button.bg-primary,
-button.bg-secondary,
-.nextui-button--primary,
-.nextui-button--secondary {
-  background-color: #FCE90D !important;
-  color: #011241 !important;
-}
-
-/* Button hover states */
-button[data-color="primary"]:hover,
-button[data-color="secondary"]:hover,
-button.bg-primary:hover,
-button.bg-secondary:hover,
-.nextui-button--primary:hover,
-.nextui-button--secondary:hover {
-  background-color: #e6d70c !important;
-  color: #011241 !important;
-}
-
-/* Button focus states */
-button[data-color="primary"]:focus,
-button[data-color="secondary"]:focus,
-button.bg-primary:focus,
-button.bg-secondary:focus,
-.nextui-button--primary:focus,
-.nextui-button--secondary:focus {
-  background-color: #cfc10b !important;
-  color: #011241 !important;
-}
-
-/* Ensure button text is visible on yellow background */
-button[class*="bg-"],
-button[data-color] {
-  color: #011241 !important;
-}
-
-/* Secondary button specific styles */
-button[color="secondary"],
-[data-color="secondary"],
-.bg-beamly-secondary {
-  background-color: #FCE90D !important;
-  color: #011241 !important;
-}
-
-/* Fix text color for dark buttons with yellow background */
-button.bg-beamly-secondary,
-button[class*="bg-purple"],
-button[class*="bg-violet"],
-a.bg-beamly-secondary,
-a[class*="bg-purple"],
-a[class*="bg-violet"] {
-  color: #011241 !important; /* Use beamly-third for text on yellow background */
-}
-
-/* Glass effect */
+/* Glass Effects */
 .glass-effect {
+  background: rgba(15, 67, 238, 0.1);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
   border-radius: 16px;
 }
 
-/* Glass effect - Light mode */
 body.light-mode .glass-effect {
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(255, 255, 255, 0.98); 
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(15, 67, 238, 0.1);
   box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.06);
 }
 
-/* Glass effect - Dark mode */
 body.dark-mode .glass-effect {
   background: rgba(15, 67, 238, 0.1);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
 }
 
-/* Glass card */
 .glass-card {
+  background: rgba(15, 67, 238, 0.08);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
   border-radius: 16px;
 }
 
-/* Glass card - Light mode */
 body.light-mode .glass-card {
   background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid rgba(15, 67, 238, 0.1);
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.04);
 }
 
-/* Glass card - Dark mode */
 body.dark-mode .glass-card {
   background: rgba(15, 67, 238, 0.08);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
 }
 
-/* Yellow glass */
 .yellow-glass {
+  background: rgba(252, 233, 13, 0.1);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(252, 233, 13, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
   border-radius: 16px;
 }
 
-/* Yellow glass - Light mode */
 body.light-mode .yellow-glass {
   background: rgba(252, 233, 13, 0.08);
   border: 1px solid rgba(252, 233, 13, 0.2);
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.04);
 }
 
-/* Yellow glass - Dark mode */
 body.dark-mode .yellow-glass {
   background: rgba(252, 233, 13, 0.1);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
   border: 1px solid rgba(252, 233, 13, 0.15);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
 }
@@ -295,7 +125,7 @@ body.dark-mode .yellow-glass {
   color: transparent;
 }
 
-/* Section container */
+/* Section styling */
 .section-container {
   position: relative;
   padding: 2.5rem 0;
@@ -313,7 +143,6 @@ body.dark-mode .yellow-glass {
   z-index: -1;
 }
 
-/* Typography */
 .section-title {
   font-family: 'Outfit', sans-serif;
   font-weight: 700;
@@ -324,7 +153,7 @@ body.dark-mode .yellow-glass {
   font-weight: 300;
 }
 
-/* Primary glow effect */
+/* Background effects */
 .primary-glow {
   position: relative;
 }
@@ -341,13 +170,12 @@ body.dark-mode .yellow-glass {
   z-index: -1;
 }
 
-/* Blue background section */
 .blue-bg-section {
   background: linear-gradient(135deg, #010b29, #0F43EE);
   color: white;
 }
 
-/* Accent shapes */
+/* Color accents */
 .blue-accent {
   position: absolute;
   background-color: var(--beamly-primary);
@@ -392,8 +220,7 @@ body.dark-mode .yellow-glass {
   right: -100px;
 }
 
-/* Background mesh - different for light and dark */
-body.light-mode .bg-mesh {
+.bg-mesh {
   background-image: 
     radial-gradient(at 40% 20%, rgba(15, 67, 238, 0.15) 0px, transparent 50%),
     radial-gradient(at 80% 50%, rgba(252, 233, 13, 0.1) 0px, transparent 50%),
@@ -403,235 +230,174 @@ body.light-mode .bg-mesh {
   background-repeat: no-repeat;
 }
 
-body.dark-mode .bg-mesh {
-  background-image: 
-    radial-gradient(at 40% 20%, rgba(15, 67, 238, 0.08) 0px, transparent 50%),
-    radial-gradient(at 80% 50%, rgba(252, 233, 13, 0.03) 0px, transparent 50%),
-    radial-gradient(at 10% 70%, rgba(15, 67, 238, 0.05) 0px, transparent 50%);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-/* Card hover effect */
+/* Card interactions */
 .card-hover {
   transition: all 0.3s ease;
 }
 
 .card-hover:hover {
   transform: translateY(-5px);
-}
-
-body.light-mode .card-hover:hover {
-  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.08);
-  border-color: rgba(15, 67, 238, 0.2);
-}
-
-body.dark-mode .card-hover:hover {
   box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Text colors for light mode */
+/* Light mode text improvements */
 body.light-mode .text-white {
-  color: #1a202c;
+  color: #1a202c !important;
 }
 
 body.light-mode .text-gray-300 {
-  color: #4a5568;
+  color: #4a5568 !important;
 }
 
 body.light-mode .text-gray-400 {
-  color: #2d3748;
+  color: #2d3748 !important;
 }
 
-body.light-mode .text-gray-500 {
-  color: #718096;
-}
-
-body.light-mode .text-gray-600 {
-  color: #4a5568;
-}
-
-/* Ensure proper text in glass components */
-body.light-mode .glass-card .text-white,
 body.light-mode .glass-effect .text-white,
+body.light-mode .glass-card .text-white,
 body.light-mode .yellow-glass .text-white {
-  color: #111827;
+  color: #111827 !important;
 }
 
-body.light-mode .glass-card .text-gray-300,
 body.light-mode .glass-effect .text-gray-300,
+body.light-mode .glass-card .text-gray-300,
 body.light-mode .yellow-glass .text-gray-300 {
-  color: #4b5563;
+  color: #4b5563 !important;
 }
 
-body.light-mode .glass-card .text-gray-400,
 body.light-mode .glass-effect .text-gray-400,
+body.light-mode .glass-card .text-gray-400,
 body.light-mode .yellow-glass .text-gray-400 {
-  color: #6b7280;
+  color: #6b7280 !important;
 }
 
-/* Dark mode text should stay white */
-body.dark-mode .text-white {
-  color: #ffffff !important;
-}
-
-body.dark-mode .text-gray-300 {
-  color: #d1d5db !important;
-}
-
-body.dark-mode .text-gray-400 {
-  color: #9ca3af !important;
-}
-
-/* Button fixes */
-body.light-mode button.text-white,
-body.light-mode a.text-white {
-  color: #111827;
-}
-
-/* Hover states */
-body.light-mode a.text-gray-300:hover,
-body.light-mode a.text-white:hover {
-  color: #0F43EE;
-}
-
-/* Input styles */
-body.light-mode input,
-body.light-mode textarea {
-  color: #1a202c;
-}
-
-body.light-mode input::placeholder {
-  color: #9ca3af;
-}
-
-/* Secondary color in light mode */
-body.light-mode .text-beamly-secondary {
-  color: #c2b001;
-}
-
-/* Background utilities */
-body.light-mode .bg-white\/10 {
-  background-color: rgba(15, 67, 238, 0.1);
-}
-
-/* Mobile Responsive Styles */
-@media (max-width: 768px) {
-  /* Container padding */
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
+/* Mobile responsive enhancements */
+@media (max-width: 640px) {
+  /* Remove side scrollbar/elevator */
+  body {
+    overflow-x: hidden;
   }
   
-  /* Center all content on mobile */
-  .flex,
-  .grid {
-    justify-content: center;
-    align-items: center;
+  /* Navbar 100% width on mobile */
+  header {
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
   }
   
-  /* Mobile padding adjustments */
-  .px-4 {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+  .glass-effect {
+    border-radius: 0;
+    backdrop-filter: blur(20px);
   }
   
-  .py-8 {
-    padding-top: 2rem !important;
-    padding-bottom: 2rem !important;
-  }
-  
-  /* Card and section spacing */
-  .glass-effect,
   .glass-card,
   .yellow-glass {
-    margin-left: 1rem;
-    margin-right: 1rem;
     border-radius: 12px;
   }
   
-  /* Typography adjustments */
+  /* Enhanced mobile typography */
   h1 {
-    font-size: 1.75rem !important;
-    text-align: center;
+    font-size: 1.875rem;
+    line-height: 2.25rem;
   }
   
   h2 {
-    font-size: 1.5rem !important;
-    text-align: center;
+    font-size: 1.5rem;
+    line-height: 2rem;
   }
   
   h3 {
-    font-size: 1.25rem !important;
-    text-align: center;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
   }
   
-  /* Button full width on mobile */
-  button {
-    width: 100% !important;
-    margin-bottom: 0.5rem;
-  }
-  
-  /* Stack flex items on mobile */
-  .flex-row {
-    flex-direction: column !important;
-  }
-  
-  /* Grid responsive */
-  .grid {
-    grid-template-columns: 1fr !important;
-  }
-  
-  /* Form elements full width */
-  input,
-  textarea,
-  select {
-    width: 100% !important;
-  }
-  
-  /* Center text on mobile */
-  .text-left {
-    text-align: center !important;
-  }
-  
-  /* Hide desktop-only elements */
-  .mobile-hidden {
-    display: none !important;
-  }
-  
-  /* Section container mobile */
   .section-container {
-    padding: 1.5rem 1rem !important;
+    padding: 1.5rem 0;
   }
   
-  /* Modal and drawer full width */
-  .modal-content,
-  .drawer-content {
-    width: 100% !important;
-    max-width: 100% !important;
+  /* Mobile-optimized buttons */
+  button {
+    min-height: 44px;
+    min-width: 44px;
   }
   
-  /* Mobile header controls */
+  /* Mobile card layouts */
+  .mobile-card {
+    background: rgba(15, 67, 238, 0.08);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  
+  /* Mobile header adjustments */
   .mobile-header-controls {
     display: none;
   }
+  
+  /* Ensure full width on all containers */
+  .container {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
 }
 
-/* Tablet responsive */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .container {
-    padding-left: 2rem;
-    padding-right: 2rem;
+@media (max-width: 768px) {
+  .glass-effect,
+  .glass-card,
+  .yellow-glass {
+    border-radius: 12px;
   }
   
-  .grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+  /* Touch-friendly sizing */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Mobile navigation improvements */
+  .mobile-nav-item {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .mobile-nav-item:last-child {
+    border-bottom: none;
   }
 }
 
-/* Chip component */
+/* Mobile-specific freelancer cards */
+.mobile-freelancer-card {
+  background: rgba(15, 67, 238, 0.08);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.mobile-freelancer-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile profile sections */
+.mobile-profile-section {
+  background: rgba(15, 67, 238, 0.08);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+/* Utility classes */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -639,10 +405,8 @@ body.light-mode .bg-white\/10 {
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
-  font-family: 'Outfit', sans-serif;
 }
 
-/* Scrollbar */
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -652,193 +416,169 @@ body.light-mode .bg-white\/10 {
   display: none;
 }
 
-/* Prose styles */
-.prose {
-  max-width: none;
-  font-family: 'Outfit', sans-serif;
+/* Dark mode text visibility improvements */
+body.dark-mode .glass-effect .text-gray-600,
+body.dark-mode .glass-effect .text-gray-500,
+body.dark-mode .glass-effect .text-gray-400,
+body.dark-mode .glass-effect .text-gray-300 {
+  color: #ffffff !important;
 }
 
-.prose h1, 
-.prose h2, 
-.prose h3, 
-.prose h4, 
-.prose h5, 
-.prose h6 {
-  font-family: 'Outfit', sans-serif;
-  margin-top: 1.5em;
-  margin-bottom: 0.75em;
+body.dark-mode .glass-card .text-gray-600,
+body.dark-mode .glass-card .text-gray-500,
+body.dark-mode .glass-card .text-gray-400,
+body.dark-mode .glass-card .text-gray-300 {
+  color: #ffffff !important;
 }
 
-.prose p {
-  margin-top: 1em;
-  margin-bottom: 1em;
-  font-family: 'Outfit', sans-serif;
+/* Ensure proper text hierarchy in dark mode */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+  color: #ffffff !important;
 }
 
-.prose ul {
-  margin-top: 1em;
-  margin-bottom: 1em;
-  list-style-type: disc;
-  padding-left: 1.5rem;
-}
-
-.prose ol {
-  list-style-type: decimal;
-  padding-left: 1.5rem;
-}
-
-.prose li {
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-  font-family: 'Outfit', sans-serif;
-}
-
-.prose strong {
-  font-weight: 600;
-  font-family: 'Outfit', sans-serif;
-}
-
-/* Light mode prose */
-body.light-mode .prose:not(.prose-invert) {
-  color: #4b5563;
-}
-
-body.light-mode .prose:not(.prose-invert) h1,
-body.light-mode .prose:not(.prose-invert) h2,
-body.light-mode .prose:not(.prose-invert) h3,
-body.light-mode .prose:not(.prose-invert) h4 {
-  color: #111827;
-}
-
-body.light-mode .prose:not(.prose-invert) a {
-  color: #0F43EE;
-}
-
-body.light-mode .prose:not(.prose-invert) strong {
-  color: #111827;
-}
-
-/* Dark mode prose */
-body.dark-mode .prose-invert {
+body.dark-mode p,
+body.dark-mode span,
+body.dark-mode div {
   color: #ffffff;
 }
 
-body.dark-mode .prose-invert h1,
-body.dark-mode .prose-invert h2,
-body.dark-mode .prose-invert h3,
-body.dark-mode .prose-invert h4,
-body.dark-mode .prose-invert h5,
-body.dark-mode .prose-invert h6 {
-  color: #ffffff;
-}
 
-body.dark-mode .prose-invert strong {
-  color: #ffffff;
-}
-
-body.dark-mode .prose-invert a {
-  color: #FCE90D;
-}
-
-body.dark-mode .prose-invert ul,
-body.dark-mode .prose-invert ol {
-  color: #ffffff;
-}
-
-body.dark-mode .prose-invert li {
-  color: #ffffff;
-}
-
-body.dark-mode .prose-invert p {
-  color: #ffffff;
-}
-
-/* Ensure all fonts are Outfit */
-button, input, select, textarea {
-  font-family: 'Outfit', sans-serif;
-}
-
-/* Add Beamly color classes for Tailwind */
-.text-beamly-primary {
-  color: var(--beamly-primary);
-}
-
-.text-beamly-secondary {
-  color: var(--beamly-secondary);
-}
-
-.text-beamly-third {
-  color: var(--beamly-third);
-}
-
-.bg-beamly-primary {
-  background-color: var(--beamly-primary);
-}
-
-.bg-beamly-secondary {
-  background-color: var(--beamly-secondary);
-}
-
-.bg-beamly-third {
-  background-color: var(--beamly-third);
-}
-
-/* Center content utility */
-.center-content {
+/* Social media icons styling */
+.social-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
   display: flex;
-  justify-content: center;
   align-items: center;
-  text-align: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: all 0.3s ease;
 }
 
-/* Mobile center utility */
-@media (max-width: 768px) {
-  .mobile-center {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    text-align: center !important;
+.social-icon:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Rating stars */
+.star-rating {
+  color: var(--beamly-secondary);
+  font-size: 14px;
+}
+
+/* Portfolio grid for mobile */
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .portfolio-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* ADD TO END OF index.css */
-@media (max-width: 768px) {
-  /* FORCE NAVBAR TO SHOW */
-  nav, .navbar, header {
-    display: flex !important;
-    position: fixed !important;
-    top: 0 !important;
-    width: 100% !important;
-    height: 56px !important;
-    background: #010b29 !important;
-    z-index: 999 !important;
-    padding: 0 1rem !important;
-  }
-  
-  /* SHOW HAMBURGER MENU */
-  .navbar-menu-toggle, [aria-label*="menu"] {
-    display: flex !important;
-    color: white !important;
-  }
-  
-  /* PUSH EVERYTHING DOWN */
-  body { padding-top: 56px !important; }
-  
-  /* REMOVE PROFILE PIC FROM MIDDLE */
-  main .avatar, main img { display: none !important; }
-  
-  /* FIX YOUR DASHBOARD */
-  .glass-effect { 
-    margin: 1rem !important;
-    width: calc(100% - 2rem) !important;
-  }
-  
-  /* STATS IN 2x2 GRID */
-  .grid { 
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0.5rem !important;
-  }
-  
-  /* EVERYTHING FULL WIDTH */
-  input, button, select { width: 100% !important; }
+/* Skills tags */
+.skill-tag {
+  background: rgba(15, 67, 238, 0.15);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+  margin: 4px 8px 4px 0;
+  border: 1px solid rgba(15, 67, 238, 0.3);
+}
+
+/* Form styling improvements */
+.form-input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #ffffff;
+  font-size: 16px;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--beamly-secondary);
+  box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.1);
+}
+
+.form-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Light mode form adjustments */
+body.light-mode .form-input {
+  background: #ffffff;
+  border: 1px solid rgba(15, 67, 238, 0.2);
+  color: #1a202c;
+}
+
+body.light-mode .form-input::placeholder {
+  color: #9ca3af;
+}
+
+body.light-mode .form-input:focus {
+  border-color: var(--beamly-primary);
+  box-shadow: 0 0 0 3px rgba(15, 67, 238, 0.1);
+}
+
+/* Override NextUI Input field backgrounds to remove yellow */
+[data-slot="input-wrapper"],
+[data-slot="innerWrapper"],
+[data-slot="inputWrapper"] {
+  background-color: transparent !important;
+}
+
+/* Dark mode inputs */
+body.dark-mode [data-slot="input-wrapper"],
+body.dark-mode [data-slot="innerWrapper"],
+body.dark-mode [data-slot="inputWrapper"] {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Light mode inputs */
+body.light-mode [data-slot="input-wrapper"],
+body.light-mode [data-slot="innerWrapper"], 
+body.light-mode [data-slot="inputWrapper"] {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ONLY BUTTONS - Brand yellow with black text */
+button[type="button"],
+button[type="submit"],
+.nextui-button,
+[data-slot="base"]:has(button),
+button {
+  background-color: #FCE90D !important;
+  color: #011241 !important;
+}
+
+/* Exclude non-button elements */
+select,
+input,
+textarea,
+[data-slot="trigger"],
+[data-slot="selector"],
+[data-slot="listbox"],
+[data-slot="popoverContent"] {
+  background-color: revert !important;
+  color: revert !important;
 }

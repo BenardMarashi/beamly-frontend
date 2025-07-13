@@ -11,8 +11,6 @@ export interface User {
   title?: string;
   skills?: string[];
   hourlyRate?: number;
-  location?: string;
-  timezone?: string;
   languages?: string[];
   portfolio?: string;
   experienceLevel?: 'entry' | 'intermediate' | 'expert';
@@ -23,8 +21,6 @@ export interface User {
   
   // Stats
   completedProjects?: number;
-  totalEarnings?: number;
-  totalSpent?: number;
   rating?: number;
   reviewCount?: number;
   
@@ -100,11 +96,6 @@ export interface Job {
   duration: string;
   experienceLevel: 'entry' | 'intermediate' | 'expert';
   projectSize: 'small' | 'medium' | 'large';
-  
-  // Location
-  locationType: 'remote' | 'onsite' | 'hybrid';
-  location?: string;
-  timezone?: string;
   
   // Client Info
   clientId: string;
@@ -197,90 +188,6 @@ export interface Proposal {
   respondedAt?: Date;
 }
 
-// Collection: contracts
-export interface Contract {
-  id: string;
-  
-  // References
-  jobId: string;
-  jobTitle: string;
-  proposalId: string;
-  clientId: string;
-  clientName: string;
-  freelancerId: string;
-  freelancerName: string;
-  
-  // Contract Details
-  description: string;
-  terms?: string;
-  
-  // Payment
-  paymentType: 'fixed' | 'hourly' | 'milestone';
-  totalBudget: number;
-  hourlyRate?: number;
-  weeklyLimit?: number;
-  
-  // Milestones (for milestone contracts)
-  milestones?: Milestone[];
-  
-  // Escrow
-  escrowAmount: number;
-  escrowStatus: 'pending' | 'funded' | 'released' | 'disputed';
-  
-  // Time Tracking (for hourly contracts)
-  totalHoursWorked?: number;
-  timeEntries?: TimeEntry[];
-  
-  // Status
-  status: 'pending' | 'active' | 'paused' | 'completed' | 'cancelled' | 'disputed';
-  
-  // Payments
-  totalPaid: number;
-  totalDue: number;
-  paymentSchedule?: 'weekly' | 'biweekly' | 'monthly' | 'milestone';
-  
-  // Feedback
-  clientFeedback?: Review;
-  freelancerFeedback?: Review;
-  
-  // Timestamps
-  startDate: Date;
-  endDate?: Date;
-  actualEndDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Sub-types for Contract
-interface Milestone {
-  id: string;
-  title: string;
-  description: string;
-  amount: number;
-  dueDate: Date;
-  status: 'pending' | 'in-progress' | 'submitted' | 'approved' | 'paid';
-  submittedAt?: Date;
-  approvedAt?: Date;
-  paidAt?: Date;
-}
-
-interface TimeEntry {
-  id: string;
-  date: Date;
-  hours: number;
-  description: string;
-  status: 'pending' | 'approved' | 'disputed';
-  rate: number;
-  amount: number;
-}
-
-interface Review {
-  rating: number;
-  comment: string;
-  skills?: string[];
-  wouldRecommend: boolean;
-  createdAt: Date;
-}
 
 // Collection: messages
 export interface Message {
@@ -303,7 +210,6 @@ export interface Message {
   offer?: {
     amount: number;
     description: string;
-    milestones?: Milestone[];
   };
   
   // Status
@@ -323,9 +229,8 @@ export interface Conversation {
   
   // Context
   context?: {
-    type: 'job' | 'contract' | 'general';
+    type: 'job' | 'general';
     jobId?: string;
-    contractId?: string;
   };
   
   // Last Message
@@ -356,7 +261,6 @@ export interface Transaction {
   toUserId?: string;
   
   // References
-  contractId?: string;
   milestoneId?: string;
   subscriptionId?: string;
   
@@ -401,14 +305,13 @@ export interface Notification {
   // Notification Content
   title: string;
   body: string;
-  type: 'new-job' | 'proposal' | 'message' | 'contract' | 'payment' | 'review' | 'system';
+  type: 'new-job' | 'proposal' | 'message' | 'payment' | 'review' | 'system';
   
   // Navigation
   actionUrl?: string;
   actionData?: {
     jobId?: string;
     proposalId?: string;
-    contractId?: string;
     conversationId?: string;
   };
   
@@ -477,7 +380,65 @@ export interface Analytics {
   // Engagement Metrics
   proposalsSubmitted: number;
   messagesSent: number;
-  contractsCreated: number;
+}
+
+// Collection: projects (freelancer portfolios)
+export interface Project {
+  id: string;
+  
+  // Freelancer Info
+  freelancerId: string;
+  freelancerName: string;
+  freelancerPhotoURL?: string;
+  
+  // Project Details
+  title: string;
+  description: string;
+  category: string;
+  skills: string[];
+  
+  // Images
+  images: string[]; // URLs to project images
+  thumbnailUrl?: string; // Main thumbnail image
+  
+  // Links
+  liveUrl?: string;
+  githubUrl?: string;
+  
+  // Metrics
+  viewCount: number;
+  likeCount: number;
+  
+  // Status
+  isPublished: boolean;
+  isFeatured: boolean;
+  
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt?: Date;
+}
+
+// Collection: verifications (ID verification requests)
+export interface Verification {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  
+  // Document Info
+  documentType: 'passport' | 'driver_license' | 'national_id';
+  documentUrl: string; // Secure storage URL
+  
+  // Status
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string; // Admin who reviewed
+  reviewedAt?: Date;
+  rejectionReason?: string;
+  
+  // Timestamps
+  submittedAt: Date;
+  expiresAt?: Date; // Some IDs have expiration
 }
 
 // Note: The following interfaces were removed as they were unused:

@@ -40,15 +40,18 @@ export const ChatPage: React.FC = () => {
   useEffect(() => {
     if (!user) {
       navigate('/login');
-    } else {
-      loadConversations();
+      return;
     }
+    
+    const unsubscribe = loadConversations();
+    return unsubscribe;
   }, [user, navigate]);
   
   useEffect(() => {
-    if (selectedConversation) {
-      loadMessages(selectedConversation.id);
-    }
+    if (!selectedConversation) return;
+    
+    const unsubscribe = loadMessages(selectedConversation.id);
+    return unsubscribe;
   }, [selectedConversation]);
   
   useEffect(() => {
@@ -60,7 +63,7 @@ export const ChatPage: React.FC = () => {
   };
   
   const loadConversations = () => {
-    if (!user) return;
+    if (!user) return () => {};
     
     const q = query(
       collection(db, 'conversations'),
@@ -80,7 +83,7 @@ export const ChatPage: React.FC = () => {
       setLoading(false);
     });
     
-    return () => unsubscribe();
+    return unsubscribe;
   };
   
   const loadMessages = (conversationId: string) => {
@@ -103,7 +106,7 @@ export const ChatPage: React.FC = () => {
       markMessagesAsRead(conversationId);
     });
     
-    return () => unsubscribe();
+    return unsubscribe;
   };
   
   const markMessagesAsRead = async (conversationId: string) => {

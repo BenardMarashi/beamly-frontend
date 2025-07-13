@@ -94,7 +94,7 @@ const faqs = [
   },
   {
     question: "Can I hire freelancers for long-term projects?",
-    answer: "Absolutely! Beamly supports both short-term projects and long-term engagements. You can set up recurring contracts, retainer agreements, or hourly arrangements for ongoing work. Many clients start with a small project to test compatibility before establishing longer-term working relationships with freelancers."
+    answer: "Absolutely! Beamly supports both short-term projects and long-term engagements. You can set up recurring projects, retainer agreements, or hourly arrangements for ongoing work. Many clients start with a small project to test compatibility before establishing longer-term working relationships with freelancers."
   },
   {
     question: "How secure is the payment system?",

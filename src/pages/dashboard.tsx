@@ -27,9 +27,7 @@ interface RecentProposal {
 
 interface DashboardStats {
   activeJobs: number;
-  totalEarnings: number;
   pendingProposals: number;
-  completionRate: number;
   totalProposals: number;
   acceptedProposals: number;
 }
@@ -42,9 +40,7 @@ const DashboardPage: React.FC = () => {
   const [recentProposals, setRecentProposals] = useState<RecentProposal[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     activeJobs: 0,
-    totalEarnings: 0,
     pendingProposals: 0,
-    completionRate: 0,
     totalProposals: 0,
     acceptedProposals: 0
   });
@@ -76,15 +72,7 @@ const DashboardPage: React.FC = () => {
       }
       
       // Calculate completion rate
-      const completedProjects = userData?.completedProjects || 0;
-      const totalProjects = completedProjects + stats.activeJobs;
-      const completionRate = totalProjects > 0 ? (completedProjects / totalProjects) * 100 : 0;
-      
-      setStats(prev => ({
-        ...prev,
-        completionRate,
-        totalEarnings: userData?.totalEarnings || 0
-      }));
+      // Dashboard stats are now set from the fetched data
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -228,7 +216,7 @@ const DashboardPage: React.FC = () => {
         </div>
         
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card className="glass-effect border-none">
             <CardBody className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -245,33 +233,11 @@ const DashboardPage: React.FC = () => {
           <Card className="glass-effect border-none">
             <CardBody className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <Icon icon="lucide:dollar-sign" className="text-green-400" width={32} />
-                <Chip color="success" size="sm" variant="flat">+12.5%</Chip>
-              </div>
-              <h3 className="text-gray-400 text-sm">Total Earnings</h3>
-              <p className="text-2xl font-bold text-white">${stats.totalEarnings.toLocaleString()}</p>
-            </CardBody>
-          </Card>
-          
-          <Card className="glass-effect border-none">
-            <CardBody className="p-6">
-              <div className="flex items-center justify-between mb-4">
                 <Icon icon="lucide:clock" className="text-yellow-400" width={32} />
                 <Chip color="warning" size="sm" variant="flat">Pending</Chip>
               </div>
               <h3 className="text-gray-400 text-sm">Pending Proposals</h3>
               <p className="text-2xl font-bold text-white">{stats.pendingProposals}</p>
-            </CardBody>
-          </Card>
-          
-          <Card className="glass-effect border-none">
-            <CardBody className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <Icon icon="lucide:trending-up" className="text-purple-400" width={32} />
-                <Chip color="secondary" size="sm" variant="flat">Rate</Chip>
-              </div>
-              <h3 className="text-gray-400 text-sm">Completion Rate</h3>
-              <p className="text-2xl font-bold text-white">{stats.completionRate.toFixed(0)}%</p>
             </CardBody>
           </Card>
         </div>
@@ -337,16 +303,25 @@ const DashboardPage: React.FC = () => {
                       variant="flat"
                       color="primary"
                       startContent={<Icon icon="lucide:search" />}
-                      onClick={() => navigate('/looking-for-work')}
+                      onPress={() => navigate('/looking-for-work')}
                       className="h-auto py-4 flex-col gap-2"
                     >
                       <span>Find Work</span>
                     </Button>
                     <Button
                       variant="flat"
+                      color="secondary"
+                      startContent={<Icon icon="lucide:folder-plus" />}
+                      onPress={() => navigate('/post-project')}
+                      className="h-auto py-4 flex-col gap-2"
+                    >
+                      <span>Post Project</span>
+                    </Button>
+                    <Button
+                      variant="flat"
                       color="success"
                       startContent={<Icon icon="lucide:edit" />}
-                      onClick={() => navigate('/profile/edit')}
+                      onPress={() => navigate('/profile/edit')}
                       className="h-auto py-4 flex-col gap-2"
                     >
                       <span>Edit Profile</span>
@@ -360,7 +335,7 @@ const DashboardPage: React.FC = () => {
                       variant="flat"
                       color="primary"
                       startContent={<Icon icon="lucide:plus" />}
-                      onClick={() => navigate('/post-job')}
+                      onPress={() => navigate('/post-job')}
                       className="h-auto py-4 flex-col gap-2"
                     >
                       <span>Post Job</span>
@@ -369,7 +344,7 @@ const DashboardPage: React.FC = () => {
                       variant="flat"
                       color="secondary"
                       startContent={<Icon icon="lucide:users" />}
-                      onClick={() => navigate('/browse-freelancers')}
+                      onPress={() => navigate('/browse-freelancers')}
                       className="h-auto py-4 flex-col gap-2"
                     >
                       <span>Find Talent</span>
@@ -383,7 +358,7 @@ const DashboardPage: React.FC = () => {
                       variant="flat"
                       color="primary"
                       startContent={<Icon icon="lucide:search" />}
-                      onClick={() => navigate('/looking-for-work')}
+                      onPress={() => navigate('/looking-for-work')}
                       className="h-auto py-4 flex-col gap-2"
                     >
                       <span>Find Work</span>
@@ -392,10 +367,19 @@ const DashboardPage: React.FC = () => {
                       variant="flat"
                       color="secondary"
                       startContent={<Icon icon="lucide:plus" />}
-                      onClick={() => navigate('/post-job')}
+                      onPress={() => navigate('/post-job')}
                       className="h-auto py-4 flex-col gap-2"
                     >
                       <span>Post Job</span>
+                    </Button>
+                    <Button
+                      variant="flat"
+                      color="warning"
+                      startContent={<Icon icon="lucide:folder-plus" />}
+                      onPress={() => navigate('/post-project')}
+                      className="h-auto py-4 flex-col gap-2"
+                    >
+                      <span>Post Project</span>
                     </Button>
                   </>
                 )}
@@ -404,7 +388,7 @@ const DashboardPage: React.FC = () => {
                   variant="flat"
                   color="success"
                   startContent={<Icon icon="lucide:message-square" />}
-                  onClick={() => navigate('/chat')}
+                  onPress={() => navigate('/chat')}
                   className="h-auto py-4 flex-col gap-2"
                 >
                   <span>Messages</span>
@@ -412,19 +396,9 @@ const DashboardPage: React.FC = () => {
                 
                 <Button
                   variant="flat"
-                  color="primary"
-                  startContent={<Icon icon="lucide:file-signature" />}
-                  onClick={() => navigate('/contracts')}
-                  className="h-auto py-4 flex-col gap-2"
-                >
-                  <span>Contracts</span>
-                </Button>
-                
-                <Button
-                  variant="flat"
                   color="secondary"
                   startContent={<Icon icon="lucide:bar-chart" />}
-                  onClick={() => navigate('/analytics')}
+                  onPress={() => navigate('/analytics')}
                   className="h-auto py-4 flex-col gap-2"
                 >
                   <span>Analytics</span>
@@ -434,7 +408,7 @@ const DashboardPage: React.FC = () => {
                   variant="flat"
                   color="warning"
                   startContent={<Icon icon="lucide:user" />}
-                  onClick={() => navigate('/profile/edit')}
+                  onPress={() => navigate('/profile/edit')}
                   className="h-auto py-4 flex-col gap-2"
                 >
                   <span>Edit Profile</span>
@@ -453,6 +427,7 @@ const DashboardPage: React.FC = () => {
                 value={userData.bio ? 50 : 25} 
                 color="warning" 
                 className="mb-4"
+                aria-label="Profile completion progress"
               />
               <p className="text-gray-300 mb-4">
                 A complete profile helps you stand out and attract more opportunities.
@@ -490,7 +465,7 @@ const DashboardPage: React.FC = () => {
               <Button
                 color="primary"
                 fullWidth
-                onClick={() => navigate('/create-profile')}
+                onPress={() => navigate('/create-profile')}
               >
                 Complete Profile
               </Button>

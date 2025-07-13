@@ -42,7 +42,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
       company: "Microsoft",
       price: "$45K - $60K",
       image: "https://img.heroui.chat/image/ai?w=400&h=300&u=microsoft-logo",
-      type: "Contract",
+      type: "Project",
       location: "Hybrid"
     }
   ];

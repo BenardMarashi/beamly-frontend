@@ -42,7 +42,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isDarkMode = true }) => {
 
         <div className="flex items-center gap-3 mb-4">
           <Avatar
-            src={job.clientAvatar || `https://i.pravatar.cc/150?u=${job.clientId}`}
+            src={job.clientPhotoURL || `https://i.pravatar.cc/150?u=${job.clientId}`}
             size="sm"
           />
           <div>

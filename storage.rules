@@ -1,4 +1,7 @@
 rules_version = '2';
+
+// Allow read access on all files for development
+// TODO: Restrict this in production
 service firebase.storage {
   match /b/{bucket}/o {
     // Helper functions
@@ -74,6 +77,13 @@ service firebase.storage {
       allow read: if true; // Public company logos
       allow write: if isAuthenticated() && isImage() && isValidSize();
       allow delete: if isAuthenticated();
+    }
+    
+    // Project images - Temporary public access for CORS fix
+    match /projects/{userId}/{fileName} {
+      allow read: if true; // Public project images
+      allow write: if request.auth != null && isImage() && isValidSize(); // Any authenticated user can write
+      allow delete: if isOwner(userId);
     }
     
     // Temporary uploads (for forms, etc.)

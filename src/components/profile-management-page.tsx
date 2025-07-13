@@ -251,7 +251,10 @@ export const ProfileManagementPage: React.FC<ProfileManagementPageProps> = ({
                   onChange={(e) => setProfileData({ ...profileData, experienceLevel: e.target.value })}
                   variant="bordered"
                   classNames={{
-                    trigger: "bg-white/5"
+                    trigger: "bg-gray-900/50 border-gray-600 text-white",
+                    value: "text-white",
+                    listbox: "bg-gray-900",
+                    popoverContent: "bg-gray-900",
                   }}
                 >
                   <SelectItem key="entry" value="entry">Entry Level</SelectItem>

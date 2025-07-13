@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { 
   Input, 
@@ -26,8 +26,8 @@ export const BrowseFreelancersPage: React.FC = () => {
   const [sortBy, setSortBy] = useState('rating');
   const [freelancers, setFreelancers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const lastDocRef = useRef<DocumentSnapshot | null>(null);
   
   const categories = [
     { value: 'all', label: 'All Categories' },
@@ -40,11 +40,9 @@ export const BrowseFreelancersPage: React.FC = () => {
     { value: 'business', label: 'Business' },
   ];
   
-  useEffect(() => {
-    fetchFreelancers(true);
-  }, [selectedCategory, sortBy]);
-  
-  const fetchFreelancers = async (reset = false) => {
+  const fetchFreelancers = React.useCallback(async (reset = false) => {
+    if (!reset && loading) return; // Prevent multiple simultaneous requests
+    
     setLoading(true);
     try {
       let q = query(
@@ -54,7 +52,10 @@ export const BrowseFreelancersPage: React.FC = () => {
       
       // Add category filter if not 'all'
       if (selectedCategory !== 'all') {
-        q = query(q, where('skills', 'array-contains-any', getCategorySkills(selectedCategory)));
+        const categorySkills = getCategorySkills(selectedCategory);
+        if (categorySkills.length > 0) {
+          q = query(q, where('skills', 'array-contains-any', categorySkills));
+        }
       }
       
       // Add sorting
@@ -68,36 +69,52 @@ export const BrowseFreelancersPage: React.FC = () => {
         case 'newest':
           q = query(q, orderBy('createdAt', 'desc'));
           break;
+        default:
+          q = query(q, orderBy('rating', 'desc'));
       }
       
       // Add pagination
       q = query(q, limit(12));
       
-      if (!reset && lastDoc) {
-        q = query(q, startAfter(lastDoc));
+      if (!reset && lastDocRef.current) {
+        q = query(q, startAfter(lastDocRef.current));
       }
       
       const snapshot = await getDocs(q);
       
       const newFreelancers = snapshot.docs.map(doc => ({
         id: doc.id,
+        displayName: doc.data().displayName || 'Anonymous',
+        photoURL: doc.data().photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.data().displayName || 'User')}&background=0F43EE&color=fff`,
+        bio: doc.data().bio || 'No bio available',
+        rating: doc.data().rating || 0,
+        completedProjects: doc.data().completedProjects || 0,
+        hourlyRate: doc.data().hourlyRate || 0,
+        skills: doc.data().skills || [],
+        isAvailable: doc.data().isAvailable !== false, // Default to true
         ...doc.data()
       }));
       
       if (reset) {
         setFreelancers(newFreelancers);
+        lastDocRef.current = null; // Reset pagination
       } else {
         setFreelancers(prev => [...prev, ...newFreelancers]);
       }
       
-      setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
+      lastDocRef.current = snapshot.docs[snapshot.docs.length - 1] || null;
       setHasMore(snapshot.docs.length === 12);
     } catch (error) {
       console.error('Error fetching freelancers:', error);
+      // Keep existing data on error, don't clear it
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, sortBy]);
+  
+  useEffect(() => {
+    fetchFreelancers(true);
+  }, [fetchFreelancers]);
   
   const getCategorySkills = (category: string): string[] => {
     const skillsMap: Record<string, string[]> = {
@@ -124,26 +141,17 @@ export const BrowseFreelancersPage: React.FC = () => {
     );
   });
   
-  const handleFreelancerClick = (freelancerId: string) => {
+  const handleFreelancerClick = React.useCallback((freelancerId: string) => {
+    console.log('Navigating to freelancer profile:', freelancerId);
     navigate(`/freelancer/${freelancerId}`);
-  };
+  }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0d1a] to-[#0f1629] py-8">
-      <div className="container mx-auto px-6">
+    <div className="container mx-auto px-4 py-6 pb-20">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-beamly-primary to-beamly-secondary bg-clip-text text-transparent mb-2">
-            {t('browseFreelancers.title')}
-          </h1>
-          <p className="text-gray-300">
-            {t('browseFreelancers.subtitle')}
-          </p>
-        </motion.div>
+        <h1 className="text-2xl font-bold mb-2 text-white">Browse Freelancers</h1>
+        <p className="text-gray-300 mb-6">Find talented professionals for your projects</p>
         
         {/* Search and Filters */}
         <div className="glass-effect p-6 rounded-xl mb-8">
@@ -161,8 +169,14 @@ export const BrowseFreelancersPage: React.FC = () => {
               variant="bordered"
               selectedKeys={[selectedCategory]}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="md:w-48 bg-white/10"
+              className="md:w-48"
               aria-label="Filter by category"
+              classNames={{
+                trigger: "bg-gray-900/50 border-gray-600 text-white",
+                value: "text-white",
+                listbox: "bg-gray-900",
+                popoverContent: "bg-gray-900",
+              }}
             >
               {categories.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value}>
@@ -174,8 +188,14 @@ export const BrowseFreelancersPage: React.FC = () => {
               variant="bordered"
               selectedKeys={[sortBy]}
               onChange={(e) => setSortBy(e.target.value)}
-              className="md:w-48 bg-white/10"
+              className="md:w-48"
               aria-label="Sort freelancers by"
+              classNames={{
+                trigger: "bg-gray-900/50 border-gray-600 text-white",
+                value: "text-white",
+                listbox: "bg-gray-900",
+                popoverContent: "bg-gray-900",
+              }}
             >
               <SelectItem key="rating" value="rating">Highest Rated</SelectItem>
               <SelectItem key="projects" value="projects">Most Projects</SelectItem>
@@ -186,10 +206,10 @@ export const BrowseFreelancersPage: React.FC = () => {
         
         {/* Freelancers Grid */}
         {loading && freelancers.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, index) => (
               <Card key={index} className="glass-card">
-                <CardBody className="p-4">
+                <CardBody className="p-5">
                   <Skeleton className="rounded-full w-16 h-16 mx-auto mb-3" />
                   <Skeleton className="h-4 w-3/4 mx-auto mb-2" />
                   <Skeleton className="h-3 w-1/2 mx-auto" />
@@ -198,75 +218,74 @@ export const BrowseFreelancersPage: React.FC = () => {
             ))}
           </div>
         ) : filteredFreelancers.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredFreelancers.map((freelancer) => (
-              <motion.div
-                key={freelancer.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.3 }}
-              >
-                <Card 
-                  className="glass-card hover:scale-105 transition-transform cursor-pointer"
-                  onClick={() => handleFreelancerClick(freelancer.id)}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredFreelancers.map((freelancer, index) => {
+              const cardClass = `${index % 2 === 0 ? 'glass-card' : 'yellow-glass'} border-none card-hover cursor-pointer`;
+              return (
+                <motion.div
+                  key={freelancer.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.5) }}
                 >
-                  <CardBody className="p-4">
-                    <div className="text-center">
-                      <Avatar
-                        src={freelancer.photoURL}
+                  <Card 
+                    className={cardClass}
+                    isPressable
+                    onPress={() => handleFreelancerClick(freelancer.id)}
+                  >
+                  <CardBody className="p-5">
+                    <div className="flex items-center gap-4">
+                      <Avatar 
+                        src={freelancer.photoURL} 
                         name={freelancer.displayName}
-                        className="w-16 h-16 mx-auto mb-3"
+                        className="w-16 h-16"
                       />
-                      <h3 className="font-semibold text-white mb-1">
-                        {freelancer.displayName || 'Unnamed User'}
-                      </h3>
-                      <p className="text-sm text-gray-400 mb-3 line-clamp-2">
-                        {freelancer.bio || 'No bio available'}
-                      </p>
-                      
-                      {/* Rating */}
-                      <div className="flex items-center justify-center gap-1 mb-3">
-                        <Icon icon="lucide:star" className="text-beamly-secondary text-sm" />
-                        <span className="text-white text-sm">
-                          {freelancer.rating || '0.0'}
-                        </span>
-                        <span className="text-gray-400 text-xs">
-                          ({freelancer.completedProjects || 0} projects)
-                        </span>
+                      <div>
+                        <h3 className="font-semibold text-white">{freelancer.displayName || 'Unnamed User'}</h3>
+                        <p className="text-gray-400 text-sm">{freelancer.bio || 'No bio available'}</p>
+                        <div className="flex items-center mt-1">
+                          <Icon icon="lucide:star" className="text-beamly-secondary mr-1" />
+                          <span className="text-white">{freelancer.rating || '0.0'}</span>
+                          <span className="text-gray-400 text-xs ml-2">({freelancer.completedProjects || 0} projects)</span>
+                        </div>
                       </div>
-                      
-                      {/* Skills */}
-                      <div className="flex flex-wrap gap-1 justify-center mb-3">
-                        {freelancer.skills?.slice(0, 3).map((skill: string, index: number) => (
-                          <Chip
-                            key={index}
+                    </div>
+                    
+                    <div className="mt-4">
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {freelancer.skills?.slice(0, 3).map((skill: string, i: number) => (
+                          <Chip 
+                            key={i} 
                             size="sm"
-                            variant="flat"
-                            className="bg-beamly-primary/20 text-beamly-primary"
+                            className="bg-white/10 text-white"
                           >
                             {skill}
                           </Chip>
                         ))}
-                        {freelancer.skills?.length > 3 && (
-                          <Chip
-                            size="sm"
-                            variant="flat"
-                            className="bg-gray-700/50 text-gray-300"
-                          >
-                            +{freelancer.skills.length - 3}
-                          </Chip>
-                        )}
                       </div>
                       
-                      {/* Hourly Rate */}
-                      {freelancer.hourlyRate && (
-                        <div className="text-center">
-                          <span className="text-beamly-secondary font-semibold">
-                            ${freelancer.hourlyRate}/hr
-                          </span>
+                      {/* Hourly Rate and View Profile Button */}
+                      <div className="flex justify-between items-center mt-4">
+                        <div>
+                          {freelancer.hourlyRate && (
+                            <span className="text-beamly-secondary font-bold">
+                              ${freelancer.hourlyRate}
+                            </span>
+                          )}
+                          {freelancer.hourlyRate && (
+                            <span className="text-gray-400 text-xs ml-1">/ hr</span>
+                          )}
                         </div>
-                      )}
+                        <div
+                          className="px-3 py-1 bg-beamly-secondary text-beamly-third text-sm font-medium rounded-lg hover:bg-beamly-secondary/80 transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFreelancerClick(freelancer.id);
+                          }}
+                        >
+                          View Profile
+                        </div>
+                      </div>
                       
                       {/* Availability Badge */}
                       {freelancer.isAvailable && (
@@ -284,7 +303,8 @@ export const BrowseFreelancersPage: React.FC = () => {
                   </CardBody>
                 </Card>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-12">
@@ -311,3 +331,5 @@ export const BrowseFreelancersPage: React.FC = () => {
     </div>
   );
 };
+
+export default BrowseFreelancersPage;

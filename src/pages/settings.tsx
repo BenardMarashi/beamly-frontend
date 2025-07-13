@@ -183,6 +183,12 @@ const SettingsPage: React.FC = () => {
                   className="w-40"
                   variant="bordered"
                   aria-label={t('settings.appearance.toggleTheme')}
+                  classNames={{
+                    trigger: "bg-gray-900/50 border-gray-600 text-white",
+                    value: "text-white",
+                    listbox: "bg-gray-900",
+                    popoverContent: "bg-gray-900",
+                  }}
                 >
                   <SelectItem key="light" value="light">
                     {t('settings.appearance.light')}
@@ -207,6 +213,12 @@ const SettingsPage: React.FC = () => {
                   className="w-40"
                   variant="bordered"
                   aria-label={t('settings.language.select')}
+                  classNames={{
+                    trigger: "bg-gray-900/50 border-gray-600 text-white",
+                    value: "text-white",
+                    listbox: "bg-gray-900",
+                    popoverContent: "bg-gray-900",
+                  }}
                 >
                   <SelectItem key="en" value="en">
                     {t('settings.language.english')}
@@ -300,6 +312,12 @@ const SettingsPage: React.FC = () => {
                   onSelectionChange={(keys) => updateSetting('profileVisibility', Array.from(keys)[0])}
                   className="w-40"
                   variant="bordered"
+                  classNames={{
+                    trigger: "bg-gray-900/50 border-gray-600 text-white",
+                    value: "text-white",
+                    listbox: "bg-gray-900",
+                    popoverContent: "bg-gray-900",
+                  }}
                 >
                   <SelectItem key="public" value="public">Public</SelectItem>
                   <SelectItem key="clients-only" value="clients-only">Clients Only</SelectItem>
