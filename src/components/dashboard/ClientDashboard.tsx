@@ -280,12 +280,12 @@ export const ClientDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode 
         <Card 
           isPressable
           className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
-          onPress={() => navigate('/contracts')}
+          onPress={() => navigate('/messages')}
         >
           <CardBody className="text-center p-6">
-            <Icon icon="lucide:file-text" className="text-4xl text-secondary mb-3" />
-            <h4 className="font-semibold">Manage Contracts</h4>
-            <p className="text-sm text-gray-500 mt-1">View active contracts</p>
+            <Icon icon="lucide:message-circle" className="text-4xl text-secondary mb-3" />
+            <h4 className="font-semibold">Messages</h4>
+            <p className="text-sm text-gray-500 mt-1">Chat with freelancers</p>
           </CardBody>
         </Card>
         

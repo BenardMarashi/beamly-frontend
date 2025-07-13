@@ -16,7 +16,6 @@ export const CreateProfilePage: React.FC = () => {
   const [formData, setFormData] = useState({
     displayName: userData?.displayName || '',
     bio: userData?.bio || '',
-    location: userData?.location || '',
     skills: userData?.skills || [],
     hourlyRate: userData?.hourlyRate || 0,
     portfolio: userData?.portfolio || '',
@@ -87,7 +86,7 @@ export const CreateProfilePage: React.FC = () => {
     }
     
     // Validate required fields
-    if (!formData.displayName || !formData.bio || !formData.location) {
+    if (!formData.displayName || !formData.bio) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -160,17 +159,6 @@ export const CreateProfilePage: React.FC = () => {
                 />
                 
                 <Input
-                  label="Location"
-                  placeholder="City, Country"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  variant="bordered"
-                  className="text-white"
-                  startContent={<Icon icon="lucide:map-pin" className="text-gray-400" />}
-                  isRequired
-                />
-                
-                <Input
                   label="Portfolio Link (Optional)"
                   placeholder="https://your-portfolio.com"
                   value={formData.portfolio}
@@ -203,8 +191,8 @@ export const CreateProfilePage: React.FC = () => {
                       type="button"
                       color="secondary"
                       isIconOnly
-                      onClick={handleAddSkill}
-                      disabled={!currentSkill.trim() || formData.skills.length >= 10}
+                      onPress={handleAddSkill}
+                      isDisabled={!currentSkill.trim() || formData.skills.length >= 10}
                     >
                       <Icon icon="lucide:plus" />
                     </Button>
@@ -235,7 +223,12 @@ export const CreateProfilePage: React.FC = () => {
                     setFormData({ ...formData, experienceLevel: selected as 'entry' | 'intermediate' | 'expert' });
                   }}
                   variant="bordered"
-                  className="text-white"
+                  classNames={{
+                    trigger: "bg-gray-900/50 border-gray-600 text-white",
+                    value: "text-white",
+                    listbox: "bg-gray-900",
+                    popoverContent: "bg-gray-900",
+                  }}
                 >
                   {experienceLevels.map(level => (
                     <SelectItem key={level.value} value={level.value} className="text-white">
@@ -279,8 +272,8 @@ export const CreateProfilePage: React.FC = () => {
                     type="button"
                     color="secondary"
                     isIconOnly
-                    onClick={handleAddLanguage}
-                    disabled={!currentLanguage.trim() || formData.languages.length >= 5}
+                    onPress={handleAddLanguage}
+                    isDisabled={!currentLanguage.trim() || formData.languages.length >= 5}
                   >
                     <Icon icon="lucide:plus" />
                   </Button>
@@ -307,7 +300,7 @@ export const CreateProfilePage: React.FC = () => {
               type="button"
               variant="bordered"
               className="flex-1"
-              onClick={() => navigate('/dashboard')}
+              onPress={() => navigate('/dashboard')}
             >
               Cancel
             </Button>
@@ -325,3 +318,5 @@ export const CreateProfilePage: React.FC = () => {
     </div>
   );
 };
+
+export default CreateProfilePage;

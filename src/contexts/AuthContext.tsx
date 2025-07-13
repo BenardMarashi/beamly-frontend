@@ -12,6 +12,7 @@ interface AuthContextType {
   isClient: boolean;
   canPostJobs: boolean;
   canApplyToJobs: boolean;
+  canPostProjects: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   isClient: false,
   canPostJobs: false,
   canApplyToJobs: false,
+  canPostProjects: false,
 });
 
 export const useAuth = () => {
@@ -41,8 +43,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set persistence to LOCAL (persists even after browser close)
     setPersistence(auth, browserLocalPersistence).catch(console.error);
 
+    let unsubscribeUserData: (() => void) | null = null;
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      
+      // Clean up previous user data subscription
+      if (unsubscribeUserData) {
+        unsubscribeUserData();
+        unsubscribeUserData = null;
+      }
       
       if (!firebaseUser) {
         setUserData(null);
@@ -52,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Subscribe to user data changes
       const userDocRef = doc(db, 'users', firebaseUser.uid);
-      const unsubscribeUserData = onSnapshot(userDocRef, (doc) => {
+      unsubscribeUserData = onSnapshot(userDocRef, (doc) => {
         if (doc.exists()) {
           const data = doc.data();
           setUserData({
@@ -65,7 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             bio: data.bio || '',
             skills: data.skills || [],
             hourlyRate: data.hourlyRate || 0,
-            location: data.location || '',
             companyName: data.companyName || '',
             isAvailable: data.isAvailable !== undefined ? data.isAvailable : true,
             portfolio: data.portfolio || '',
@@ -73,8 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             languages: data.languages || ['English'],
             rating: data.rating || 0,
             completedProjects: data.completedProjects || 0,
-            totalEarnings: data.totalEarnings || 0,
-            totalSpent: data.totalSpent || 0,
             activeJobs: data.activeJobs || 0,
             industry: data.industry || '',
             createdAt: data.createdAt?.toDate() || new Date(),
@@ -92,11 +99,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setLoading(false);
       });
-
-      return () => unsubscribeUserData();
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeUserData) {
+        unsubscribeUserData();
+      }
+    };
   }, []);
 
   const value = {
@@ -107,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isClient: userData?.userType === 'client' || userData?.userType === 'both',
     canPostJobs: userData?.userType === 'client' || userData?.userType === 'both',
     canApplyToJobs: userData?.userType === 'freelancer' || userData?.userType === 'both',
+    canPostProjects: userData?.userType === 'freelancer' || userData?.userType === 'both',
   };
 
   return (

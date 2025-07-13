@@ -7,13 +7,13 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 interface AnalyticsData {
-  totalEarnings: number;
+  totalEarnings?: number; // Only for freelancers
   totalJobs: number;
   completedJobs: number;
   avgRating: number;
   totalProposals: number;
   acceptedProposals: number;
-  monthlyEarnings: { month: string; amount: number }[];
+  monthlyEarnings?: { month: string; amount: number }[]; // Only for freelancers
   categoryBreakdown: { name: string; value: number }[];
 }
 
@@ -22,13 +22,11 @@ const AnalyticsPage: React.FC = () => {
   const [timeRange, setTimeRange] = useState('last30days');
   const [loading, setLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
-    totalEarnings: 0,
     totalJobs: 0,
     completedJobs: 0,
     avgRating: 0,
     totalProposals: 0,
     acceptedProposals: 0,
-    monthlyEarnings: [],
     categoryBreakdown: []
   });
 
@@ -51,24 +49,7 @@ const AnalyticsPage: React.FC = () => {
       const categoryMap: { [key: string]: number } = {};
 
       if (userData.userType === 'freelancer' || userData.userType === 'both') {
-        // Fetch freelancer contracts
-        const contractsQuery = query(
-          collection(db, 'contracts'),
-          where('freelancerId', '==', user.uid),
-          orderBy('createdAt', 'desc')
-        );
-        
-        const contractsSnapshot = await getDocs(contractsQuery);
-        contractsSnapshot.forEach((doc) => {
-          const contract = doc.data();
-          if (contract.status === 'completed') {
-            totalEarnings += contract.totalPaid || 0;
-            completedJobs++;
-          }
-          totalJobs++;
-        });
-
-        // Fetch proposals
+        // Fetch all freelancer proposals
         const proposalsQuery = query(
           collection(db, 'proposals'),
           where('freelancerId', '==', user.uid),
@@ -81,8 +62,10 @@ const AnalyticsPage: React.FC = () => {
           totalProposals++;
           if (proposal.status === 'accepted') {
             acceptedProposals++;
+            completedJobs++;
           }
         });
+        totalJobs = completedJobs;
       }
 
       if (userData.userType === 'client' || userData.userType === 'both') {
@@ -118,13 +101,15 @@ const AnalyticsPage: React.FC = () => {
       const monthlyEarnings = generateMonthlyData();
 
       setAnalyticsData({
-        totalEarnings: userData.userType === 'client' ? userData.totalSpent || 0 : totalEarnings,
+        ...(userData.userType !== 'client' && { 
+          totalEarnings,
+          monthlyEarnings 
+        }),
         totalJobs: userData.userType === 'client' ? totalJobs : userData.completedProjects || 0,
         completedJobs: userData.userType === 'client' ? completedJobs : userData.completedProjects || 0,
         avgRating: userData.rating || 0,
         totalProposals,
         acceptedProposals: userData.userType === 'freelancer' ? acceptedProposals : 0,
-        monthlyEarnings,
         categoryBreakdown
       });
     } catch (error) {
@@ -176,6 +161,12 @@ const AnalyticsPage: React.FC = () => {
             onSelectionChange={(keys) => setTimeRange(Array.from(keys)[0] as string)}
             className="w-48"
             variant="bordered"
+            classNames={{
+              trigger: "bg-gray-900/50 border-gray-600 text-white",
+              value: "text-white",
+              listbox: "bg-gray-900",
+              popoverContent: "bg-gray-900",
+            }}
           >
             <SelectItem key="last7days" value="last7days">Last 7 days</SelectItem>
             <SelectItem key="last30days" value="last30days">Last 30 days</SelectItem>
@@ -186,16 +177,18 @@ const AnalyticsPage: React.FC = () => {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="glass-effect border-none">
-            <CardBody className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <Icon icon="lucide:dollar-sign" className="text-green-400" width={32} />
-                <span className="text-green-400 text-sm">+12.5%</span>
-              </div>
-              <h3 className="text-gray-400 text-sm">Total Earnings</h3>
-              <p className="text-2xl font-bold text-white">${analyticsData.totalEarnings.toLocaleString()}</p>
-            </CardBody>
-          </Card>
+          {analyticsData.totalEarnings !== undefined && (
+            <Card className="glass-effect border-none">
+              <CardBody className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <Icon icon="lucide:dollar-sign" className="text-green-400" width={32} />
+                  <span className="text-green-400 text-sm">+12.5%</span>
+                </div>
+                <h3 className="text-gray-400 text-sm">Total Earnings</h3>
+                <p className="text-2xl font-bold text-white">${analyticsData.totalEarnings.toLocaleString()}</p>
+              </CardBody>
+            </Card>
+          )}
 
           <Card className="glass-effect border-none">
             <CardBody className="p-6">
@@ -242,27 +235,29 @@ const AnalyticsPage: React.FC = () => {
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Earnings Chart */}
-          <Card className="glass-effect border-none">
-            <CardBody className="p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Earnings Over Time</h3>
-              <div className="h-64 flex items-center justify-center bg-gray-800/50 rounded-lg">
-                <div className="text-center">
-                  <Icon icon="lucide:line-chart" className="text-gray-400 mb-2" width={48} />
-                  <p className="text-gray-400">Chart visualization available in pro version</p>
-                </div>
-              </div>
-              {/* Display data as list for now */}
-              <div className="mt-4 space-y-2">
-                {analyticsData.monthlyEarnings.slice(0, 3).map((data) => (
-                  <div key={data.month} className="flex justify-between text-sm">
-                    <span className="text-gray-400">{data.month}</span>
-                    <span className="text-white">${data.amount}</span>
+          {/* Earnings Chart - Only for freelancers */}
+          {analyticsData.monthlyEarnings && (
+            <Card className="glass-effect border-none">
+              <CardBody className="p-6">
+                <h3 className="text-xl font-semibold text-white mb-4">Earnings Over Time</h3>
+                <div className="h-64 flex items-center justify-center bg-gray-800/50 rounded-lg">
+                  <div className="text-center">
+                    <Icon icon="lucide:line-chart" className="text-gray-400 mb-2" width={48} />
+                    <p className="text-gray-400">Chart visualization available in pro version</p>
                   </div>
-                ))}
-              </div>
-            </CardBody>
-          </Card>
+                </div>
+                {/* Display data as list for now */}
+                <div className="mt-4 space-y-2">
+                  {analyticsData.monthlyEarnings.slice(0, 3).map((data) => (
+                    <div key={data.month} className="flex justify-between text-sm">
+                      <span className="text-gray-400">{data.month}</span>
+                      <span className="text-white">${data.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+          )}
 
           {/* Category Breakdown */}
           <Card className="glass-effect border-none">
@@ -279,6 +274,7 @@ const AnalyticsPage: React.FC = () => {
                       value={(category.value / analyticsData.totalJobs) * 100} 
                       color={index === 0 ? "primary" : index === 1 ? "secondary" : "success"}
                       size="sm"
+                      aria-label={`${category.name} completion percentage`}
                     />
                   </div>
                 ))}
@@ -311,6 +307,7 @@ const AnalyticsPage: React.FC = () => {
                       : 0} 
                     color="success"
                     className="mb-4"
+                    aria-label="Proposal acceptance rate"
                   />
                 </div>
                 <div className="grid grid-cols-3 gap-4 text-center">

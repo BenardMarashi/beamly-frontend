@@ -123,6 +123,12 @@ export const ContactUsPage: React.FC = () => {
                     selectedKeys={[formData.category]}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     variant="bordered"
+                    classNames={{
+                      trigger: "bg-gray-900/50 border-gray-600 text-white",
+                      value: "text-white",
+                      listbox: "bg-gray-900",
+                      popoverContent: "bg-gray-900",
+                    }}
                   >
                     {contactCategories.map((category) => (
                       <SelectItem key={category.value} textValue={category.label}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardBody, Button, Chip, Progress, Spinner } from '@heroui/react';
+import { Card, CardBody, Button, Chip, Spinner } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
@@ -16,25 +16,16 @@ interface Proposal {
   createdAt: any;
 }
 
-interface Contract {
-  id: string;
-  title: string;
-  clientName: string;
-  rate: number;
-  status: string;
-}
 
 export const FreelancerDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode }) => {
   const navigate = useNavigate();
   const { user, canApplyToJobs, userData } = useAuth();
   const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     activeProposals: 0,
-    activeContracts: 0,
-    completedJobs: 0,
-    totalEarnings: 0
+    completedProjects: 0,
+    totalProjects: 0
   });
 
   const isProfileComplete = userData?.profileCompleted || false;
@@ -63,28 +54,15 @@ export const FreelancerDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkM
       } as Proposal));
       setProposals(proposalsData);
 
-      // Fetch active contracts
-      const contractsQuery = query(
-        collection(db, 'contracts'),
-        where('freelancerId', '==', user.uid),
-        where('status', '==', 'active'),
-        limit(5)
-      );
-      const contractsSnapshot = await getDocs(contractsQuery);
-      const contractsData = contractsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Contract));
-      setContracts(contractsData);
+      // TODO: Fetch freelancer's projects when implemented
 
       // Calculate stats
       const activeProposalsCount = proposalsData.filter(p => p.status === 'pending').length;
       
       setStats({
         activeProposals: activeProposalsCount,
-        activeContracts: contractsData.length,
-        completedJobs: 0, // This would come from completed contracts
-        totalEarnings: 0 // This would come from earnings calculation
+        completedProjects: 0, // TODO: Fetch from projects collection
+        totalProjects: 0 // TODO: Fetch from projects collection
       });
     } catch (error) {
       console.error('Error fetching freelancer data:', error);
@@ -131,10 +109,10 @@ export const FreelancerDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkM
           <CardBody className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Active Contracts</p>
-                <p className="text-2xl font-semibold">{stats.activeContracts}</p>
+                <p className="text-sm text-gray-500">My Projects</p>
+                <p className="text-2xl font-semibold">{stats.totalProjects}</p>
               </div>
-              <Icon icon="lucide:file-check" className="text-3xl text-green-500" />
+              <Icon icon="lucide:folder" className="text-3xl text-green-500" />
             </div>
           </CardBody>
         </Card>
@@ -143,22 +121,10 @@ export const FreelancerDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkM
           <CardBody className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Completed Jobs</p>
-                <p className="text-2xl font-semibold">{stats.completedJobs}</p>
+                <p className="text-sm text-gray-500">Completed Projects</p>
+                <p className="text-2xl font-semibold">{stats.completedProjects}</p>
               </div>
               <Icon icon="lucide:check-circle" className="text-3xl text-purple-500" />
-            </div>
-          </CardBody>
-        </Card>
-        
-        <Card className={isDarkMode ? 'glass-effect' : ''}>
-          <CardBody className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Earnings</p>
-                <p className="text-2xl font-semibold">${stats.totalEarnings}</p>
-              </div>
-              <Icon icon="lucide:dollar-sign" className="text-3xl text-yellow-500" />
             </div>
           </CardBody>
         </Card>
@@ -245,37 +211,44 @@ export const FreelancerDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkM
         </CardBody>
       </Card>
 
-      {/* Active Contracts */}
-      {contracts.length > 0 && (
-        <Card className={isDarkMode ? 'glass-effect' : ''}>
-          <CardBody className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Active Contracts</h3>
-            <div className="space-y-3">
-              {contracts.map((contract) => (
-                <div
-                  key={contract.id}
-                  className={`p-4 rounded-lg border ${
-                    isDarkMode ? 'border-gray-700' : 'border-gray-200'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium">{contract.title}</h4>
-                    <span className="text-sm font-semibold">${contract.rate}/hr</span>
-                  </div>
-                  <p className="text-sm text-gray-500 mb-2">Client: {contract.clientName}</p>
-                  <Progress
-                    size="sm"
-                    value={60}
-                    color="primary"
-                    className="mb-1"
-                  />
-                  <p className="text-xs text-gray-500">60% Complete</p>
-                </div>
-              ))}
-            </div>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card 
+          isPressable
+          className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+          onPress={() => navigate('/post-project')}
+        >
+          <CardBody className="text-center p-6">
+            <Icon icon="lucide:plus-circle" className="text-4xl text-secondary mb-3" />
+            <h4 className="font-semibold">Post Project</h4>
+            <p className="text-sm text-gray-500 mt-1">Showcase your work</p>
           </CardBody>
         </Card>
-      )}
+        
+        <Card 
+          isPressable
+          className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+          onPress={() => navigate('/looking-for-work')}
+        >
+          <CardBody className="text-center p-6">
+            <Icon icon="lucide:search" className="text-4xl text-secondary mb-3" />
+            <h4 className="font-semibold">Find Jobs</h4>
+            <p className="text-sm text-gray-500 mt-1">Browse available jobs</p>
+          </CardBody>
+        </Card>
+        
+        <Card 
+          isPressable
+          className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+          onPress={() => navigate('/messages')}
+        >
+          <CardBody className="text-center p-6">
+            <Icon icon="lucide:message-circle" className="text-4xl text-secondary mb-3" />
+            <h4 className="font-semibold">Messages</h4>
+            <p className="text-sm text-gray-500 mt-1">Chat with clients</p>
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 };

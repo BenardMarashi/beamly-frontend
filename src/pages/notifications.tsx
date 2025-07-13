@@ -10,7 +10,7 @@ import { toast } from 'react-hot-toast';
 
 interface Notification {
   id: string;
-  type: 'job_posted' | 'proposal_received' | 'proposal_accepted' | 'proposal_rejected' | 'message' | 'contract_started' | 'payment_received';
+  type: 'job_posted' | 'proposal_received' | 'proposal_accepted' | 'proposal_rejected' | 'message' | 'payment_received';
   title: string;
   message: string;
   read: boolean;
@@ -139,8 +139,6 @@ export const NotificationsPage: React.FC = () => {
         return 'lucide:file-text';
       case 'message':
         return 'lucide:message-square';
-      case 'contract_started':
-        return 'lucide:file-signature';
       case 'payment_received':
         return 'lucide:dollar-sign';
       default:
@@ -157,8 +155,6 @@ export const NotificationsPage: React.FC = () => {
         return 'danger';
       case 'message':
         return 'primary';
-      case 'contract_started':
-        return 'secondary';
       default:
         return 'default';
     }

@@ -53,18 +53,6 @@ service cloud.firestore {
       allow delete: if false;
     }
     
-    // Contracts collection
-    match /contracts/{contractId} {
-      allow read: if isAuthenticated() && 
-        (resource.data.clientId == request.auth.uid || 
-         resource.data.freelancerId == request.auth.uid);
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && 
-        (resource.data.clientId == request.auth.uid || 
-         resource.data.freelancerId == request.auth.uid);
-      allow delete: if false;
-    }
-    
     // Conversations collection
     match /conversations/{conversationId} {
       allow read: if isAuthenticated() && 

@@ -109,32 +109,30 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+      <div className="container mx-auto max-w-7xl px-4 py-8">
         <PageHeader 
           title="Loading..."
           subtitle="Please wait while we fetch the job details"
         />
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Card className="glass-effect">
-                <CardBody className="space-y-4">
-                  <Skeleton className="h-8 w-3/4 rounded-lg" />
-                  <Skeleton className="h-4 w-full rounded-lg" />
-                  <Skeleton className="h-4 w-full rounded-lg" />
-                  <Skeleton className="h-4 w-2/3 rounded-lg" />
-                </CardBody>
-              </Card>
-            </div>
-            <div>
-              <Card className="glass-effect">
-                <CardBody className="space-y-4">
-                  <Skeleton className="h-6 w-1/2 rounded-lg" />
-                  <Skeleton className="h-10 w-full rounded-lg" />
-                  <Skeleton className="h-4 w-3/4 rounded-lg" />
-                </CardBody>
-              </Card>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card className="glass-effect">
+              <CardBody className="space-y-4">
+                <Skeleton className="h-8 w-3/4 rounded-lg" />
+                <Skeleton className="h-4 w-full rounded-lg" />
+                <Skeleton className="h-4 w-full rounded-lg" />
+                <Skeleton className="h-4 w-2/3 rounded-lg" />
+              </CardBody>
+            </Card>
+          </div>
+          <div>
+            <Card className="glass-effect">
+              <CardBody className="space-y-4">
+                <Skeleton className="h-6 w-1/2 rounded-lg" />
+                <Skeleton className="h-10 w-full rounded-lg" />
+                <Skeleton className="h-4 w-3/4 rounded-lg" />
+              </CardBody>
+            </Card>
           </div>
         </div>
       </div>
@@ -143,12 +141,12 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
 
   if (!job) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+      <div className="container mx-auto max-w-7xl px-4 py-8">
         <PageHeader 
           title="Job Not Found"
           subtitle="The job you're looking for doesn't exist or has been removed"
         />
-        <div className="container mx-auto px-4 py-8 text-center">
+        <div className="text-center">
           <Button 
             color="secondary"
             onPress={() => navigate('/looking-for-work')}
@@ -161,8 +159,7 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto max-w-7xl px-4 py-8">
         <Breadcrumbs className="mb-6">
           <BreadcrumbItem onPress={() => navigate('/')}>Home</BreadcrumbItem>
           <BreadcrumbItem onPress={() => navigate('/looking-for-work')}>Jobs</BreadcrumbItem>
@@ -310,7 +307,6 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
             </Card>
           </div>
         </div>
-      </div>
     </div>
   );
 };

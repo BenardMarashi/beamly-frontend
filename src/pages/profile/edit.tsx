@@ -8,6 +8,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
+import { VerificationSection } from '../../components/profile/VerificationSection';
 
 export const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,7 +19,6 @@ export const EditProfilePage: React.FC = () => {
   const [profileData, setProfileData] = useState({
     displayName: userData?.displayName || '',
     bio: userData?.bio || '',
-    location: userData?.location || '',
     skills: userData?.skills || [],
     hourlyRate: userData?.hourlyRate || 0,
     portfolio: userData?.portfolio || '',
@@ -137,7 +137,7 @@ export const EditProfilePage: React.FC = () => {
     e.preventDefault();
     
     // Validate required fields
-    if (!profileData.displayName || !profileData.location) {
+    if (!profileData.displayName) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -153,7 +153,6 @@ export const EditProfilePage: React.FC = () => {
       const updateData: any = {
         displayName: profileData.displayName,
         bio: profileData.bio,
-        location: profileData.location,
         updatedAt: serverTimestamp()
       };
       
@@ -261,15 +260,6 @@ export const EditProfilePage: React.FC = () => {
                   minRows={4}
                 />
                 
-                <Input
-                  label="Location *"
-                  value={profileData.location}
-                  onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                  variant="bordered"
-                  className="text-white"
-                  startContent={<Icon icon="lucide:map-pin" className="text-gray-400" />}
-                  isRequired
-                />
               </div>
             </CardBody>
           </Card>
@@ -329,7 +319,12 @@ export const EditProfilePage: React.FC = () => {
                         setProfileData({ ...profileData, experienceLevel: value as any });
                       }}
                       variant="bordered"
-                      className="text-white"
+                      classNames={{
+                        trigger: "bg-gray-900/50 border-gray-600 text-white",
+                        value: "text-white",
+                        listbox: "bg-gray-900",
+                        popoverContent: "bg-gray-900",
+                      }}
                     >
                       {experienceLevels.map(level => (
                         <SelectItem key={level.value} value={level.value}>
@@ -441,7 +436,12 @@ export const EditProfilePage: React.FC = () => {
                       setProfileData({ ...profileData, industry: value });
                     }}
                     variant="bordered"
-                    className="text-white"
+                    classNames={{
+                      trigger: "bg-gray-900/50 border-gray-600 text-white",
+                      value: "text-white",
+                      listbox: "bg-gray-900",
+                      popoverContent: "bg-gray-900",
+                    }}
                   >
                     {industries.map(industry => (
                       <SelectItem key={industry.value} value={industry.value}>
@@ -453,6 +453,9 @@ export const EditProfilePage: React.FC = () => {
               </CardBody>
             </Card>
           )}
+          
+          {/* Identity Verification */}
+          <VerificationSection userData={userData} />
           
           {/* Action Buttons */}
           <div className="flex gap-4">

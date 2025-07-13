@@ -14,7 +14,6 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Loading styles -->
     <style>
       body {
         margin: 0;
@@ -23,95 +22,12 @@
           sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-      }
-      
-      /* Loading screen styles */
-      #loading-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: #ffffff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        transition: opacity 0.3s ease-out;
-      }
-      
-      #loading-screen.fade-out {
-        opacity: 0;
-        pointer-events: none;
-      }
-      
-      .spinner {
-        width: 40px;
-        height: 40px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #3b82f6;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      
-      /* Hide root until React is ready */
-      #root:empty {
-        display: none;
+        background-color: #000;
       }
     </style>
   </head>
   <body>
-    <!-- Loading screen -->
-    <div id="loading-screen">
-      <div class="spinner"></div>
-    </div>
-    
-    <!-- React root -->
     <div id="root"></div>
-    
-    <!-- Module script -->
     <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Loading screen handler -->
-    <script>
-      // Use DOMContentLoaded to ensure DOM is ready
-      document.addEventListener('DOMContentLoaded', function() {
-        // Set a timeout to remove loading screen after max 5 seconds
-        const maxLoadTime = setTimeout(function() {
-          const loadingScreen = document.getElementById('loading-screen');
-          if (loadingScreen) {
-            loadingScreen.classList.add('fade-out');
-            setTimeout(function() {
-              if (loadingScreen && loadingScreen.parentNode) {
-                loadingScreen.parentNode.removeChild(loadingScreen);
-              }
-            }, 300);
-          }
-        }, 5000);
-        
-        // Also check periodically if React has rendered
-        const checkInterval = setInterval(function() {
-          const root = document.getElementById('root');
-          if (root && root.children.length > 0) {
-            clearTimeout(maxLoadTime);
-            clearInterval(checkInterval);
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) {
-              loadingScreen.classList.add('fade-out');
-              setTimeout(function() {
-                if (loadingScreen && loadingScreen.parentNode) {
-                  loadingScreen.parentNode.removeChild(loadingScreen);
-                }
-              }, 300);
-            }
-          }
-        }, 100);
-      });
-    </script>
   </body>
 </html>

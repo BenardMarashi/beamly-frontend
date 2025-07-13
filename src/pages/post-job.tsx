@@ -38,9 +38,7 @@ export const PostJobPage: React.FC = () => {
     budgetMin: 0,
     budgetMax: 0,
     duration: "",
-    experienceLevel: "intermediate",
-    locationType: "remote",
-    location: "",
+    experienceLevel: "",
     projectSize: "medium"
   });
   
@@ -109,6 +107,11 @@ export const PostJobPage: React.FC = () => {
       return;
     }
     
+    if (!formData.experienceLevel) {
+      toast.error("Please select experience level");
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -128,9 +131,7 @@ export const PostJobPage: React.FC = () => {
         budgetMin: formData.budgetType === 'hourly' ? formData.budgetMin : formData.fixedPrice,
         budgetMax: formData.budgetType === 'hourly' ? formData.budgetMax : formData.fixedPrice,
         duration: formData.duration,
-        experienceLevel: formData.experienceLevel,
-        locationType: formData.locationType,
-        location: formData.location,
+        experienceLevel: formData.experienceLevel || 'intermediate',
         projectSize: formData.projectSize,
         status: 'open',
         proposalCount: 0,
@@ -211,7 +212,12 @@ export const PostJobPage: React.FC = () => {
                     setFormData({ ...formData, category: selected });
                   }}
                   variant="bordered"
-                  className="text-white"
+                  classNames={{
+                    trigger: "bg-gray-900/50 border-gray-600 text-white",
+                    value: "text-white",
+                    listbox: "bg-gray-900",
+                    popoverContent: "bg-gray-900",
+                  }}
                   isRequired
                 >
                   {categories.map(cat => (
@@ -244,8 +250,8 @@ export const PostJobPage: React.FC = () => {
                       type="button"
                       color="secondary"
                       isIconOnly
-                      onClick={handleAddSkill}
-                      disabled={!currentSkill.trim() || formData.skills.length >= 10}
+                      onPress={handleAddSkill}
+                      isDisabled={!currentSkill.trim() || formData.skills.length >= 10}
                     >
                       <Icon icon="lucide:plus" />
                     </Button>
@@ -264,23 +270,24 @@ export const PostJobPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <Select
-                  label="Experience Level"
-                  placeholder="Select experience level"
-                  selectedKeys={[formData.experienceLevel]}
-                  onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0] as string;
-                    setFormData({ ...formData, experienceLevel: selected });
-                  }}
-                  variant="bordered"
-                  className="text-white"
-                >
-                  {experienceLevels.map(level => (
-                    <SelectItem key={level.value} value={level.value} className="text-white">
-                      {level.label}
-                    </SelectItem>
-                  ))}
-                </Select>
+                <div>
+                  <label className="text-sm text-gray-400 mb-2 block">Experience Level *</label>
+                  <RadioGroup
+                    value={formData.experienceLevel}
+                    onValueChange={(value) => {
+                      console.log('Experience level selected:', value);
+                      setFormData({ ...formData, experienceLevel: value });
+                    }}
+                    orientation="horizontal"
+                    className="text-white"
+                  >
+                    {experienceLevels.map(level => (
+                      <Radio key={level.value} value={level.value} className="text-white">
+                        {level.label}
+                      </Radio>
+                    ))}
+                  </RadioGroup>
+                </div>
                 
                 <Select
                   label="Project Duration"
@@ -291,7 +298,12 @@ export const PostJobPage: React.FC = () => {
                     setFormData({ ...formData, duration: selected });
                   }}
                   variant="bordered"
-                  className="text-white"
+                  classNames={{
+                    trigger: "bg-gray-900/50 border-gray-600 text-white",
+                    value: "text-white",
+                    listbox: "bg-gray-900",
+                    popoverContent: "bg-gray-900",
+                  }}
                   isRequired
                 >
                   {durations.map(duration => (
@@ -306,7 +318,7 @@ export const PostJobPage: React.FC = () => {
           
           <Card className="glass-effect border-none mb-6">
             <CardBody className="p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Budget & Location</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">Budget</h2>
               
               <div className="space-y-4">
                 <RadioGroup
@@ -358,30 +370,6 @@ export const PostJobPage: React.FC = () => {
                     />
                   </div>
                 )}
-                
-                <RadioGroup
-                  label="Location Type"
-                  value={formData.locationType}
-                  onValueChange={(value) => setFormData({ ...formData, locationType: value })}
-                  orientation="horizontal"
-                  className="text-white"
-                >
-                  <Radio value="remote" className="text-white">Remote</Radio>
-                  <Radio value="onsite" className="text-white">On-site</Radio>
-                  <Radio value="hybrid" className="text-white">Hybrid</Radio>
-                </RadioGroup>
-                
-                {formData.locationType !== 'remote' && (
-                  <Input
-                    label="Location"
-                    placeholder="City, Country"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    variant="bordered"
-                    className="text-white"
-                    startContent={<Icon icon="lucide:map-pin" className="text-gray-400" />}
-                  />
-                )}
               </div>
             </CardBody>
           </Card>
@@ -391,7 +379,7 @@ export const PostJobPage: React.FC = () => {
               type="button"
               variant="bordered"
               className="flex-1"
-              onClick={() => navigate('/dashboard')}
+              onPress={() => navigate('/dashboard')}
             >
               Cancel
             </Button>
@@ -409,3 +397,5 @@ export const PostJobPage: React.FC = () => {
     </div>
   );
 };
+
+export default PostJobPage;

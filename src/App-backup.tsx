@@ -38,12 +38,20 @@ import JobApplyPage from './pages/job-apply';
 
 
 const AppContent: React.FC = () => {
-  const { loading, user } = useAuth();
-  const isLoggedIn = !!user;
+  const { loading } = useAuth();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
+    });
+    return unsubscribe;
+  }, []);
 
   const handleLogout = async () => {
     try {
       await auth.signOut();
+      setIsLoggedIn(false);
     } catch (error) {
       console.error('Logout error:', error);
     }

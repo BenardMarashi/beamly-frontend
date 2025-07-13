@@ -37,7 +37,8 @@
     "mobileMenu": "Mobile Navigation Menu",
     "accountSettings": "Account Settings",
     "preferences": "Preferences",
-    "freelancerRole": "Freelancer"
+    "freelancerRole": "Freelancer",
+    "clientRole": "Client"
   },
   "settings": {
     "appearance": {
@@ -257,7 +258,6 @@
     },
     "freelancers": {
       "howToFindWork": "How to Find Work",
-      "directContracts": "Direct Contracts",
       "marketplaceInsights": "Marketplace Insights",
       "community": "Community",
       "zeroCommission": "Zero Commission"
@@ -327,5 +327,74 @@
     "sendMessage": "Send Message",
     "saveProfile": "Save Profile",
     "reportProfile": "Report Profile"
+  },
+  "postProject": {
+    "title": "Post a New Project",
+    "loginRequired": "Please login to post projects",
+    "freelancersOnly": "Only freelancers can post projects",
+    "projectDetails": "Project Details",
+    "projectTitle": "Project Title",
+    "titlePlaceholder": "e.g. E-commerce Website with React and Node.js",
+    "projectDescription": "Project Description",
+    "descriptionPlaceholder": "Describe your project, the technologies used, challenges faced, and solutions implemented...",
+    "category": "Category",
+    "selectCategory": "Select a category",
+    "skillsAndLinks": "Skills & Links",
+    "technologiesUsed": "Technologies Used",
+    "addSkill": "Add a skill",
+    "liveUrl": "Live URL (Optional)",
+    "githubUrl": "GitHub URL (Optional)",
+    "projectImages": "Project Images",
+    "imagesDescription": "Upload up to 5 high-quality images showcasing your project. The first image will be used as the thumbnail.",
+    "uploadImages": "Upload Images",
+    "thumbnail": "Thumbnail",
+    "maxImages": "You can upload a maximum of 5 images",
+    "invalidImageType": "{{name}} is not a valid image file",
+    "imageTooLarge": "{{name}} is too large. Maximum size is 5MB",
+    "fillRequired": "Please fill in all required fields",
+    "addSkills": "Please add at least one skill",
+    "addImages": "Please add at least one project image",
+    "success": "Project posted successfully!",
+    "error": "Failed to post project. Please try again.",
+    "postProject": "Post Project"
+  },
+  "categories": {
+    "webDesign": "Web Design",
+    "mobileApp": "Mobile App",
+    "graphicDesign": "Graphic Design",
+    "uiux": "UI/UX Design",
+    "branding": "Branding",
+    "videoAnimation": "Video & Animation",
+    "writing": "Writing",
+    "other": "Other"
+  },
+  "verification": {
+    "title": "Identity Verification",
+    "verified": "Verified",
+    "whyVerify": "Why get verified?",
+    "benefits": "Verified users get more trust from clients, better visibility, and access to premium features.",
+    "selectDocumentType": "Select Document Type",
+    "passport": "Passport",
+    "driverLicense": "Driver's License",
+    "nationalId": "National ID",
+    "uploadDocument": "Upload Document",
+    "submit": "Submit for Review",
+    "submitted": "Verification Submitted",
+    "resubmit": "Submit New Document",
+    "invalidFileType": "Please upload an image file",
+    "fileTooLarge": "File size must be less than 10MB",
+    "selectDocument": "Please select a document to upload",
+    "submitError": "Failed to submit verification. Please try again.",
+    "documentType": "Document Type",
+    "rejected": "Verification Rejected",
+    "requirements": "Requirements:",
+    "requirement1": "Clear, high-quality photo of your ID",
+    "requirement2": "All text must be clearly readable",
+    "requirement3": "Document must not be expired",
+    "status": {
+      "pending": "Under Review",
+      "approved": "Verified",
+      "rejected": "Rejected"
+    }
   }
 }

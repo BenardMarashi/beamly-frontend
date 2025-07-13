@@ -17,19 +17,16 @@ export interface UserData {
   bio?: string;
   skills?: string[];
   hourlyRate?: number;
-  location?: string;
   portfolio?: string;
   experienceLevel?: 'entry' | 'intermediate' | 'expert';
   languages?: string[];
   isAvailable?: boolean;
   rating?: number;
   completedProjects?: number;
-  totalEarnings?: number;
   
   // Client specific fields  
   companyName?: string;
   industry?: string;
-  totalSpent?: number;
   activeJobs?: number;
   
   // Common fields

@@ -47,13 +47,10 @@ interface UserData {
   completedJobs?: number;
   rating: number;
   reviewCount?: number;
-  totalEarnings: number;
-  totalSpent: number;
   isVerified: boolean;
   isBlocked: boolean;
   skills?: string[];
   hourlyRate?: number;
-  location?: string;
   isAvailable?: boolean;
   bio?: string;
   notifications?: {
@@ -74,8 +71,6 @@ interface JobData {
   budgetMin: number;
   budgetMax: number;
   experienceLevel: string;
-  locationType: string;
-  location?: string;
   duration?: string;
   projectSize?: string;
   clientId: string;
@@ -141,49 +136,60 @@ interface ConversationData {
   updatedAt: Timestamp | FieldValue;
 }
 
-interface ContractData {
-  id: string;
-  jobId: string;
-  jobTitle: string;
-  proposalId: string;
-  clientId: string;
-  clientName: string;
-  freelancerId: string;
-  freelancerName: string;
-  rate: number;
-  budgetType: 'fixed' | 'hourly';
-  status: 'active' | 'completed' | 'cancelled' | 'disputed';
-  totalPaid: number;
-  totalDue: number;
-  milestones?: MilestoneData[];
-  createdAt: Timestamp | FieldValue;
-  updatedAt: Timestamp | FieldValue;
-}
 
-interface MilestoneData {
-  id: string;
-  title: string;
-  description: string;
-  amount: number;
-  status: 'pending' | 'in-progress' | 'submitted' | 'approved' | 'paid';
-  dueDate: Timestamp;
-  submittedAt?: Timestamp;
-  approvedAt?: Timestamp;
-  paidAt?: Timestamp;
-}
 
 interface NotificationData {
   id: string;
   userId: string;
   title: string;
   body: string;
+  message?: string;
   type: string;
   actionUrl?: string;
   actionData?: Record<string, any>;
-  read: boolean;
-  pushSent: boolean;
+  relatedId?: string;
+  read?: boolean;
+  isRead?: boolean;
+  pushSent?: boolean;
   createdAt: Timestamp | FieldValue;
   readAt?: Timestamp | FieldValue;
+}
+
+interface ProjectData {
+  id: string;
+  freelancerId: string;
+  freelancerName: string;
+  freelancerPhotoURL?: string;
+  title: string;
+  description: string;
+  category: string;
+  skills: string[];
+  images: string[];
+  thumbnailUrl?: string;
+  liveUrl?: string;
+  githubUrl?: string;
+  viewCount: number;
+  likeCount: number;
+  isPublished: boolean;
+  isFeatured: boolean;
+  createdAt: Timestamp | FieldValue;
+  updatedAt: Timestamp | FieldValue;
+  completedAt?: Timestamp | FieldValue;
+}
+
+interface VerificationData {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  documentType: 'passport' | 'driver_license' | 'national_id';
+  documentUrl: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewedAt?: Timestamp | FieldValue;
+  rejectionReason?: string;
+  submittedAt: Timestamp | FieldValue;
+  expiresAt?: Timestamp | FieldValue;
 }
 
 // Helper function to map document data
@@ -208,8 +214,6 @@ export const UserService = {
         lastActive: serverTimestamp(),
         completedProjects: 0,
         rating: 0,
-        totalEarnings: 0,
-        totalSpent: 0,
         isVerified: false,
         isBlocked: false
       });
@@ -257,7 +261,6 @@ export const UserService = {
     skills?: string[];
     minRating?: number;
     maxHourlyRate?: number;
-    location?: string;
     isAvailable?: boolean;
     lastDoc?: DocumentSnapshot;
     pageSize?: number;
@@ -273,9 +276,6 @@ export const UserService = {
       }
       if (searchParams.maxHourlyRate) {
         constraints.push(where('hourlyRate', '<=', searchParams.maxHourlyRate));
-      }
-      if (searchParams.location) {
-        constraints.push(where('location', '==', searchParams.location));
       }
       if (searchParams.isAvailable !== undefined) {
         constraints.push(where('isAvailable', '==', searchParams.isAvailable));
@@ -493,6 +493,26 @@ export const ProposalService = {
         });
       }
       
+      // TODO: Create notification for job poster
+      // Temporarily disabled to fix build issues
+      /*
+      if (proposalData.clientId && proposalData.freelancerName && proposalData.jobTitle) {
+        try {
+          await NotificationService.createNotification({
+            userId: proposalData.clientId,
+            type: 'new_proposal',
+            title: 'New Proposal Received',
+            message: `${proposalData.freelancerName} submitted a proposal for "${proposalData.jobTitle}"`,
+            actionUrl: `/proposals?jobId=${proposalData.jobId}`,
+            relatedId: proposalRef.id,
+            isRead: false
+          });
+        } catch (notificationError) {
+          console.warn('Failed to create notification:', notificationError);
+        }
+      }
+      */
+      
       return { success: true, proposalId: proposalRef.id };
     } catch (error) {
       console.error('Error creating proposal:', error);
@@ -705,81 +725,6 @@ export const MessageService = {
   }
 };
 
-// Contract Services
-export const ContractService = {
-  // Create contract
-  async createContract(contractData: Partial<ContractData>) {
-    try {
-      const contractRef: DocumentReference = doc(collection(db, 'contracts'));
-      await setDoc(contractRef, {
-        ...contractData,
-        id: contractRef.id,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        status: 'active',
-        totalPaid: 0,
-        totalDue: contractData.rate || 0
-      });
-      
-      return { success: true, contractId: contractRef.id };
-    } catch (error) {
-      console.error('Error creating contract:', error);
-      return { success: false, error };
-    }
-  },
-
-  // Update contract
-  async updateContract(contractId: string, updates: Partial<ContractData>) {
-    try {
-      const contractRef: DocumentReference = doc(db, 'contracts', contractId);
-      await updateDoc(contractRef, {
-        ...updates,
-        updatedAt: serverTimestamp()
-      });
-      return { success: true };
-    } catch (error) {
-      console.error('Error updating contract:', error);
-      return { success: false, error };
-    }
-  },
-
-  // Get contract
-  async getContract(contractId: string) {
-    try {
-      const contractRef: DocumentReference = doc(db, 'contracts', contractId);
-      const contractSnap = await getDoc(contractRef);
-      
-      if (contractSnap.exists()) {
-        return { success: true, data: mapDocumentData<ContractData>(contractSnap) };
-      } else {
-        return { success: false, error: 'Contract not found' };
-      }
-    } catch (error) {
-      console.error('Error getting contract:', error);
-      return { success: false, error };
-    }
-  },
-
-  // Get user contracts
-  async getUserContracts(userId: string, userType: 'client' | 'freelancer') {
-    try {
-      const field = userType === 'client' ? 'clientId' : 'freelancerId';
-      const q = query(
-        collection(db, 'contracts'),
-        where(field, '==', userId),
-        orderBy('createdAt', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const contracts = querySnapshot.docs.map(doc => mapDocumentData<ContractData>(doc));
-      
-      return { success: true, contracts };
-    } catch (error) {
-      console.error('Error getting user contracts:', error);
-      return { success: false, error, contracts: [] };
-    }
-  }
-};
 
 // Notification Services
 export const NotificationService = {
@@ -915,23 +860,14 @@ export const AnalyticsService = {
     try {
       if (userType === 'freelancer') {
         // Get freelancer stats
-        const [contractsResult, proposalsResult] = await Promise.all([
-          ContractService.getUserContracts(userId, 'freelancer'),
-          ProposalService.getUserProposals(userId),
-          // ReviewService.getUserReviews(userId) - Removed as result wasn't being used
-        ]);
+        const proposalsResult = await ProposalService.getUserProposals(userId);
         
-        const activeContracts = contractsResult.contracts?.filter(c => c.status === 'active').length || 0;
-        const completedContracts = contractsResult.contracts?.filter(c => c.status === 'completed').length || 0;
-        const totalEarnings = contractsResult.contracts?.reduce((sum, c) => sum + (c.totalPaid || 0), 0) || 0;
         const pendingProposals = proposalsResult.proposals?.filter(p => p.status === 'pending').length || 0;
         
         return {
           success: true,
           data: {
-            activeContracts,
-            completedContracts,
-            totalEarnings,
+            totalProjects: 0, // TODO: Fetch from projects collection
             pendingProposals,
             totalProposals: proposalsResult.proposals?.length || 0,
             avgRating: 4.5 // Calculate from reviews - placeholder for now
@@ -939,27 +875,172 @@ export const AnalyticsService = {
         };
       } else {
         // Get client stats
-        const [jobsResult, contractsResult] = await Promise.all([
-          JobService.getUserJobs(userId, 'client'),
-          ContractService.getUserContracts(userId, 'client')
-        ]);
+        const jobsResult = await JobService.getUserJobs(userId, 'client');
         
         const activeJobs = jobsResult.jobs?.filter(j => j.status === 'open' || j.status === 'in-progress').length || 0;
         const completedJobs = jobsResult.jobs?.filter(j => j.status === 'completed').length || 0;
-        const totalSpent = contractsResult.contracts?.reduce((sum, c) => sum + (c.totalPaid || 0), 0) || 0;
         
         return {
           success: true,
           data: {
             activeJobs,
             completedJobs,
-            totalSpent,
             totalJobs: jobsResult.jobs?.length || 0
           }
         };
       }
     } catch (error) {
       console.error('Error getting user analytics:', error);
+      return { success: false, error };
+    }
+  },
+
+  // Project Services
+  async createProject(projectData: Partial<ProjectData>) {
+    try {
+      const projectRef = doc(collection(db, 'projects'));
+      const project = {
+        id: projectRef.id,
+        ...projectData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        viewCount: 0,
+        likeCount: 0,
+        isPublished: true,
+        isFeatured: false
+      };
+
+      await setDoc(projectRef, project);
+      return { success: true, project };
+    } catch (error) {
+      console.error('Error creating project:', error);
+      return { success: false, error };
+    }
+  },
+
+  async getFreelancerProjects(freelancerId: string) {
+    try {
+      const q = query(
+        collection(db, 'projects'),
+        where('freelancerId', '==', freelancerId),
+        where('isPublished', '==', true),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const projects = querySnapshot.docs.map(doc => mapDocumentData<ProjectData>(doc));
+      
+      return { success: true, projects };
+    } catch (error) {
+      console.error('Error getting freelancer projects:', error);
+      return { success: false, error, projects: [] };
+    }
+  },
+
+  async getProject(projectId: string) {
+    try {
+      const projectDoc = await getDoc(doc(db, 'projects', projectId));
+      if (!projectDoc.exists()) {
+        return { success: false, error: 'Project not found' };
+      }
+      
+      const project = mapDocumentData<ProjectData>(projectDoc);
+      return { success: true, project };
+    } catch (error) {
+      console.error('Error getting project:', error);
+      return { success: false, error };
+    }
+  },
+
+  async updateProject(projectId: string, updates: Partial<ProjectData>) {
+    try {
+      await updateDoc(doc(db, 'projects', projectId), {
+        ...updates,
+        updatedAt: serverTimestamp()
+      });
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating project:', error);
+      return { success: false, error };
+    }
+  },
+
+  async deleteProject(projectId: string) {
+    try {
+      await deleteDoc(doc(db, 'projects', projectId));
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      return { success: false, error };
+    }
+  }
+};
+
+// Export verification functions - use the actual implementations from UserService
+export const VerificationService = {
+  async submitVerification(verificationData: Partial<VerificationData>) {
+    try {
+      const verificationRef = doc(collection(db, 'verifications'));
+      const verification = {
+        id: verificationRef.id,
+        ...verificationData,
+        status: 'pending' as const,
+        submittedAt: serverTimestamp()
+      };
+
+      await setDoc(verificationRef, verification);
+      return { success: true, verification };
+    } catch (error) {
+      console.error('Error submitting verification:', error);
+      return { success: false, error };
+    }
+  },
+  
+  async getUserVerification(userId: string) {
+    try {
+      const q = query(
+        collection(db, 'verifications'),
+        where('userId', '==', userId),
+        orderBy('submittedAt', 'desc'),
+        limit(1)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        return { success: true, verification: null };
+      }
+      
+      const verification = mapDocumentData<VerificationData>(querySnapshot.docs[0]);
+      return { success: true, verification };
+    } catch (error) {
+      console.error('Error getting user verification:', error);
+      return { success: false, error };
+    }
+  },
+  
+  async updateVerificationStatus(verificationId: string, status: 'approved' | 'rejected', adminNotes?: string) {
+    try {
+      const verificationRef = doc(db, 'verifications', verificationId);
+      await updateDoc(verificationRef, {
+        status,
+        adminNotes,
+        reviewedAt: serverTimestamp()
+      });
+      
+      // Update user's verified status if approved
+      if (status === 'approved') {
+        const verificationDoc = await getDoc(verificationRef);
+        if (verificationDoc.exists()) {
+          const verification = verificationDoc.data();
+          await updateDoc(doc(db, 'users', verification.userId), {
+            isVerified: true
+          });
+        }
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating verification status:', error);
       return { success: false, error };
     }
   }

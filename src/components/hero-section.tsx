@@ -28,7 +28,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ setCurrentPage }) => {
   };
   
   return (
-    <section className="relative min-h-[calc(100vh-64px)] flex items-center justify-center py-12 md:py-20 px-4">
+    <section className="relative min-h-[calc(100vh-64px)] flex items-center justify-center py-12 md:py-20 px-4 mt-16">
       <div className="container mx-auto max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

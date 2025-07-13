@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { 
   Input, 
@@ -32,6 +32,7 @@ interface Job {
   budgetType: 'fixed' | 'hourly';
   category: string;
   skills: string[];
+  clientId: string;
   clientName: string;
   clientPhotoURL?: string;
   createdAt: any;
@@ -57,7 +58,7 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPageNum] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
+  const lastDocRef = useRef<DocumentSnapshot | null>(null);
   const jobsPerPage = 9;
 
   const categories = [
@@ -94,12 +95,25 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
     "WordPress", "SEO", "Content Writing", "Video Editing"
   ];
 
+  // Reset pagination when filters change
   useEffect(() => {
-    fetchJobs();
+    setCurrentPageNum(1);
+    lastDocRef.current = null;
+  }, [selectedCategory, selectedBudget, selectedDuration]);
+
+  useEffect(() => {
+    const shouldReset = currentPage === 1;
+    fetchJobs(shouldReset);
   }, [selectedCategory, selectedBudget, selectedDuration, currentPage]);
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (reset = false) => {
     setLoading(true);
+    
+    // Reset pagination if needed
+    if (reset) {
+      lastDocRef.current = null;
+    }
+    
     try {
       let constraints: QueryConstraint[] = [
         where("status", "==", "open"),
@@ -124,23 +138,44 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
       }
 
       // Handle pagination
-      if (currentPage > 1 && lastDoc) {
-        constraints.push(startAfter(lastDoc));
+      if (currentPage > 1 && lastDocRef.current) {
+        constraints.push(startAfter(lastDocRef.current));
       }
 
       const q = query(collection(db, "jobs"), ...constraints);
       const querySnapshot = await getDocs(q);
       
-      const jobsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Job));
+      const jobsData = await Promise.all(
+        querySnapshot.docs.map(async doc => {
+          const jobData = { id: doc.id, ...doc.data() } as Job;
+          
+          // Fetch client profile data to get profile picture
+          if (jobData.clientId) {
+            try {
+              const clientDoc = await getDocs(query(
+                collection(db, 'users'), 
+                where('uid', '==', jobData.clientId)
+              ));
+              
+              if (!clientDoc.empty) {
+                const clientData = clientDoc.docs[0].data();
+                jobData.clientPhotoURL = clientData.photoURL || clientData.profilePicture;
+                jobData.clientName = clientData.displayName || jobData.clientName;
+              }
+            } catch (error) {
+              console.error('Error fetching client data:', error);
+            }
+          }
+          
+          return jobData;
+        })
+      );
 
       setJobs(jobsData);
       
       // Set last document for pagination
       if (querySnapshot.docs.length > 0) {
-        setLastDoc(querySnapshot.docs[querySnapshot.docs.length - 1]);
+        lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
       }
 
       // Estimate total pages (simplified)
@@ -159,7 +194,8 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // Implement search functionality
-    fetchJobs();
+    setCurrentPageNum(1);
+    fetchJobs(true);
   };
 
   return (
@@ -200,7 +236,10 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
                 selectedKeys={[selectedCategory]}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 classNames={{
-                  trigger: "bg-white/5"
+                  trigger: "bg-gray-900/50 border-gray-600 text-white",
+                  value: "text-white",
+                  listbox: "bg-gray-900",
+                  popoverContent: "bg-gray-900",
                 }}
               >
                 {categories.map((cat) => (
@@ -215,7 +254,10 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
                 selectedKeys={[selectedBudget]}
                 onChange={(e) => setSelectedBudget(e.target.value)}
                 classNames={{
-                  trigger: "bg-white/5"
+                  trigger: "bg-gray-900/50 border-gray-600 text-white",
+                  value: "text-white",
+                  listbox: "bg-gray-900",
+                  popoverContent: "bg-gray-900",
                 }}
               >
                 {budgetRanges.map((range) => (
@@ -230,7 +272,10 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
                 selectedKeys={[selectedDuration]}
                 onChange={(e) => setSelectedDuration(e.target.value)}
                 classNames={{
-                  trigger: "bg-white/5"
+                  trigger: "bg-gray-900/50 border-gray-600 text-white",
+                  value: "text-white",
+                  listbox: "bg-gray-900",
+                  popoverContent: "bg-gray-900",
                 }}
               >
                 {durations.map((dur) => (
@@ -324,6 +369,7 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
                     setSelectedCategory("all");
                     setSelectedBudget("all");
                     setSelectedDuration("all");
+                    setCurrentPageNum(1);
                   }}
                 >
                   Clear Filters

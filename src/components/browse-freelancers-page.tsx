@@ -5,6 +5,7 @@ import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/theme-context";
+import { VerifiedBadge } from "./profile/VerifiedBadge";
 
 interface BrowseFreelancersPageProps {
   setCurrentPage?: (page: string) => void;
@@ -39,7 +40,8 @@ export const BrowseFreelancersPage: React.FC<BrowseFreelancersPageProps> = ({
       projectsCompleted: 87,
       hourlyRate: "$45",
       category: "design",
-      skills: ["UI Design", "UX Research", "Figma"]
+      skills: ["UI Design", "UX Research", "Figma"],
+      isVerified: true
     },
     {
       id: 2,
@@ -50,7 +52,8 @@ export const BrowseFreelancersPage: React.FC<BrowseFreelancersPageProps> = ({
       projectsCompleted: 124,
       hourlyRate: "$65",
       category: "development",
-      skills: ["React", "Node.js", "MongoDB"]
+      skills: ["React", "Node.js", "MongoDB"],
+      isVerified: true
     },
     {
       id: 3,
@@ -61,7 +64,8 @@ export const BrowseFreelancersPage: React.FC<BrowseFreelancersPageProps> = ({
       projectsCompleted: 93,
       hourlyRate: "$35",
       category: "writing",
-      skills: ["Blog Posts", "SEO Writing", "Copywriting"]
+      skills: ["Blog Posts", "SEO Writing", "Copywriting"],
+      isVerified: false
     },
     {
       id: 4,
@@ -72,7 +76,8 @@ export const BrowseFreelancersPage: React.FC<BrowseFreelancersPageProps> = ({
       projectsCompleted: 112,
       hourlyRate: "$50",
       category: "marketing",
-      skills: ["SEO", "Social Media", "Google Ads"]
+      skills: ["SEO", "Social Media", "Google Ads"],
+      isVerified: false
     },
     {
       id: 5,
@@ -83,7 +88,8 @@ export const BrowseFreelancersPage: React.FC<BrowseFreelancersPageProps> = ({
       projectsCompleted: 76,
       hourlyRate: "$55",
       category: "video",
-      skills: ["After Effects", "Premiere Pro", "Motion Graphics"]
+      skills: ["After Effects", "Premiere Pro", "Motion Graphics"],
+      isVerified: true
     },
     {
       id: 6,
@@ -94,7 +100,8 @@ export const BrowseFreelancersPage: React.FC<BrowseFreelancersPageProps> = ({
       projectsCompleted: 104,
       hourlyRate: "$40",
       category: "development",
-      skills: ["WordPress", "PHP", "Theme Development"]
+      skills: ["WordPress", "PHP", "Theme Development"],
+      isVerified: false
     },
     {
       id: 7,
@@ -105,7 +112,8 @@ export const BrowseFreelancersPage: React.FC<BrowseFreelancersPageProps> = ({
       projectsCompleted: 131,
       hourlyRate: "$45",
       category: "design",
-      skills: ["Photoshop", "Illustrator", "Brand Identity"]
+      skills: ["Photoshop", "Illustrator", "Brand Identity"],
+      isVerified: true
     },
     {
       id: 8,
@@ -116,7 +124,8 @@ export const BrowseFreelancersPage: React.FC<BrowseFreelancersPageProps> = ({
       projectsCompleted: 89,
       hourlyRate: "$60",
       category: "marketing",
-      skills: ["Keyword Research", "Link Building", "Analytics"]
+      skills: ["Keyword Research", "Link Building", "Analytics"],
+      isVerified: false
     }
   ];
   
@@ -167,153 +176,149 @@ export const BrowseFreelancersPage: React.FC<BrowseFreelancersPageProps> = ({
   };
   
   return (
-    <div className="container mx-auto px-4 py-4 md:py-6 pb-20">
-      <h1 className={`text-xl md:text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-        {t('browseFreelancers.title')}
-      </h1>
-      <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-4 md:mb-6 text-sm md:text-base`}>
-        {t('browseFreelancers.subtitle')}
-      </p>
-      
-      <div className="glass-effect p-4 md:p-6 mb-6 md:mb-8">
-        <div className="flex flex-col md:flex-row gap-4">
+    <div className="min-h-screen pt-4 pb-20">
+      {/* Mobile-optimized search section */}
+      <div className="px-4 mb-4">
+        <div className="mobile-profile-section">
           <Input
-            placeholder={t('browseFreelancers.searchPlaceholder')}
+            placeholder="Search for freelancers by name"
             value={searchQuery}
             onValueChange={setSearchQuery}
             startContent={<Icon icon="lucide:search" className="text-gray-400" />}
-            className={`flex-1 ${isDarkMode ? 'bg-white/10 border-white/20' : 'bg-white border-gray-200'}`}
+            className="form-input"
             size="lg"
+            classNames={{
+              input: "text-white placeholder:text-gray-400",
+              inputWrapper: "bg-transparent border-none"
+            }}
           />
           <Button 
             color="secondary"
             size="lg"
-            className="font-medium font-outfit text-beamly-third"
+            className="w-full mt-4 font-medium text-beamly-third"
             onPress={() => {
               console.log("Search freelancers");
             }}
           >
-            {t('common.search')}
+            Search
           </Button>
         </div>
       </div>
       
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+      {/* Category filters - horizontal scroll */}
+      <div className="px-4 mb-4">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
           {categories.map((category) => (
             <Button
               key={category.id}
               variant={filterCategory === category.id ? "solid" : "flat"}
               color={filterCategory === category.id ? "secondary" : "default"}
               size="sm"
-              className={filterCategory !== category.id ? (isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800') : ''}
+              className={`min-w-fit ${filterCategory !== category.id ? 'bg-white/10 text-white border border-white/20' : 'text-beamly-third'}`}
               onPress={() => setFilterCategory(category.id)}
             >
               {category.name}
             </Button>
           ))}
         </div>
-        
+      </div>
+      
+      {/* Sort dropdown */}
+      <div className="px-4 mb-6">
         <Dropdown>
           <DropdownTrigger>
             <Button 
-              variant="bordered" 
-              className={`${isDarkMode ? 'border-white/20 text-white' : 'border-gray-300 text-gray-800'} text-sm`}
+              variant="flat" 
+              className="w-full bg-white/10 text-white border border-white/20"
               endContent={<Icon icon="lucide:chevron-down" />}
             >
-              {t('browseFreelancers.sortBy')}: {
-                sortBy === "rating" ? t('browseFreelancers.highestRated') : 
-                sortBy === "projects" ? t('browseFreelancers.mostProjects') : 
-                sortBy === "price-low" ? t('browseFreelancers.lowestRate') : t('browseFreelancers.highestRate')
+              Sort by: {
+                sortBy === "rating" ? "Highest Rated" : 
+                sortBy === "projects" ? "Most Projects" : 
+                sortBy === "price-low" ? "Lowest Rate" : "Highest Rate"
               }
             </Button>
           </DropdownTrigger>
           <DropdownMenu 
             aria-label="Sort options"
             onAction={(key) => setSortBy(key as string)}
-            className={isDarkMode ? 
-              "bg-[#010b29]/95 backdrop-blur-md border border-white/10" : 
-              "bg-white/95 backdrop-blur-md border border-gray-200"
-            }
+            className="bg-[#010b29]/95 backdrop-blur-md border border-white/10"
           >
-            <DropdownItem key="rating" className={isDarkMode ? 'text-white' : 'text-gray-800'}>
-              {t('browseFreelancers.highestRated')}
-            </DropdownItem>
-            <DropdownItem key="projects" className={isDarkMode ? 'text-white' : 'text-gray-800'}>
-              {t('browseFreelancers.mostProjects')}
-            </DropdownItem>
-            <DropdownItem key="price-low" className={isDarkMode ? 'text-white' : 'text-gray-800'}>
-              {t('browseFreelancers.lowestRate')}
-            </DropdownItem>
-            <DropdownItem key="price-high" className={isDarkMode ? 'text-white' : 'text-gray-800'}>
-              {t('browseFreelancers.highestRate')}
-            </DropdownItem>
+            <DropdownItem key="rating" className="text-white">Highest Rated</DropdownItem>
+            <DropdownItem key="projects" className="text-white">Most Projects</DropdownItem>
+            <DropdownItem key="price-low" className="text-white">Lowest Rate</DropdownItem>
+            <DropdownItem key="price-high" className="text-white">Highest Rate</DropdownItem>
           </DropdownMenu>
         </Dropdown>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      {/* Mobile freelancer cards */}
+      <div className="px-4 space-y-4">
         {filteredFreelancers.map((freelancer, index) => (
           <motion.div
             key={freelancer.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.1 }}
+            className="mobile-freelancer-card"
+            onClick={() => handleViewProfile(freelancer.id)}
           >
-            <Card 
-              className={`${index % 2 === 0 ? 'glass-card' : 'yellow-glass'} border-none card-hover ${!isDarkMode && 'border border-gray-200'}`}
-              isPressable
-              onPress={() => handleViewProfile(freelancer.id)}
-            >
-              <div className="p-4 md:p-5">
-                <div className="flex items-center gap-3 md:gap-4">
-                  <Avatar 
-                    src={freelancer.avatar} 
-                    className="w-14 h-14 md:w-16 md:h-16"
-                  />
-                  <div className="flex-1">
-                    <h3 className={`font-semibold text-sm md:text-base ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                      {freelancer.name}
-                    </h3>
-                    <p className="text-gray-400 text-xs md:text-sm">{freelancer.title}</p>
-                    <div className="flex items-center mt-1">
-                      <Icon icon="lucide:star" className="text-beamly-secondary mr-1" />
-                      <span className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{freelancer.rating}</span>
-                      <span className="text-gray-400 text-xs ml-2">({freelancer.projectsCompleted} {t('home.projects')?.toLowerCase() || 'projects'})</span>
-                    </div>
-                  </div>
+            {/* Freelancer header */}
+            <div className="flex items-start gap-4 mb-4">
+              <Avatar 
+                src={freelancer.avatar} 
+                className="w-16 h-16 border-2 border-white/20"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold text-white text-lg">
+                    {freelancer.name}
+                  </h3>
+                  {freelancer.isVerified && (
+                    <Icon icon="lucide:check-circle" className="text-beamly-secondary w-5 h-5" />
+                  )}
                 </div>
-                
-                <div className="mt-4">
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {freelancer.skills.map((skill, i) => (
-                      <Chip 
+                <p className="text-gray-300 text-sm mb-2">{freelancer.title}</p>
+                <div className="flex items-center gap-1">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <Icon 
                         key={i} 
-                        size="sm"
-                        className={isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'}
-                      >
-                        {skill}
-                      </Chip>
+                        icon="lucide:star" 
+                        className={`w-4 h-4 ${i < Math.floor(freelancer.rating) ? 'text-beamly-secondary' : 'text-gray-600'}`}
+                      />
                     ))}
                   </div>
-                  
-                  <div className="flex justify-between items-center mt-4">
-                    <div>
-                      <span className="text-beamly-secondary font-bold text-sm md:text-base">{freelancer.hourlyRate}</span>
-                      <span className="text-gray-400 text-xs ml-1">{t('browseFreelancers.perHour')}</span>
-                    </div>
-                    <Button 
-                      color="secondary"
-                      size="sm"
-                      className="text-beamly-third font-medium"
-                      onPress={() => handleViewProfile(freelancer.id)}
-                    >
-                      {t('browseFreelancers.viewProfile')}
-                    </Button>
-                  </div>
+                  <span className="text-white text-sm font-medium ml-1">{freelancer.rating}</span>
+                  <span className="text-gray-400 text-sm">({freelancer.projectsCompleted} projects)</span>
                 </div>
               </div>
-            </Card>
+            </div>
+            
+            {/* Skills */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {freelancer.skills.map((skill, i) => (
+                <span key={i} className="skill-tag">
+                  {skill}
+                </span>
+              ))}
+            </div>
+            
+            {/* Rate and action */}
+            <div className="flex justify-between items-center">
+              <div>
+                <span className="text-beamly-secondary font-bold text-xl">{freelancer.hourlyRate}</span>
+                <span className="text-gray-400 text-sm ml-1">/hr</span>
+              </div>
+              <Button 
+                color="secondary"
+                size="md"
+                className="font-medium text-beamly-third px-6"
+                onPress={() => handleViewProfile(freelancer.id)}
+              >
+                View Profile
+              </Button>
+            </div>
           </motion.div>
         ))}
       </div>
