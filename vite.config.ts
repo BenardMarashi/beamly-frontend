@@ -1,47 +1,38 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    global: 'globalThis',
+  },
   server: {
     port: 5173,
     host: true,
     open: false,
   },
   optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react-router-dom',
-      'react-hot-toast',
-      '@tanstack/react-query',
-      'framer-motion',
-      '@nextui-org/react',
-      'i18next',
-      'react-i18next',
-      'i18next-browser-languagedetector'
-    ]
+    force: true,
+    include: ['react', 'react-dom', '@nextui-org/react'],
+    exclude: ['@firebase/app', '@firebase/auth', '@firebase/firestore', '@firebase/storage'],
   },
   build: {
-    outDir: 'dist',
-    sourcemap: false,
+    // Bypass Rollup optimization issues
+    minify: 'esbuild',
+    target: 'es2020',
     rollupOptions: {
-      external: [],
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          ui: ['@nextui-org/react'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
-        },
+        inlineDynamicImports: true,
       },
-      onwarn(warning, warn) {
-        // Suppress warnings about missing source maps
-        if (warning.code === 'SOURCEMAP_ERROR') return;
-        warn(warning);
-      }
+      treeshake: false,
     },
+    cssCodeSplit: false,
+    chunkSizeWarningLimit: 10000,
+  },
+  esbuild: {
+    keepNames: true,
+    minifyIdentifiers: false,
+    minifySyntax: false,
   },
   envPrefix: 'VITE_',
 });

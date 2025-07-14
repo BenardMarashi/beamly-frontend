@@ -70,16 +70,22 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
     }
   };
   
-  // Apply theme class to body
+  // Apply theme class to body and documentElement for comprehensive theming
   useEffect(() => {
-    if (theme === 'system') {
-      if (systemThemeIsDark) {
-        document.body.className = 'dark-mode';
-      } else {
-        document.body.className = 'light-mode';
-      }
+    const isDark = theme === 'system' ? systemThemeIsDark : theme === 'dark';
+    
+    // Remove all theme classes first
+    document.documentElement.classList.remove('dark', 'light', 'dark-mode', 'light-mode');
+    document.body.classList.remove('dark', 'light', 'dark-mode', 'light-mode');
+    
+    if (isDark) {
+      // Add both for compatibility
+      document.documentElement.classList.add('dark', 'dark-mode');
+      document.body.classList.add('dark-mode');
     } else {
-      document.body.className = theme === 'dark' ? 'dark-mode' : 'light-mode';
+      // Add both for compatibility  
+      document.documentElement.classList.add('light', 'light-mode');
+      document.body.classList.add('light-mode');
     }
   }, [theme, systemThemeIsDark]);
   

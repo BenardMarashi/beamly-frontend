@@ -314,7 +314,8 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                         as={RouterLink}
                         to="/signup"
                         onClick={handleMenuItemClick}
-                        className="w-full bg-beamly-secondary text-beamly-primary font-semibold hover:bg-beamly-secondary/90"
+                        color="secondary"
+                        className="w-full font-semibold"
                       >
                         Sign Up
                       </Button>
