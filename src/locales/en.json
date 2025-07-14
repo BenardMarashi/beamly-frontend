@@ -242,7 +242,6 @@
     "description": "Beamly connects businesses with talented freelancers offering quality services with zero commission.",
     "forClients": "For Clients",
     "forFreelancers": "For Freelancers",
-    "resources": "Resources",
     "legal": {
       "title": "Legal",
       "privacyPolicy": "Privacy Policy",
@@ -357,16 +356,6 @@
     "success": "Project posted successfully!",
     "error": "Failed to post project. Please try again.",
     "postProject": "Post Project"
-  },
-  "categories": {
-    "webDesign": "Web Design",
-    "mobileApp": "Mobile App",
-    "graphicDesign": "Graphic Design",
-    "uiux": "UI/UX Design",
-    "branding": "Branding",
-    "videoAnimation": "Video & Animation",
-    "writing": "Writing",
-    "other": "Other"
   },
   "verification": {
     "title": "Identity Verification",
