@@ -1,9 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Avatar } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { motion, AnimatePresence } from "framer-motion";
-// i18next removed to fix warnings
 import { useTheme } from "../contexts/theme-context";
 import { useAuth } from "../contexts/AuthContext";
 import { LanguageToggle } from "./language-toggle";
@@ -25,18 +24,46 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
   onLogout,
   isDashboard = false
 }) => {
-  // i18next translation removed
   const { isDarkMode } = useTheme();
   const { user, userData } = useAuth();
   const navigate = useNavigate();
+  
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  // Handle click outside to close menu
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, onClose]);
   
   const handleNavigation = (path: string) => {
     navigate(path);
     onClose();
   };
   
-  // Determine user type for different navigation
-  const userType = (userData as any)?.accountType || 'freelancer'; // Default to freelancer
+  const userType = (userData as any)?.accountType || 'freelancer';
   const isFreelancer = userType === 'freelancer';
   const isClient = userType === 'client';
   
@@ -47,23 +74,35 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
     { name: "How it Works", path: "/how-it-works", icon: "lucide:help-circle" }
   ];
   
+  // Smooth animation with consistent timing
   const menuVariants = {
     closed: {
       x: "100%",
       transition: {
-        type: "spring" as const,
-        damping: 20,
-        stiffness: 250,
-      },
+        type: "tween",
+        duration: 0.3,
+        ease: "easeInOut"
+      }
     },
     open: {
       x: 0,
       transition: {
-        type: "spring" as const,
-        damping: 20,
-        stiffness: 100,
-      },
+        type: "tween",
+        duration: 0.3,
+        ease: "easeInOut"
+      }
+    }
+  };
+
+  const overlayVariants = {
+    closed: { 
+      opacity: 0,
+      transition: { duration: 0.2 }
     },
+    open: { 
+      opacity: 0.5,
+      transition: { duration: 0.2 }
+    }
   };
 
   const profilePicture = userData?.photoURL || user?.photoURL || 
@@ -73,18 +112,21 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
     <AnimatePresence>
       {isOpen && (
         <>
+          {/* Overlay */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black z-40"
+            variants={overlayVariants}
+            initial="closed"
+            animate="open"
+            exit="closed"
+            className="fixed inset-0 bg-black z-[9998]"
             onClick={onClose}
             role="presentation"
             aria-hidden="true"
           />
           
+          {/* Menu */}
           <motion.div
-            className={`fixed inset-y-0 right-0 w-full sm:w-80 z-50 ${isDarkMode ? 'glass-effect' : 'bg-white'} ${isDarkMode ? 'border-l border-white/10' : 'border-l border-gray-200'}`}
+            className={`fixed inset-y-0 right-0 w-full sm:w-80 z-[9999] ${isDarkMode ? 'glass-effect' : 'bg-white'} ${isDarkMode ? 'border-l border-white/10' : 'border-l border-gray-200'} overflow-y-auto`}
             variants={menuVariants}
             initial="closed"
             animate="open"
@@ -108,19 +150,97 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
             
             {/* Navigation Menu */}
             <div className="p-4 space-y-3">
+              {/* User Profile Section (when logged in) */}
+              {isLoggedIn && (
+                <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'}`}>
+                  <div className="flex items-center gap-3" onClick={() => handleNavigation("/profile/edit")}>
+                    <Avatar
+                      src={profilePicture}
+                      alt={userData?.displayName || user?.displayName || "User"}
+                      size="md"
+                      className="cursor-pointer"
+                    />
+                    <div className="flex-1 cursor-pointer">
+                      <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {userData?.displayName || user?.displayName || "User"}
+                      </p>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Signed in as: {user?.email}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Main Navigation */}
               <div className="space-y-3">
-                {menuItems.map((item) => (
-                  <Button
-                    key={item.path}
-                    variant="light"
-                    className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
-                    startContent={<Icon icon={item.icon} width={24} height={24} />}
-                    onPress={() => handleNavigation(item.path)}
-                  >
-                    {item.name}
-                  </Button>
-                ))}
+                {/* Show different menu items based on auth status */}
+                {isLoggedIn ? (
+                  <>
+                    <Button
+                      variant="light"
+                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
+                      startContent={<Icon icon="lucide:home" width={24} height={24} />}
+                      onPress={() => handleNavigation("/dashboard")}
+                    >
+                      Dashboard
+                    </Button>
+                    <Button
+                      variant="light"
+                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
+                      startContent={<Icon icon="lucide:bell" width={24} height={24} />}
+                      onPress={() => handleNavigation("/notifications")}
+                    >
+                      Notifications
+                    </Button>
+                    <Button
+                      variant="light"
+                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
+                      startContent={<Icon icon="lucide:message-circle" width={24} height={24} />}
+                      onPress={() => handleNavigation("/chat")}
+                    >
+                      Messages
+                    </Button>
+                    <Button
+                      variant="light"
+                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
+                      startContent={<Icon icon="lucide:settings" width={24} height={24} />}
+                      onPress={() => handleNavigation("/settings")}
+                    >
+                      Settings
+                    </Button>
+                    <Button
+                      variant="light"
+                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
+                      startContent={<Icon icon="lucide:briefcase" width={24} height={24} />}
+                      onPress={() => handleNavigation("/looking-for-work")}
+                    >
+                      Looking for Work
+                    </Button>
+                    <Button
+                      variant="light"
+                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
+                      startContent={<Icon icon="lucide:users" width={24} height={24} />}
+                      onPress={() => handleNavigation("/browse-freelancers")}
+                    >
+                      Browse Freelancers
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {menuItems.map((item) => (
+                      <Button
+                        key={item.path}
+                        variant="light"
+                        className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
+                        startContent={<Icon icon={item.icon} width={24} height={24} />}
+                        onPress={() => handleNavigation(item.path)}
+                      >
+                        {item.name}
+                      </Button>
+                    ))}
+                  </>
+                )}
               </div>
               
               {/* Auth Buttons */}
@@ -146,43 +266,72 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
               
               {/* Preferences Section */}
               <div className={`space-y-4 pt-6 mt-8 border-t ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
-                <p className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`}>
+                <p className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
                   Preferences
                 </p>
                 
-                <div className="flex justify-center items-center gap-6 mt-6">
+                {/* Language Toggle */}
+                <div className="flex justify-center">
                   <LanguageToggle />
+                </div>
+                
+                {/* Theme Toggle */}
+                <div className="flex justify-center items-center gap-2">
+                  <Icon icon="lucide:sun" className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
                   <ThemeToggle />
+                  <Icon icon="lucide:moon" className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
                 </div>
               </div>
               
               {/* Social Links */}
-              <div className="flex justify-center gap-4 mt-8">
-                {["lucide:facebook", "lucide:twitter", "lucide:instagram", "lucide:linkedin"].map((social, index) => (
-                  <Button
-                    key={index}
-                    isIconOnly
-                    variant="light"
-                    className={`${isDarkMode ? 'text-white bg-white/10' : 'text-gray-800 bg-gray-100'} rounded-full w-12 h-12 min-w-0`}
-                    aria-label={`Social link ${index + 1}`}
-                  >
-                    <Icon icon={social} width={24} />
-                  </Button>
-                ))}
+              <div className={`flex justify-center gap-4 pt-6 mt-6 border-t ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
+                <Button
+                  isIconOnly
+                  variant="light"
+                  className={isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"}
+                  onPress={() => window.open('https://facebook.com', '_blank')}
+                  aria-label="Facebook"
+                >
+                  <Icon icon="lucide:facebook" width={20} />
+                </Button>
+                <Button
+                  isIconOnly
+                  variant="light"
+                  className={isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"}
+                  onPress={() => window.open('https://twitter.com', '_blank')}
+                  aria-label="Twitter"
+                >
+                  <Icon icon="lucide:twitter" width={20} />
+                </Button>
+                <Button
+                  isIconOnly
+                  variant="light"
+                  className={isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"}
+                  onPress={() => window.open('https://instagram.com', '_blank')}
+                  aria-label="Instagram"
+                >
+                  <Icon icon="lucide:instagram" width={20} />
+                </Button>
+                <Button
+                  isIconOnly
+                  variant="light"
+                  className={isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"}
+                  onPress={() => window.open('https://linkedin.com', '_blank')}
+                  aria-label="LinkedIn"
+                >
+                  <Icon icon="lucide:linkedin" width={20} />
+                </Button>
               </div>
               
-              {/* Logout Button for logged in users */}
+              {/* Logout Button for Logged In Users */}
               {isLoggedIn && (
-                <div className={`pt-6 mt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
+                <div className="pt-6 mt-6">
                   <Button
-                    color="default"
+                    color="danger"
                     variant="flat"
-                    className={`w-full ${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'} py-6 text-lg`}
-                    startContent={<Icon icon="lucide:log-out" width={24} height={24} />}
-                    onPress={() => {
-                      onLogout();
-                      onClose();
-                    }}
+                    className="w-full py-6 text-lg"
+                    onPress={onLogout}
+                    startContent={<Icon icon="lucide:log-out" width={24} />}
                   >
                     Logout
                   </Button>
@@ -196,6 +345,6 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
   );
 });
 
-HamburgerMenu.displayName = "HamburgerMenu";
+HamburgerMenu.displayName = 'HamburgerMenu';
 
 export { HamburgerMenu };

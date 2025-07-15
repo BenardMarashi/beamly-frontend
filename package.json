@@ -48,7 +48,7 @@
     "@tanstack/react-query": "^5.80.7",
     "date-fns": "^3.0.6",
     "firebase": "^10.8.0",
-    "framer-motion": "^12.23.0",
+    "framer-motion": "^12.23.5",
     "i18next": "^25.3.1",
     "i18next-browser-languagedetector": "^8.2.0",
     "react": "^18.3.1",
@@ -58,7 +58,31 @@
     "react-i18next": "^15.6.0",
     "react-router-dom": "^6.30.1",
     "recharts": "^2.10.3",
-    "source-map-js": "^1.2.1"
+    "source-map-js": "^1.2.1",
+    
+    "// Claude Code Helpers": "",
+    "claude:setup": "bash scripts/setup-claude-code.sh",
+    "claude:analyze": "npm run analyze:all",
+    "claude:check": "npm run type-check && npm run lint && echo '✅ Code checks passed'",
+    
+    "// Analysis Commands": "",
+    "analyze:all": "npm run analyze:deps && npm run analyze:css && npm run analyze:types",
+    "analyze:deps": "madge --circular src/ 2>/dev/null || echo 'Note: Install madge for circular dependency checking'",
+    "analyze:css": "echo 'Glass effect usage:' && grep -r 'glass-effect' src/ --include='*.tsx' --include='*.jsx' | wc -l",
+    "analyze:types": "echo 'TypeScript files:' && find src -name '*.ts' -o -name '*.tsx' | wc -l",
+    "analyze:component": "grep -r \"$npm_config_name\" src/ --include=\"*.tsx\" --include=\"*.jsx\"",
+    "analyze:imports": "grep -r \"import.*$npm_config_name\" src/",
+    "analyze:firebase": "grep -r 'firebaseService\\.' src/ --include='*.ts' --include='*.tsx' | wc -l",
+    
+    "// Build Debugging": "",
+    "build:analyze": "npm run build -- --debug",
+    "build:clean": "rm -rf dist node_modules/.vite .vite",
+    "build:why-fail": "npm run build:clean && npm run build 2>&1 | tee build-error.log",
+    
+    "// Quick Fixes": "",
+    "fix:cache": "npm run build:clean && npm cache clean --force",
+    "fix:deps": "rm -rf node_modules package-lock.json && npm install",
+    "fix:all": "npm run fix:cache && npm run fix:deps"
   },
   "devDependencies": {
     "@babel/core": "^7.26.10",
@@ -68,8 +92,8 @@
     "@babel/traverse": "^7.27.0",
     "@babel/types": "^7.27.0",
     "@tailwindcss/cli": "^4.1.11",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.3.4",

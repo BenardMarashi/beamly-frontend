@@ -247,10 +247,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   variant="bordered" 
                   className="w-full text-white border-white/30"
                   startContent={<Icon icon="lucide:mail" />}
-                  onPress={() => {
-                    console.log("Send message button clicked");
-                    // No navigation, just a log
-                  }}
+                  onPress={() => navigate(`/chat?user=${freelancer.id}`)}
                 >
                   Send Message
                 </Button>

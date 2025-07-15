@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { db, fns } from '../../lib/firebase';
+import { db, functions } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input, Button, Avatar } from '@heroui/react';
 import { Icon } from '@iconify/react';
@@ -82,7 +82,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
     setSending(true);
     try {
-      const sendMessageFn = httpsCallable(fns, 'sendMessage');
+      const sendMessageFn = httpsCallable(functions, 'sendMessage');
       await sendMessageFn({
         recipientId,
         text: newMessage.trim(),

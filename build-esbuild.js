@@ -13,8 +13,7 @@ if (!fs.existsSync('dist')) {
 // Process Tailwind CSS first with content scanning
 console.log('⚡ Processing Tailwind CSS...');
 try {
-  execSync('npx tailwindcss -i ./src/index.css -o ./dist/main.css --minify --content "./src/**/*.{js,ts,jsx,tsx}" --content "./index.html" --content "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}"', { stdio: 'inherit' });
-  console.log('✅ Tailwind CSS processed');
+ execSync('npx tailwindcss@3.4.1 -i ./src/index.css -o ./dist/main.css --content "./src/**/*.{js,ts,jsx,tsx}" --content "./index.html" --content "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}"', { stdio: 'inherit' });  console.log('✅ Tailwind CSS processed');
 } catch (error) {
   console.error('❌ Tailwind CSS processing failed:', error);
   process.exit(1);
