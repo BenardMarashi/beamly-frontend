@@ -86,6 +86,28 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
     
+    // Projects collection
+    match /projects/{projectId} {
+      allow read: if true; // Public project portfolios
+      allow create: if isAuthenticated() && 
+        request.resource.data.freelancerId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        resource.data.freelancerId == request.auth.uid;
+      allow delete: if isAuthenticated() && 
+        resource.data.freelancerId == request.auth.uid;
+    }
+    
+    // Messages collection (top-level)
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.senderId == request.auth.uid || 
+         resource.data.recipientId == request.auth.uid);
+      allow create: if isAuthenticated() && 
+        request.resource.data.senderId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
+    }
+    
     // Reviews collection
     match /reviews/{reviewId} {
       allow read: if true;
@@ -96,6 +118,17 @@ service cloud.firestore {
       allow delete: if false;
     }
     
+    // Verifications collection
+    match /verifications/{verificationId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+
     // Analytics collection (read-only for users)
     match /analytics/{document=**} {
       allow read: if isAuthenticated();

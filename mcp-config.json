@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "firebase": {
+      "command": "mcp-server-firebase",
+      "args": [],
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "./firebase-service-account.json"
+      }
+    },
+    "filesystem": {
+      "command": "mcp-server-filesystem",
+      "args": ["--allowed-paths", ".", "--enable-search", "--enable-watch"],
+      "env": {}
+    },
+    "memory": {
+      "command": "mcp-server-memory",
+      "args": [],
+      "env": {}
+    },
+    "typescript": {
+      "command": "mcp-server-typescript",
+      "args": ["--project", "./tsconfig.json"],
+      "env": {}
+    },
+    "ast": {
+      "command": "mcp-server-ast",
+      "args": ["--language", "typescript", "--jsx", "react"],
+      "env": {}
+    }
+  }
+}

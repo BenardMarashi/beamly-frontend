@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardBody, Input, Button, Avatar, Badge } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 
 interface Message {
@@ -29,12 +30,14 @@ interface Conversation {
 
 export const ChatPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, userData } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [targetUserId, setTargetUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -43,9 +46,72 @@ export const ChatPage: React.FC = () => {
       return;
     }
     
+    // Check for target user parameter
+    const userParam = searchParams.get('user');
+    if (userParam) {
+      setTargetUserId(userParam);
+    }
+    
     const unsubscribe = loadConversations();
     return unsubscribe;
-  }, [user, navigate]);
+  }, [user, navigate, searchParams]);
+
+  // Handle target user selection and conversation creation
+  useEffect(() => {
+    if (!targetUserId || !user || conversations.length === 0) return;
+    
+    // Find existing conversation with target user
+    const existingConversation = conversations.find(conv => 
+      conv.participants.includes(targetUserId)
+    );
+    
+    if (existingConversation) {
+      setSelectedConversation(existingConversation);
+    } else {
+      // Create a placeholder conversation for new chat
+      createNewConversationWithUser(targetUserId);
+    }
+    
+    // Clear the URL parameter
+    setTargetUserId(null);
+  }, [targetUserId, user, conversations]);
+
+  const createNewConversationWithUser = async (userId: string) => {
+    try {
+      // Fetch user data for the conversation
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (!userDoc.exists()) {
+        toast.error('User not found');
+        return;
+      }
+      
+      const targetUser = userDoc.data();
+      const conversationId = [user!.uid, userId].sort().join('_');
+      
+      // Create a local conversation object for immediate UI update
+      const newConversation: Conversation = {
+        id: conversationId,
+        participants: [user!.uid, userId],
+        participantNames: {
+          [user!.uid]: userData?.displayName || user!.displayName || 'You',
+          [userId]: targetUser.displayName || 'User'
+        },
+        participantPhotos: {
+          [user!.uid]: userData?.photoURL || user!.photoURL || '',
+          [userId]: targetUser.photoURL || ''
+        },
+        lastMessage: '',
+        lastMessageTime: new Date(),
+        unreadCount: {}
+      };
+      
+      setSelectedConversation(newConversation);
+      toast.success(`Started conversation with ${targetUser.displayName}`);
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      toast.error('Failed to start conversation');
+    }
+  };
   
   useEffect(() => {
     if (!selectedConversation) return;
@@ -142,28 +208,22 @@ export const ChatPage: React.FC = () => {
     setNewMessage('');
     
     try {
-      // Add message to conversation
-      await addDoc(
-        collection(db, 'conversations', selectedConversation.id, 'messages'),
-        {
-          text: messageText,
-          senderId: user.uid,
-          senderName: userData?.displayName || 'Unknown',
-          createdAt: serverTimestamp(),
-          read: false
-        }
-      );
-      
-      // Update conversation
+      // Use Firebase function for sending messages
+      const sendMessageFn = httpsCallable(functions, 'sendMessage');
       const otherParticipantId = selectedConversation.participants.find(p => p !== user.uid);
-      await updateDoc(doc(db, 'conversations', selectedConversation.id), {
-        lastMessage: messageText,
-        lastMessageTime: serverTimestamp(),
-        [`unreadCount.${otherParticipantId}`]: (selectedConversation.unreadCount[otherParticipantId!] || 0) + 1
+      
+      await sendMessageFn({
+        conversationId: selectedConversation.id,
+        recipientId: otherParticipantId,
+        text: messageText,
+        attachments: []
       });
+      
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
+      // Rollback message input if error
+      setNewMessage(messageText);
     }
   };
   

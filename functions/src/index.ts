@@ -810,6 +810,121 @@ export const calculateDailyAnalytics = onSchedule("every 24 hours", async (event
   }
 });
 
+// HTTP Function: Send Message
+export const sendMessage = onCall(
+  {
+    cors: true,
+    maxInstances: 10,
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { data } = request;
+    const senderId = request.auth.uid;
+
+    try {
+      // Validate required fields
+      if (!data.recipientId || !data.text) {
+        throw new HttpsError("invalid-argument", "Missing required fields");
+      }
+
+      // Get sender data
+      const senderDoc = await db.doc(`users/${senderId}`).get();
+      const senderData = senderDoc.data();
+
+      if (!senderData) {
+        throw new HttpsError("not-found", "Sender profile not found");
+      }
+
+      // Get recipient data
+      const recipientDoc = await db.doc(`users/${data.recipientId}`).get();
+      const recipientData = recipientDoc.data();
+
+      if (!recipientData) {
+        throw new HttpsError("not-found", "Recipient profile not found");
+      }
+
+      // Create or get conversation
+      const conversationId = data.conversationId || [senderId, data.recipientId].sort().join("_");
+      const conversationRef = db.doc(`conversations/${conversationId}`);
+
+      // Check if conversation exists
+      const conversationDoc = await conversationRef.get();
+      const now = admin.firestore.FieldValue.serverTimestamp();
+
+      if (!conversationDoc.exists) {
+        // Create new conversation
+        await conversationRef.set({
+          id: conversationId,
+          participants: [senderId, data.recipientId],
+          participantNames: {
+            [senderId]: senderData.displayName || "Unknown",
+            [data.recipientId]: recipientData.displayName || "Unknown"
+          },
+          participantPhotos: {
+            [senderId]: senderData.photoURL || "",
+            [data.recipientId]: recipientData.photoURL || ""
+          },
+          lastMessage: data.text,
+          lastMessageTime: now,
+          unreadCount: {
+            [senderId]: 0,
+            [data.recipientId]: 1
+          },
+          createdAt: now,
+          updatedAt: now
+        });
+      } else {
+        // Update existing conversation
+        await conversationRef.update({
+          lastMessage: data.text,
+          lastMessageTime: now,
+          [`unreadCount.${data.recipientId}`]: admin.firestore.FieldValue.increment(1),
+          updatedAt: now
+        });
+      }
+
+      // Add message to messages subcollection
+      const messageRef = db.collection("messages").doc();
+      await messageRef.set({
+        id: messageRef.id,
+        conversationId: conversationId,
+        senderId: senderId,
+        senderName: senderData.displayName || "Unknown",
+        senderAvatar: senderData.photoURL || "",
+        text: data.text,
+        attachments: data.attachments || [],
+        status: "sent",
+        createdAt: now
+      });
+
+      // Create notification for recipient
+      await db.collection("notifications").add({
+        userId: data.recipientId,
+        title: "New Message",
+        message: `${senderData.displayName || "Someone"} sent you a message`,
+        type: "message",
+        read: false,
+        link: "/chat",
+        createdAt: now
+      });
+
+      return { success: true, messageId: messageRef.id, conversationId };
+    } catch (error: any) {
+      console.error("Error sending message:", error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError("internal", "Failed to send message");
+    }
+  }
+);
+
 // HTTP Function: Search jobs with advanced filters
 export const searchJobs = onCall(async (request) => {
   // Verify user is authenticated

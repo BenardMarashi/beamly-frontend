@@ -21,10 +21,10 @@ export const PostProjectPage: React.FC = () => {
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
-        toast.error(t('postProject.loginRequired'));
+        toast.error('Please login to post projects');
         navigate('/login');
       } else if (!canPostProjects) {
-        toast.error(t('postProject.freelancersOnly'));
+        toast.error('Only freelancers can post projects');
         navigate('/dashboard');
       }
     }
@@ -114,34 +114,59 @@ export const PostProjectPage: React.FC = () => {
     setUploadingImages(true);
     const uploadPromises = imageFiles.map(async (file, index) => {
       const timestamp = Date.now();
-      const fileName = `${timestamp}_${index}_${file.name}`;
-      const storageRef = ref(storage, `projects/${user!.uid}/${fileName}`);
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const fileName = `${timestamp}_${index}_${sanitizedFileName}`;
       
       try {
-        const snapshot = await uploadBytes(storageRef, file, {
-          contentType: file.type,
-          customMetadata: {
-            uploadedBy: user!.uid,
-            uploadedAt: new Date().toISOString()
-          }
+        // Use temp path first to avoid CORS issues
+        const tempRef = ref(storage, `temp/${user!.uid}/${fileName}`);
+        
+        // Convert file to array buffer for more reliable upload
+        const arrayBuffer = await file.arrayBuffer();
+        
+        console.log(`Uploading ${fileName} to temp storage...`);
+        const snapshot = await uploadBytes(tempRef, arrayBuffer, {
+          contentType: file.type || 'application/octet-stream'
         });
-        return getDownloadURL(snapshot.ref);
+        
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        console.log(`Successfully uploaded ${fileName}:`, downloadURL);
+        return downloadURL;
       } catch (error: any) {
         console.error('Upload error for file:', fileName, error);
-        // If CORS error, provide fallback
-        if (error.code === 'storage/unauthorized' || error.message.includes('CORS')) {
-          toast.error(`CORS error uploading ${file.name}. Please configure Firebase Storage CORS.`);
-          throw new Error('CORS configuration required. Run: gsutil cors set cors.json gs://beamly-app.appspot.com');
+        
+        // More specific error handling
+        if (error.code === 'storage/unauthorized') {
+          toast.error(`Authentication required. Please refresh and try again.`);
+        } else if (error.code === 'storage/unknown' || error.message?.includes('CORS')) {
+          // Fallback: try using the original projects path
+          try {
+            const projectRef = ref(storage, `projects/${user!.uid}/${fileName}`);
+            const arrayBuffer = await file.arrayBuffer();
+            const snapshot = await uploadBytes(projectRef, arrayBuffer, {
+              contentType: file.type || 'application/octet-stream'
+            });
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            return downloadURL;
+          } catch (fallbackError: any) {
+            console.error('Fallback upload failed:', fallbackError);
+            toast.error(`Upload failed for ${file.name}. Please try with a smaller image.`);
+            throw fallbackError;
+          }
+        } else {
+          toast.error(`Failed to upload ${file.name}: ${error.message}`);
+          throw error;
         }
-        throw error;
       }
     });
     
     try {
       const urls = await Promise.all(uploadPromises);
-      return urls;
-    } finally {
       setUploadingImages(false);
+      return urls;
+    } catch (error) {
+      setUploadingImages(false);
+      throw error;
     }
   };
 
@@ -225,166 +250,206 @@ export const PostProjectPage: React.FC = () => {
       >
         <h1 className="text-3xl font-bold text-white mb-8">{t('postProject.title')}</h1>
         
-        <form onSubmit={handleSubmit}>
-          <Card className="glass-effect border-none mb-6">
-            <CardBody className="p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">{t('postProject.projectDetails')}</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Card className="glass-effect border-none">
+            <CardBody className="p-4 sm:p-6">
+              <h2 className="text-xl font-semibold text-white mb-6">Project Details</h2>
               
-              <div className="space-y-4">
-                <Input
-                  label={t('postProject.projectTitle')}
-                  placeholder={t('postProject.titlePlaceholder')}
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  variant="bordered"
-                  className="text-white"
-                  isRequired
-                />
+              <div className="grid grid-cols-1 gap-6">
+                <div className="w-full">
+                  <Input
+                    label="Project Title"
+                    placeholder="Enter your project title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    variant="bordered"
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-gray-900/50 border-gray-600 hover:border-gray-500 focus-within:border-white",
+                      label: "text-gray-300"
+                    }}
+                    isRequired
+                  />
+                </div>
                 
-                <Textarea
-                  label={t('postProject.projectDescription')}
-                  placeholder={t('postProject.descriptionPlaceholder')}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  variant="bordered"
-                  className="text-white"
-                  minRows={6}
-                  isRequired
-                />
+                <div className="w-full">
+                  <Textarea
+                    label="Project Description"
+                    placeholder="Describe your project in detail"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    variant="bordered"
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-gray-900/50 border-gray-600 hover:border-gray-500 focus-within:border-white",
+                      label: "text-gray-300"
+                    }}
+                    minRows={6}
+                    isRequired
+                  />
+                </div>
                 
-                <Select
-                  label={t('postProject.category')}
-                  placeholder={t('postProject.selectCategory')}
-                  selectedKeys={formData.category ? [formData.category] : []}
-                  onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0] as string;
-                    setFormData({ ...formData, category: selected });
-                  }}
-                  variant="bordered"
-                  classNames={{
-                    trigger: "bg-gray-900/50 border-gray-600 text-white",
-                    value: "text-white",
-                    listbox: "bg-gray-900",
-                    popoverContent: "bg-gray-900",
-                  }}
-                  isRequired
-                >
-                  {categories.map(cat => (
-                    <SelectItem key={cat.value} value={cat.value} className="text-white">
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </Select>
+                <div className="w-full">
+                  <Select
+                    label="Category"
+                    placeholder="Select a category"
+                    selectedKeys={formData.category ? [formData.category] : []}
+                    onSelectionChange={(keys) => {
+                      const selected = Array.from(keys)[0] as string;
+                      setFormData({ ...formData, category: selected });
+                    }}
+                    variant="bordered"
+                    classNames={{
+                      trigger: "bg-gray-900/50 border-gray-600 hover:border-gray-500 data-[open=true]:border-white",
+                      value: "text-white",
+                      label: "text-gray-300",
+                      listbox: "bg-gray-900",
+                      popoverContent: "bg-gray-900 border border-gray-700",
+                    }}
+                    isRequired
+                  >
+                    {categories.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value} className="text-white">
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
               </div>
             </CardBody>
           </Card>
           
-          <Card className="glass-effect border-none mb-6">
-            <CardBody className="p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">{t('postProject.skillsAndLinks')}</h2>
+          <Card className="glass-effect border-none">
+            <CardBody className="p-4 sm:p-6">
+              <h2 className="text-xl font-semibold text-white mb-6">Skills & Links</h2>
               
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-400 mb-2 block">{t('postProject.technologiesUsed')}</label>
-                  <div className="flex gap-2 mb-2">
+              <div className="grid grid-cols-1 gap-6">
+                <div className="w-full">
+                  <label className="text-sm text-gray-300 mb-3 block font-medium">Technologies Used</label>
+                  <div className="flex flex-col sm:flex-row gap-2 mb-3">
                     <Input
-                      placeholder={t('postProject.addSkill')}
+                      placeholder="Add a skill (e.g., React, Python)"
                       value={currentSkill}
                       onChange={(e) => setCurrentSkill(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
                       variant="bordered"
-                      className="text-white"
+                      classNames={{
+                        input: "text-white",
+                        inputWrapper: "bg-gray-900/50 border-gray-600 hover:border-gray-500 focus-within:border-white"
+                      }}
+                      className="flex-1"
                     />
                     <Button
                       type="button"
                       color="secondary"
-                      isIconOnly
                       onPress={handleAddSkill}
                       isDisabled={!currentSkill.trim() || formData.skills.length >= 10}
+                      className="sm:w-auto w-full"
+                      startContent={<Icon icon="lucide:plus" />}
                     >
-                      <Icon icon="lucide:plus" />
+                      Add
                     </Button>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 min-h-[2rem]">
                     {formData.skills.map(skill => (
                       <Chip
                         key={skill}
                         onClose={() => handleRemoveSkill(skill)}
                         variant="flat"
                         color="secondary"
+                        className="bg-secondary/20 text-white"
                       >
                         {skill}
                       </Chip>
                     ))}
+                    {formData.skills.length === 0 && (
+                      <p className="text-gray-500 text-sm">Add skills to showcase your expertise</p>
+                    )}
                   </div>
                 </div>
                 
-                <Input
-                  label={t('postProject.liveUrl')}
-                  placeholder="https://example.com"
-                  value={formData.liveUrl}
-                  onChange={(e) => setFormData({ ...formData, liveUrl: e.target.value })}
-                  variant="bordered"
-                  className="text-white"
-                  startContent={<Icon icon="lucide:globe" className="text-gray-400" />}
-                />
+                <div className="w-full">
+                  <Input
+                    label="Live Demo URL (Optional)"
+                    placeholder="https://your-project.com"
+                    value={formData.liveUrl}
+                    onChange={(e) => setFormData({ ...formData, liveUrl: e.target.value })}
+                    variant="bordered"
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-gray-900/50 border-gray-600 hover:border-gray-500 focus-within:border-white",
+                      label: "text-gray-300"
+                    }}
+                    startContent={<Icon icon="lucide:globe" className="text-gray-400" />}
+                  />
+                </div>
                 
-                <Input
-                  label={t('postProject.githubUrl')}
-                  placeholder="https://github.com/username/repo"
-                  value={formData.githubUrl}
-                  onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
-                  variant="bordered"
-                  className="text-white"
-                  startContent={<Icon icon="lucide:github" className="text-gray-400" />}
-                />
+                <div className="w-full">
+                  <Input
+                    label="GitHub Repository (Optional)"
+                    placeholder="https://github.com/username/repo"
+                    value={formData.githubUrl}
+                    onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
+                    variant="bordered"
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-gray-900/50 border-gray-600 hover:border-gray-500 focus-within:border-white",
+                      label: "text-gray-300"
+                    }}
+                    startContent={<Icon icon="lucide:github" className="text-gray-400" />}
+                  />
+                </div>
               </div>
             </CardBody>
           </Card>
           
-          <Card className="glass-effect border-none mb-6">
-            <CardBody className="p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">{t('postProject.projectImages')}</h2>
-              <p className="text-gray-400 text-sm mb-4">{t('postProject.imagesDescription')}</p>
+          <Card className="glass-effect border-none">
+            <CardBody className="p-4 sm:p-6">
+              <h2 className="text-xl font-semibold text-white mb-6">Project Images</h2>
+              <p className="text-gray-400 text-sm mb-6">Upload images to showcase your project. First image will be used as thumbnail.</p>
               
-              <div className="space-y-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageSelect}
-                  className="hidden"
-                  id="image-upload"
-                  disabled={imageFiles.length >= 5}
-                />
-                <label htmlFor="image-upload">
-                  <Button
-                    as="span"
-                    color="secondary"
-                    variant="flat"
-                    startContent={<Icon icon="lucide:upload" />}
-                    className={`cursor-pointer ${imageFiles.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {t('postProject.uploadImages')} ({imageFiles.length}/5)
-                  </Button>
-                </label>
+              <div className="space-y-6">
+                <div className="w-full">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="hidden"
+                    id="image-upload"
+                    disabled={imageFiles.length >= 5}
+                  />
+                  <label htmlFor="image-upload" className="block">
+                    <Button
+                      as="span"
+                      color="secondary"
+                      variant="flat"
+                      startContent={<Icon icon="lucide:upload" />}
+                      className={`w-full sm:w-auto cursor-pointer ${imageFiles.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      size="lg"
+                    >
+                      Upload Images ({imageFiles.length}/5)
+                    </Button>
+                  </label>
+                </div>
                 
                 {imagePreviews.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {imagePreviews.map((preview, index) => (
-                      <div key={index} className="relative group">
+                      <div key={index} className="relative group aspect-video bg-gray-800 rounded-lg overflow-hidden">
                         <Image
                           src={preview}
                           alt={`Project image ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg"
+                          className="w-full h-full object-cover"
                         />
                         <Button
                           isIconOnly
                           color="danger"
                           variant="solid"
                           size="sm"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                           onPress={() => handleRemoveImage(index)}
+                          aria-label={`Remove image ${index + 1}`}
                         >
                           <Icon icon="lucide:x" />
                         </Button>
@@ -392,35 +457,45 @@ export const PostProjectPage: React.FC = () => {
                           <Chip
                             size="sm"
                             color="secondary"
-                            className="absolute bottom-2 left-2"
+                            className="absolute bottom-2 left-2 z-10"
                           >
-                            {t('postProject.thumbnail')}
+                            Thumbnail
                           </Chip>
                         )}
                       </div>
                     ))}
                   </div>
                 )}
+                
+                {imagePreviews.length === 0 && (
+                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center">
+                    <Icon icon="lucide:image" className="text-gray-500 text-4xl mb-4 mx-auto" />
+                    <p className="text-gray-500">No images uploaded yet</p>
+                    <p className="text-gray-600 text-sm">Click the upload button to add project images</p>
+                  </div>
+                )}
               </div>
             </CardBody>
           </Card>
           
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 pt-6">
             <Button
               type="button"
               variant="bordered"
-              className="flex-1"
+              className="flex-1 text-white border-white/30 hover:bg-white/10"
               onPress={() => navigate('/dashboard')}
+              size="lg"
             >
-              {t('common.cancel')}
+              Cancel
             </Button>
             <Button
               type="submit"
               color="primary"
               className="flex-1"
               isLoading={loading || uploadingImages}
+              size="lg"
             >
-              {t('postProject.postProject')}
+              {loading || uploadingImages ? 'Posting Project...' : 'Post Project'}
             </Button>
           </div>
         </form>

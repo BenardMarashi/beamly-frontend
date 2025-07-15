@@ -47,7 +47,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
         {/* Glass Effect Header with Hamburger Menu */}
         <header className={`fixed top-0 left-0 right-0 z-50 glass-effect border-b ${isDarkMode ? 'border-white/10' : 'border-gray-200/50'} w-full`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-            <div className="flex justify-between items-center h-16 w-full">
+            <div className="flex justify-between items-center h-16 w-full relative">
               {/* Logo */}
               <div className="flex-shrink-0">
                 <RouterLink to="/" className="cursor-pointer">
@@ -56,15 +56,26 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
               </div>
               
               {/* Hamburger Menu Button */}
-              <Button
-                isIconOnly
-                variant="light"
-                onPress={() => setMenuOpen(true)}
-                className={`${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} transition-colors`}
-                aria-label="Open menu"
-              >
-                <Icon icon="lucide:menu" width={24} height={24} />
-              </Button>
+              <div className="relative z-50">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Hamburger menu clicked, current state:', menuOpen);
+                    setMenuOpen(!menuOpen);
+                  }}
+                  className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/20 touch-manipulation`}
+                  aria-label="Open menu"
+                  type="button"
+                  style={{ 
+                    WebkitTapHighlightColor: 'transparent',
+                    userSelect: 'none',
+                    touchAction: 'manipulation'
+                  }}
+                >
+                  <Icon icon="lucide:menu" width={24} height={24} />
+                </button>
+              </div>
             </div>
           </div>
         </header>

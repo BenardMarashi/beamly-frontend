@@ -19,6 +19,7 @@ npm run preview      # Preview production build locally
 ```bash
 npm run build        # Type-check and build for production
 npm run build:debug  # Build without minification for debugging
+npm run build:esbuild # ESBuild workaround for Rollup issues
 npm run type-check   # Run TypeScript compiler without emitting
 npm run lint         # Run ESLint
 npm run format       # Format code with Prettier
@@ -26,6 +27,8 @@ npm run format:check # Check formatting without fixing
 npm run test         # Run Vitest tests
 npm run test:ui      # Run tests with UI
 npm run test:coverage # Generate test coverage reports
+npm run test -- --watch # Watch mode for development
+npm run test path/to/file.test.ts # Run single test file
 ```
 
 ### Deployment
@@ -120,6 +123,7 @@ Environment variables are validated and typed in `src/config/env.ts` with sophis
 2. Check TypeScript types before committing (`npm run type-check`)
 3. Format code with Prettier (`npm run format`)
 4. Test builds locally with `npm run build && npm run preview`
+5. Use `npm run build:esbuild` as fallback if standard build fails due to Rollup issues
 
 ### Firebase Security
 - Security rules are defined in `firestore.rules` and `storage.rules`
@@ -168,3 +172,45 @@ The app uses a sophisticated routing structure in `src/App.tsx`:
 - **Build Tool**: Vite with React plugin
 - **Testing**: Vitest for unit testing
 - **Internationalization**: i18next with browser language detection
+
+### Critical Files (Do Not Modify Without Analysis)
+- `src/lib/firebase.ts` - Firebase initialization and configuration
+- `src/services/firebase-services.ts` - Central service layer for all Firebase operations
+- `src/contexts/AuthContext.tsx` - Authentication state management
+- `src/App.tsx` - Main routing configuration
+- `src/lib/realtime.ts` - Real-time subscription management
+- `src/config/env.ts` - Environment variable validation and typing
+
+### Common Code Patterns
+```typescript
+// Authentication check pattern
+const { user, isFreelancer, isClient } = useAuth();
+
+// Service layer usage pattern
+import { firebaseService } from '@/services/firebase-services';
+const data = await firebaseService.getJobs();
+
+// Real-time subscription pattern
+useEffect(() => {
+  if (!user) return;
+  const unsubscribe = RealtimeService.subscribeToNotifications(user.uid, setNotifications);
+  return unsubscribe;
+}, [user]);
+
+// Error handling pattern
+try {
+  await firebaseService.createJob(jobData);
+  toast.success('Job created successfully');
+} catch (error) {
+  toast.error(`Error creating job: ${error.message}`);
+}
+```
+
+### Build System Notes
+The project has multiple build configurations to handle various issues:
+- Primary build: `npm run build` (standard Vite build)
+- Debug build: `npm run build:debug` (unminified for debugging)
+- ESBuild fallback: `npm run build:esbuild` (workaround for Rollup issues)
+- Production build: `npm run build:production` (optimized deployment build)
+
+Use the ESBuild fallback if experiencing CSS loading issues or Rollup bundling problems.
