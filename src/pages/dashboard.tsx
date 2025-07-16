@@ -303,7 +303,7 @@ const DashboardPage: React.FC = () => {
                       variant="flat"
                       color="primary"
                       startContent={<Icon icon="lucide:search" />}
-                      onPress={() => navigate('/looking-for-work')}
+                      onPress={() => navigate('/browse-jobs')}
                       className="h-auto py-4 flex-col gap-2"
                     >
                       <span>Find Work</span>
@@ -321,7 +321,7 @@ const DashboardPage: React.FC = () => {
                       variant="flat"
                       color="success"
                       startContent={<Icon icon="lucide:edit" />}
-                      onPress={() => navigate('/profile/edit')}
+                      onPress={() => navigate('/edit-profile')}
                       className="h-auto py-4 flex-col gap-2"
                     >
                       <span>Edit Profile</span>
@@ -358,7 +358,7 @@ const DashboardPage: React.FC = () => {
                       variant="flat"
                       color="primary"
                       startContent={<Icon icon="lucide:search" />}
-                      onPress={() => navigate('/looking-for-work')}
+                      onPress={() => navigate('/browse-jobs')}
                       className="h-auto py-4 flex-col gap-2"
                     >
                       <span>Find Work</span>
@@ -388,7 +388,7 @@ const DashboardPage: React.FC = () => {
                   variant="flat"
                   color="success"
                   startContent={<Icon icon="lucide:message-square" />}
-                  onPress={() => navigate('/chat')}
+                  onPress={() => navigate('/messages')}
                   className="h-auto py-4 flex-col gap-2"
                 >
                   <span>Messages</span>
@@ -408,7 +408,7 @@ const DashboardPage: React.FC = () => {
                   variant="flat"
                   color="warning"
                   startContent={<Icon icon="lucide:user" />}
-                  onPress={() => navigate('/profile/edit')}
+                  onPress={() => navigate('/edit-profile')}
                   className="h-auto py-4 flex-col gap-2"
                 >
                   <span>Edit Profile</span>
@@ -465,7 +465,7 @@ const DashboardPage: React.FC = () => {
               <Button
                 color="primary"
                 fullWidth
-                onPress={() => navigate('/create-profile')}
+                onPress={() => navigate('/edit-profile')}
               >
                 Complete Profile
               </Button>

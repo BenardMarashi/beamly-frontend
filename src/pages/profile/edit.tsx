@@ -290,7 +290,7 @@ export const EditProfilePage: React.FC = () => {
                           isIconOnly
                           color="secondary"
                           variant="flat"
-                          onClick={addSkill}
+                          onPress={addSkill}
                           disabled={!skillInput.trim() || profileData.skills.length >= 10}
                         >
                           <Icon icon="lucide:plus" />
@@ -375,7 +375,7 @@ export const EditProfilePage: React.FC = () => {
                           isIconOnly
                           color="secondary"
                           variant="flat"
-                          onClick={addLanguage}
+                          onPress={addLanguage}
                           disabled={!languageInput.trim() || profileData.languages.length >= 5}
                         >
                           <Icon icon="lucide:plus" />
@@ -463,7 +463,7 @@ export const EditProfilePage: React.FC = () => {
               type="button"
               variant="bordered"
               className="flex-1"
-              onClick={() => navigate('/dashboard')}
+              onPress={() => navigate('/dashboard')}
             >
               Cancel
             </Button>

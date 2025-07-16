@@ -46,7 +46,7 @@ export const NotFoundPage: React.FC = () => {
               color="primary"
               size="lg"
               startContent={<Icon icon="lucide:home" />}
-              onClick={() => navigate('/')}
+              onPress={() => navigate('/')}
             >
               Go Home
             </Button>
@@ -54,7 +54,7 @@ export const NotFoundPage: React.FC = () => {
               variant="bordered"
               size="lg"
               startContent={<Icon icon="lucide:arrow-left" />}
-              onClick={() => navigate(-1)}
+              onPress={() => navigate(-1)}
             >
               Go Back
             </Button>

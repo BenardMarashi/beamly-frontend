@@ -61,7 +61,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
       return [
         { path: '/', label: 'Home', icon: 'solar:home-2-bold' },
         { path: '/browse-freelancers', label: 'Browse Freelancers', icon: 'solar:users-group-rounded-bold' },
-        { path: '/looking-for-work', label: 'Looking for Work', icon: 'solar:case-round-minimalistic-bold' },
+        { path: '/browse-jobs', label: 'Looking for Work', icon: 'solar:case-round-minimalistic-bold' }, // Changed from /looking-for-work
         { path: '/how-it-works', label: 'How it Works', icon: 'solar:question-circle-bold' },
       ];
     }
@@ -73,7 +73,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
     // User type specific items
     if (userData?.userType === 'freelancer' || userData?.userType === 'both') {
       baseItems.push(
-        { path: '/looking-for-work', label: 'Find Work', icon: 'solar:case-round-minimalistic-bold' },
+        { path: '/browse-jobs', label: 'Find Work', icon: 'solar:case-round-minimalistic-bold' }, // Changed from /looking-for-work
         { path: '/post-project', label: 'Post Project', icon: 'solar:folder-plus-bold' },
         { path: '/projects/manage', label: 'My Projects', icon: 'solar:folder-bold' }
       );
@@ -304,7 +304,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                       <Button
                         as={RouterLink}
                         to="/login"
-                        onClick={handleMenuItemClick}
+                        onPress={handleMenuItemClick}
                         variant="bordered"
                         className="w-full border-white/20 text-white hover:bg-white/10"
                       >
@@ -313,7 +313,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                       <Button
                         as={RouterLink}
                         to="/signup"
-                        onClick={handleMenuItemClick}
+                        onPress={handleMenuItemClick}
                         color="secondary"
                         className="w-full font-semibold"
                       >
@@ -329,8 +329,8 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                     >
                       <Button
                         as={RouterLink}
-                        to="/profile/edit"
-                        onClick={handleMenuItemClick}
+                        to="/edit-profile"
+                        onPress={handleMenuItemClick}
                         variant="bordered"
                         className="w-full border-white/20 text-white hover:bg-white/10"
                         startContent={<Icon icon="solar:user-bold" className="w-4 h-4" />}
@@ -340,7 +340,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                       <Button
                         as={RouterLink}
                         to="/settings"
-                        onClick={handleMenuItemClick}
+                        onPress={handleMenuItemClick}
                         variant="bordered"
                         className="w-full border-white/20 text-white hover:bg-white/10"
                         startContent={<Icon icon="solar:settings-bold" className="w-4 h-4" />}
@@ -348,7 +348,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                         Settings
                       </Button>
                       <Button
-                        onClick={handleLogout}
+                        onPress={handleLogout}
                         variant="bordered"
                         className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
                         startContent={<Icon icon="solar:logout-2-bold" className="w-4 h-4" />}

@@ -129,10 +129,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Analytics collection (read-only for users)
+    // Analytics collection - Updated to allow event tracking
     match /analytics/{document=**} {
       allow read: if isAuthenticated();
-      allow write: if false; // Only functions can write
+      allow create: if isAuthenticated(); // Allow authenticated users to track events
+      allow update: if false; // Prevent modification of existing events
+      allow delete: if false; // Prevent deletion of events
     }
     
     // Allow functions to write to any collection
