@@ -4,7 +4,7 @@ import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
-export const NotFoundPage: React.FC = () => {
+const NotFoundPage: React.FC = () => {
   const navigate = useNavigate();
 
   return (
@@ -89,3 +89,5 @@ export const NotFoundPage: React.FC = () => {
     </div>
   );
 };
+
+export default NotFoundPage;

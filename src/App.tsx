@@ -14,8 +14,8 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 
 // Layouts
-import MainLayout from './layouts/main-layout';
-import DashboardLayout from './layouts/dashboard-layout';
+import { MainLayout } from './layouts/main-layout';
+import { DashboardLayout } from './layouts/dashboard-layout';
 
 // Regular imports for frequently used pages
 import { HomePage } from './pages/home';
@@ -27,21 +27,21 @@ import { PostProjectPage } from './pages/post-project';
 import { FreelancerProfilePage } from './pages/freelancer-profile';
 
 // Lazy load less frequently used pages
-const ProfilePage = lazy(() => import('./pages/freelancer-profile').then(module => ({ default: module.ProfilePage })));
-const EditProfilePage = lazy(() => import('./pages/profile/edit').then(module => ({ default: module.EditProfilePage })));
-const DashboardPage = lazy(() => import('./pages/dashboard').then(module => ({ default: module.DashboardPage })));
-const BrowseJobsPage = lazy(() => import('./pages/looking-for-work').then(module => ({ default: module.BrowseJobsPage })));
-const BrowseFreelancersPage = lazy(() => import('./pages/browse-freelancers').then(module => ({ default: module.BrowseFreelancersPage })));
-const PostJobPage = lazy(() => import('./pages/post-job').then(module => ({ default: module.PostJobPage })));
-const JobDetailsPage = lazy(() => import('./pages/job-details').then(module => ({ default: module.JobDetailsPage })));
-const ProposalsPage = lazy(() => import('./pages/proposals').then(module => ({ default: module.ProposalsPage })));
-const PaymentsPage = lazy(() => import('./pages/payments').then(module => ({ default: module.PaymentsPage })));
-const SettingsPage = lazy(() => import('./pages/settings').then(module => ({ default: module.SettingsPage })));
-const NotificationsPage = lazy(() => import('./pages/notifications').then(module => ({ default: module.NotificationsPage })));
-const HelpPage = lazy(() => import('./pages/help').then(module => ({ default: module.HelpPage })));
-const TermsPage = lazy(() => import('./pages/terms').then(module => ({ default: module.TermsPage })));
-const PrivacyPage = lazy(() => import('./pages/privacy').then(module => ({ default: module.PrivacyPage })));
-const NotFoundPage = lazy(() => import('./pages/404').then(module => ({ default: module.NotFoundPage })));
+const ProfilePage = lazy(() => import('./pages/freelancer-profile'));
+const EditProfilePage = lazy(() => import('./pages/profile/edit'));
+const DashboardPage = lazy(() => import('./pages/dashboard'));
+const BrowseJobsPage = lazy(() => import('./pages/looking-for-work'));
+const BrowseFreelancersPage = lazy(() => import('./pages/browse-freelancers'));
+const PostJobPage = lazy(() => import('./pages/post-job'));
+const JobDetailsPage = lazy(() => import('./pages/job-details'));
+const ProposalsPage = lazy(() => import('./pages/proposals'));
+const PaymentsPage = lazy(() => import('./pages/payments'));
+const SettingsPage = lazy(() => import('./pages/settings'));
+const NotificationsPage = lazy(() => import('./pages/notifications'));
+const HelpPage = lazy(() => import('./pages/help'));
+const TermsPage = lazy(() => import('./pages/terms'));
+const PrivacyPage = lazy(() => import('./pages/privacy'));
+const NotFoundPage = lazy(() => import('./pages/404'));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -184,13 +184,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } />
         
-        {/* Contracts & Payments */}
-        <Route path="/contracts" element={
-          <ProtectedRoute requiresProfile={true}>
-            <ContractsPage />
-          </ProtectedRoute>
-        } />
-        
+        {/* Payments */}
         <Route path="/payments" element={
           <ProtectedRoute requiresProfile={true}>
             <PaymentsPage />

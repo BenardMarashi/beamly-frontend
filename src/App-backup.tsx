@@ -23,7 +23,7 @@ import LookingForWorkPage from './pages/looking-for-work';
 import JobDetailsPage from './pages/job-details';
 import FreelancerProfilePage from './pages/freelancer-profile';
 import PostJobPage from './pages/post-job';
-import PostProjectPage from './pages/post-project';
+import { PostProjectPage } from './pages/post-project';
 import CreateProfilePage from './pages/create-profile';
 import EditProfilePage from './pages/profile/edit';
 import ManageJobsPage from './pages/jobs/manage';

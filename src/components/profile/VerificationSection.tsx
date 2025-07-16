@@ -94,7 +94,7 @@ export const VerificationSection: React.FC<VerificationSectionProps> = ({ userDa
       
       if (result.success) {
         toast.success(t('verification.submitted'));
-        setVerification(result.verification);
+        setVerification(result.verificationId);
         setDocumentFile(null);
         setDocumentPreview('');
       } else {

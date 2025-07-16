@@ -1,9 +1,10 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Card, CardBody, Button } from '@nextui-org/react';
+import { Button, Card, CardBody } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 
 interface Props {
   children: ReactNode;
+  fallback?: ReactNode;
 }
 
 interface State {
@@ -20,7 +21,11 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, errorInfo: null };
+    return { 
+      hasError: true,
+      error,
+      errorInfo: null
+    };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -37,56 +42,57 @@ class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null
     });
-    window.location.href = '/';
   };
 
   public render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
       return (
         <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="max-w-2xl w-full">
-            <CardBody className="text-center py-12 px-6">
-              <Icon 
-                icon="solar:danger-triangle-bold-duotone" 
-                className="text-6xl text-danger mx-auto mb-4" 
-              />
-              <h1 className="text-2xl font-bold mb-4">Oops! Something went wrong</h1>
-              <p className="text-gray-600 mb-6">
-                We're sorry for the inconvenience. An unexpected error has occurred.
+          <Card className="max-w-md w-full">
+            <CardBody className="p-8 text-center">
+              <Icon icon="lucide:alert-triangle" className="w-16 h-16 mx-auto mb-4 text-warning" />
+              <h2 className="text-2xl font-bold mb-2">Oops! Something went wrong</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                We're sorry for the inconvenience. Please try refreshing the page or contact support if the problem persists.
               </p>
               
-              {process.env.NODE_ENV === 'development' && this.state.error && (
-                <div className="mb-6 text-left">
-                  <details className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
-                    <summary className="cursor-pointer font-semibold mb-2">
-                      Error Details (Development Only)
-                    </summary>
-                    <pre className="text-xs overflow-auto">
-                      <code>{this.state.error.toString()}</code>
-                    </pre>
+              {/* FIXED: Use import.meta.env instead of process.env for Vite */}
+              {import.meta.env.DEV && this.state.error && (
+                <details className="mb-6 text-left">
+                  <summary className="cursor-pointer text-sm font-medium mb-2">
+                    Error Details (Development Only)
+                  </summary>
+                  <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-auto">
+                    <p className="font-mono text-xs text-red-600 dark:text-red-400 mb-2">
+                      {this.state.error.toString()}
+                    </p>
                     {this.state.errorInfo && (
-                      <pre className="text-xs overflow-auto mt-2">
-                        <code>{this.state.errorInfo.componentStack}</code>
+                      <pre className="font-mono text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
+                        {this.state.errorInfo.componentStack}
                       </pre>
                     )}
-                  </details>
-                </div>
+                  </div>
+                </details>
               )}
               
               <div className="flex gap-3 justify-center">
-                <Button 
-                  color="primary" 
-                  onClick={this.handleReset}
-                  startContent={<Icon icon="solar:home-2-bold-duotone" />}
-                >
-                  Go to Home
-                </Button>
-                <Button 
-                  variant="flat"
-                  onClick={() => window.location.reload()}
-                  startContent={<Icon icon="solar:refresh-bold-duotone" />}
+                <Button
+                  color="primary"
+                  onPress={() => window.location.reload()}
+                  startContent={<Icon icon="lucide:refresh-cw" />}
                 >
                   Refresh Page
+                </Button>
+                <Button
+                  variant="bordered"
+                  onPress={this.handleReset}
+                  startContent={<Icon icon="lucide:rotate-ccw" />}
+                >
+                  Try Again
                 </Button>
               </div>
             </CardBody>

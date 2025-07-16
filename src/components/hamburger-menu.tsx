@@ -1,19 +1,16 @@
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button, Avatar } from "@nextui-org/react";
-import { Icon } from "@iconify/react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "../contexts/theme-context";
-import { useAuth } from "../contexts/AuthContext";
-import { LanguageToggle } from "./language-toggle";
-import { ThemeToggle } from "./theme-toggle";
-import { BeamlyLogo } from "./beamly-logo";
+import React, { useEffect } from 'react';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { Button, Avatar } from '@nextui-org/react';
+import { Icon } from '@iconify/react';
+import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../contexts/theme-context';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HamburgerMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  isLoggedIn: boolean;
-  onLogout: () => void;
+  isLoggedIn?: boolean;
+  onLogout?: () => void;
   isDashboard?: boolean;
 }
 
@@ -74,12 +71,12 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
     { name: "How it Works", path: "/how-it-works", icon: "lucide:help-circle" }
   ];
   
-  // Smooth animation with consistent timing
-  const menuVariants = {
+  // FIXED: Properly typed animation variants
+  const menuVariants: Variants = {
     closed: {
       x: "100%",
       transition: {
-        type: "tween",
+        type: "tween" as const,
         duration: 0.3,
         ease: "easeInOut"
       }
@@ -87,14 +84,14 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
     open: {
       x: 0,
       transition: {
-        type: "tween",
+        type: "tween" as const,
         duration: 0.3,
         ease: "easeInOut"
       }
     }
   };
 
-  const overlayVariants = {
+  const overlayVariants: Variants = {
     closed: { 
       opacity: 0,
       transition: { duration: 0.2 }
@@ -126,217 +123,168 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
           
           {/* Menu */}
           <motion.div
-            className={`fixed inset-y-0 right-0 w-full sm:w-80 z-[9999] ${isDarkMode ? 'glass-effect' : 'bg-white'} ${isDarkMode ? 'border-l border-white/10' : 'border-l border-gray-200'} overflow-y-auto`}
+            className={`fixed inset-y-0 right-0 w-full sm:w-80 z-[9999] ${isDarkMode ? 'glass-effect' : 'bg-white'} ${isDarkMode ? 'text-white' : 'text-gray-800'} shadow-2xl`}
             variants={menuVariants}
             initial="closed"
             animate="open"
             exit="closed"
             role="dialog"
             aria-modal="true"
+            aria-label="Navigation menu"
           >
-            {/* Header */}
-            <div className={`p-4 flex justify-between items-center border-b ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
-              <BeamlyLogo />
-              <Button
-                isIconOnly
-                variant="light"
-                onPress={onClose}
-                className={isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"}
-                aria-label="Close menu"
-              >
-                <Icon icon="lucide:x" width={24} />
-              </Button>
-            </div>
-            
-            {/* Navigation Menu */}
-            <div className="p-4 space-y-3">
-              {/* User Profile Section (when logged in) */}
-              {isLoggedIn && (
-                <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'}`}>
-                  <div className="flex items-center gap-3" onClick={() => handleNavigation("/profile/edit")}>
+            <div className="h-full flex flex-col p-6 overflow-y-auto">
+              {/* Header */}
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-bold">Menu</h2>
+                <Button
+                  isIconOnly
+                  variant="light"
+                  onPress={onClose}
+                  className="text-current"
+                  aria-label="Close menu"
+                >
+                  <Icon icon="lucide:x" width={24} />
+                </Button>
+              </div>
+              
+              {/* User Profile Section (if logged in) */}
+              {isLoggedIn && user && (
+                <div className="mb-6 p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div className="flex items-center space-x-3">
                     <Avatar
                       src={profilePicture}
-                      alt={userData?.displayName || user?.displayName || "User"}
-                      size="md"
-                      className="cursor-pointer"
+                      size="lg"
+                      className="border-2 border-beamly-primary"
                     />
-                    <div className="flex-1 cursor-pointer">
-                      <p className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {userData?.displayName || user?.displayName || "User"}
-                      </p>
-                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Signed in as: {user?.email}
+                    <div className="flex-1">
+                      <p className="font-semibold">{userData?.displayName || user?.displayName || 'User'}</p>
+                      <p className="text-sm opacity-70">
+                        {userType === 'both' ? 'Freelancer & Client' : userType}
                       </p>
                     </div>
                   </div>
                 </div>
               )}
               
-              {/* Main Navigation */}
-              <div className="space-y-3">
-                {/* Show different menu items based on auth status */}
+              {/* Navigation Links */}
+              <nav className="flex-1">
+                <ul className="space-y-2">
+                  {menuItems.map((item) => (
+                    <li key={item.path}>
+                      <button
+                        onClick={() => handleNavigation(item.path)}
+                        className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                          isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        <Icon icon={item.icon} width={20} />
+                        <span>{item.name}</span>
+                      </button>
+                    </li>
+                  ))}
+                  
+                  {/* Dashboard-specific items */}
+                  {isDashboard && isLoggedIn && (
+                    <>
+                      <li className="border-t border-gray-200/20 pt-4 mt-4">
+                        <button
+                          onClick={() => handleNavigation('/dashboard')}
+                          className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                            isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                          }`}
+                        >
+                          <Icon icon="lucide:layout-dashboard" width={20} />
+                          <span>Dashboard</span>
+                        </button>
+                      </li>
+                      
+                      {isClient && (
+                        <li>
+                          <button
+                            onClick={() => handleNavigation('/post-job')}
+                            className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                              isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                            }`}
+                          >
+                            <Icon icon="lucide:plus-circle" width={20} />
+                            <span>Post a Job</span>
+                          </button>
+                        </li>
+                      )}
+                      
+                      {isFreelancer && (
+                        <li>
+                          <button
+                            onClick={() => handleNavigation('/looking-for-work')}
+                            className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                              isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                            }`}
+                          >
+                            <Icon icon="lucide:search" width={20} />
+                            <span>Find Work</span>
+                          </button>
+                        </li>
+                      )}
+                      
+                      <li>
+                        <button
+                          onClick={() => handleNavigation('/messages')}
+                          className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                            isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                          }`}
+                        >
+                          <Icon icon="lucide:message-circle" width={20} />
+                          <span>Messages</span>
+                        </button>
+                      </li>
+                      
+                      <li>
+                        <button
+                          onClick={() => handleNavigation('/settings')}
+                          className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                            isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                          }`}
+                        >
+                          <Icon icon="lucide:settings" width={20} />
+                          <span>Settings</span>
+                        </button>
+                      </li>
+                    </>
+                  )}
+                </ul>
+              </nav>
+              
+              {/* Bottom Actions */}
+              <div className="mt-6 space-y-3">
                 {isLoggedIn ? (
-                  <>
-                    <Button
-                      variant="light"
-                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
-                      startContent={<Icon icon="lucide:home" width={24} height={24} />}
-                      onPress={() => handleNavigation("/dashboard")}
-                    >
-                      Dashboard
-                    </Button>
-                    <Button
-                      variant="light"
-                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
-                      startContent={<Icon icon="lucide:bell" width={24} height={24} />}
-                      onPress={() => handleNavigation("/notifications")}
-                    >
-                      Notifications
-                    </Button>
-                    <Button
-                      variant="light"
-                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
-                      startContent={<Icon icon="lucide:message-circle" width={24} height={24} />}
-                      onPress={() => handleNavigation("/chat")}
-                    >
-                      Messages
-                    </Button>
-                    <Button
-                      variant="light"
-                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
-                      startContent={<Icon icon="lucide:settings" width={24} height={24} />}
-                      onPress={() => handleNavigation("/settings")}
-                    >
-                      Settings
-                    </Button>
-                    <Button
-                      variant="light"
-                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
-                      startContent={<Icon icon="lucide:briefcase" width={24} height={24} />}
-                      onPress={() => handleNavigation("/looking-for-work")}
-                    >
-                      Looking for Work
-                    </Button>
-                    <Button
-                      variant="light"
-                      className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
-                      startContent={<Icon icon="lucide:users" width={24} height={24} />}
-                      onPress={() => handleNavigation("/browse-freelancers")}
-                    >
-                      Browse Freelancers
-                    </Button>
-                  </>
+                  <Button
+                    fullWidth
+                    color="danger"
+                    variant="flat"
+                    onPress={onLogout}
+                    startContent={<Icon icon="lucide:log-out" />}
+                  >
+                    Sign Out
+                  </Button>
                 ) : (
                   <>
-                    {menuItems.map((item) => (
-                      <Button
-                        key={item.path}
-                        variant="light"
-                        className={`w-full justify-start ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} py-6 text-lg`}
-                        startContent={<Icon icon={item.icon} width={24} height={24} />}
-                        onPress={() => handleNavigation(item.path)}
-                      >
-                        {item.name}
-                      </Button>
-                    ))}
+                    <Button
+                      fullWidth
+                      color="primary"
+                      onPress={() => handleNavigation('/login')}
+                    >
+                      Sign In
+                    </Button>
+                    <Button
+                      fullWidth
+                      variant="bordered"
+                      onPress={() => handleNavigation('/signup')}
+                    >
+                      Sign Up
+                    </Button>
                   </>
                 )}
               </div>
-              
-              {/* Auth Buttons */}
-              {!isLoggedIn && (
-                <div className={`space-y-3 pt-6 mt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
-                  <Button
-                    color="default"
-                    variant="flat"
-                    className={`w-full ${isDarkMode ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-800'} py-6 text-lg`}
-                    onPress={() => handleNavigation("/login")}
-                  >
-                    Login
-                  </Button>
-                  <Button
-                    color="secondary"
-                    className="w-full text-beamly-third font-medium py-6 text-lg"
-                    onPress={() => handleNavigation("/signup")}
-                  >
-                    Sign Up
-                  </Button>
-                </div>
-              )}
-              
-              {/* Preferences Section */}
-              <div className={`space-y-4 pt-6 mt-8 border-t ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
-                <p className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
-                  Preferences
-                </p>
-                
-                {/* Language Toggle */}
-                <div className="flex justify-center">
-                  <LanguageToggle />
-                </div>
-                
-                {/* Theme Toggle */}
-                <div className="flex justify-center items-center gap-2">
-                  <Icon icon="lucide:sun" className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                  <ThemeToggle />
-                  <Icon icon="lucide:moon" className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                </div>
-              </div>
-              
-              {/* Social Links */}
-              <div className={`flex justify-center gap-4 pt-6 mt-6 border-t ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
-                <Button
-                  isIconOnly
-                  variant="light"
-                  className={isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"}
-                  onPress={() => window.open('https://facebook.com', '_blank')}
-                  aria-label="Facebook"
-                >
-                  <Icon icon="lucide:facebook" width={20} />
-                </Button>
-                <Button
-                  isIconOnly
-                  variant="light"
-                  className={isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"}
-                  onPress={() => window.open('https://twitter.com', '_blank')}
-                  aria-label="Twitter"
-                >
-                  <Icon icon="lucide:twitter" width={20} />
-                </Button>
-                <Button
-                  isIconOnly
-                  variant="light"
-                  className={isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"}
-                  onPress={() => window.open('https://instagram.com', '_blank')}
-                  aria-label="Instagram"
-                >
-                  <Icon icon="lucide:instagram" width={20} />
-                </Button>
-                <Button
-                  isIconOnly
-                  variant="light"
-                  className={isDarkMode ? "text-white hover:bg-white/10" : "text-gray-800 hover:bg-gray-100"}
-                  onPress={() => window.open('https://linkedin.com', '_blank')}
-                  aria-label="LinkedIn"
-                >
-                  <Icon icon="lucide:linkedin" width={20} />
-                </Button>
-              </div>
-              
-              {/* Logout Button for Logged In Users */}
-              {isLoggedIn && (
-                <div className="pt-6 mt-6">
-                  <Button
-                    color="danger"
-                    variant="flat"
-                    className="w-full py-6 text-lg"
-                    onPress={onLogout}
-                    startContent={<Icon icon="lucide:log-out" width={24} />}
-                  >
-                    Logout
-                  </Button>
-                </div>
-              )}
             </div>
           </motion.div>
         </>
