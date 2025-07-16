@@ -76,7 +76,7 @@ export const FreelancerCard: React.FC<FreelancerCardProps> = ({ freelancer, isDa
             size="sm"
             color="secondary"
             className="flex-1"
-            onClick={(e: React.MouseEvent) => {
+            onPress={(e: any) => { // Changed from onClick, event type updated
               e.stopPropagation();
               navigate(`/freelancer/${freelancer.id}`);
             }}
@@ -87,7 +87,7 @@ export const FreelancerCard: React.FC<FreelancerCardProps> = ({ freelancer, isDa
             size="sm"
             variant="bordered"
             className="flex-1"
-            onClick={(e: React.MouseEvent) => {
+            onPress={(e: any) => { // Changed from onClick, event type updated
               e.stopPropagation();
               navigate(`/chat?user=${freelancer.id}`);
             }}

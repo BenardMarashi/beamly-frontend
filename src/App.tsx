@@ -116,6 +116,8 @@ const AppRoutes = () => {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/help" element={<HelpPage />} />
+        <Route path="/looking-for-work" element={<Navigate to="/browse-jobs" replace />} />
+        <Route path="/profile/edit" element={<Navigate to="/edit-profile" replace />} />
       </Route>
 
       {/* Protected routes with DashboardLayout */}

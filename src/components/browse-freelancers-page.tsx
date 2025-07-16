@@ -167,12 +167,7 @@ export const BrowseFreelancersPage: React.FC<BrowseFreelancersPageProps> = ({
   }, [filterCategory, searchQuery, sortBy]);
 
   const handleViewProfile = (id: number) => {
-    // Use navigation if available, otherwise use setCurrentPage
-    if (typeof window !== 'undefined' && navigate) {
-      navigate(`/freelancer/${id}`);
-    } else if (setCurrentPage) {
-      setCurrentPage(`freelancer-profile`);
-    }
+    navigate(`/freelancer/${id}`);
   };
   
   return (

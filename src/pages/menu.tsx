@@ -14,7 +14,7 @@ export const MenuPage: React.FC<MenuPageProps> = () => {
   return (
     <Button
       variant="flat"
-      onClick={() => navigate(-1)}
+      onPress={() => navigate(-1)}
     >
       <Icon icon="heroicons:menu" />
     </Button>
