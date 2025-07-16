@@ -1,133 +1,327 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { NextUIProvider } from '@nextui-org/react';
-import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/theme-context';
-import { MainLayout } from './layouts/main-layout';
-import { ProtectedRoute } from './components/protected-route';
-import { NotFoundPage } from './pages/not-found';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { Toaster } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Spinner } from '@nextui-org/react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './lib/firebase';
+import { UserService } from './services/firebase-services';
 import ErrorBoundary from './components/ErrorBoundary';
-import LoadingSpinner from './components/LoadingSpinner';
+import { I18nextProvider } from 'react-i18next';
+import i18n from './i18n';
 
-// Direct imports for all pages to avoid lazy loading issues
-import DashboardPage from './pages/dashboard';
-import LoginPage from './pages/login';
-import SignupPage from './pages/signup';
-import ForgotPasswordPage from './pages/forgot-password';
-import HomePage from './pages/home';
-import BrowseFreelancersPage from './pages/browse-freelancers';
-import LookingForWorkPage from './pages/looking-for-work';
-import JobDetailsPage from './pages/job-details';
-import FreelancerProfilePage from './pages/freelancer-profile';
-import PostJobPage from './pages/post-job';
-import PostProjectPage from './pages/post-project';
-import CreateProfilePage from './pages/create-profile';
-import EditProfilePage from './pages/profile/edit';
-import ManageJobsPage from './pages/jobs/manage';
-import ManageProjectsPage from './pages/projects/manage';
-import ProposalsPage from './pages/proposals';
-import AnalyticsPage from './pages/analytics';
-import ChatPage from './pages/chat';
-import NotificationsPage from './pages/notifications';
-import BillingPage from './pages/billing';
-import SettingsPage from './pages/settings';
-import JobApplyPage from './pages/job-apply';
+// Layouts
+import MainLayout from './layouts/main-layout';
+import DashboardLayout from './layouts/dashboard-layout';
 
+// Regular imports for frequently used pages
+import { HomePage } from './pages/home';
+import { LoginPage } from './pages/login';
+import { SignupPage } from './pages/signup';
+import { MessagesPage } from './pages/messages';
+import { ConversationsListPage } from './pages/conversations-list';
+import { PostProjectPage } from './pages/post-project';
+import { FreelancerProfilePage } from './pages/freelancer-profile';
 
-const AppContent: React.FC = () => {
-  const { loading, user } = useAuth();
-  const isLoggedIn = !!user;
+// Lazy load less frequently used pages
+const ProfilePage = lazy(() => import('./pages/freelancer-profile').then(module => ({ default: module.ProfilePage })));
+const EditProfilePage = lazy(() => import('./pages/profile/edit').then(module => ({ default: module.EditProfilePage })));
+const DashboardPage = lazy(() => import('./pages/dashboard').then(module => ({ default: module.DashboardPage })));
+const BrowseJobsPage = lazy(() => import('./pages/looking-for-work').then(module => ({ default: module.BrowseJobsPage })));
+const BrowseFreelancersPage = lazy(() => import('./pages/browse-freelancers').then(module => ({ default: module.BrowseFreelancersPage })));
+const PostJobPage = lazy(() => import('./pages/post-job').then(module => ({ default: module.PostJobPage })));
+const JobDetailsPage = lazy(() => import('./pages/job-details').then(module => ({ default: module.JobDetailsPage })));
+const ProposalsPage = lazy(() => import('./pages/proposals').then(module => ({ default: module.ProposalsPage })));
+const PaymentsPage = lazy(() => import('./pages/payments').then(module => ({ default: module.PaymentsPage })));
+const SettingsPage = lazy(() => import('./pages/settings').then(module => ({ default: module.SettingsPage })));
+const NotificationsPage = lazy(() => import('./pages/notifications').then(module => ({ default: module.NotificationsPage })));
+const HelpPage = lazy(() => import('./pages/help').then(module => ({ default: module.HelpPage })));
+const TermsPage = lazy(() => import('./pages/terms').then(module => ({ default: module.TermsPage })));
+const PrivacyPage = lazy(() => import('./pages/privacy').then(module => ({ default: module.PrivacyPage })));
+const NotFoundPage = lazy(() => import('./pages/404').then(module => ({ default: module.NotFoundPage })));
 
-  const handleLogout = async () => {
-    try {
-      await auth.signOut();
-    } catch (error) {
-      console.error('Logout error:', error);
+// Loading component
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Spinner size="lg" />
+  </div>
+);
+
+// Protected Route Component
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  requiresAuth?: boolean;
+  requiresProfile?: boolean;
+  allowedUserTypes?: Array<'client' | 'freelancer' | 'both'>;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  requiresAuth = true,
+  requiresProfile = false,
+  allowedUserTypes = []
+}) => {
+  const { user, userData, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!loading) {
+      if (requiresAuth && !user) {
+        navigate('/login', { state: { from: location.pathname } });
+      } else if (requiresProfile && user && !userData?.profileCompleted) {
+        navigate('/edit-profile', { state: { from: location.pathname } });
+      } else if (allowedUserTypes.length > 0 && userData) {
+        const userType = userData.userType;
+        if (!allowedUserTypes.includes(userType) && userType !== 'both') {
+          navigate('/dashboard');
+        }
+      }
     }
-  };
+  }, [user, userData, loading, navigate, location, requiresAuth, requiresProfile, allowedUserTypes]);
 
   if (loading) {
-    return <LoadingSpinner size="large" />;
+    return <LoadingSpinner />;
+  }
+
+  if (requiresAuth && !user) {
+    return null;
+  }
+
+  return <>{children}</>;
+};
+
+// Route configuration with layouts
+const AppRoutes = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner />;
   }
 
   return (
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<MainLayout isLoggedIn={isLoggedIn} onLogout={handleLogout} />}>
-          <Route index element={
-            isLoggedIn ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <HomePage /> // Show HomePage directly for unlogged users
-            )
-          } />
-          <Route path="home" element={
-            isLoggedIn ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <HomePage /> // Add /home route
-            )
-          } />
-          <Route path="login" element={
-            isLoggedIn ? <Navigate to="/dashboard" replace /> : <LoginPage />
-          } />
-          <Route path="signup" element={
-            isLoggedIn ? <Navigate to="/dashboard" replace /> : <SignupPage />
-          } />
-          <Route path="forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="browse-freelancers" element={<BrowseFreelancersPage />} />
-          <Route path="looking-for-work" element={<LookingForWorkPage />} />
-          <Route path="jobs/:id" element={<JobDetailsPage />} />
-          <Route path="jobs/:id/apply" element={<JobApplyPage />} />
-          <Route path="freelancer/:id" element={<FreelancerProfilePage />} />
-        </Route>
+    <Routes>
+      {/* Public routes with MainLayout */}
+      <Route element={<MainLayout />}>
+        <Route path="/" element={user ? <Navigate to="/dashboard" /> : <HomePage />} />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
+        <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <SignupPage />} />
+        <Route path="/browse-jobs" element={<BrowseJobsPage />} />
+        <Route path="/browse-freelancers" element={<BrowseFreelancersPage />} />
+        <Route path="/freelancer/:id" element={<FreelancerProfilePage />} />
+        <Route path="/job/:id" element={<JobDetailsPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/help" element={<HelpPage />} />
+      </Route>
 
-        {/* Protected routes */}
-        <Route element={<ProtectedRoute isLoggedIn={isLoggedIn} />}>
-          <Route element={<MainLayout isLoggedIn={isLoggedIn} onLogout={handleLogout} />}>
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="post-job" element={<PostJobPage />} />
-            <Route path="post-project" element={<PostProjectPage />} />
-            <Route path="create-profile" element={<CreateProfilePage />} />
-            <Route path="profile/edit" element={<EditProfilePage />} />
-            <Route path="jobs/manage" element={<ManageJobsPage />} />
-            <Route path="projects/manage" element={<ManageProjectsPage />} />
-            <Route path="proposals" element={<ProposalsPage />} />
-            <Route path="analytics" element={<AnalyticsPage />} />
-            <Route path="chat" element={<ChatPage />} />
-            <Route path="notifications" element={<NotificationsPage />} />
-            <Route path="billing" element={<BillingPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-        </Route>
+      {/* Protected routes with DashboardLayout */}
+      <Route element={<DashboardLayout />}>
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/profile/:userId" element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/edit-profile" element={
+          <ProtectedRoute>
+            <EditProfilePage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Messaging Routes */}
+        <Route path="/messages" element={
+          <ProtectedRoute requiresProfile={true}>
+            <ConversationsListPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/messages/:conversationId" element={
+          <ProtectedRoute requiresProfile={true}>
+            <MessagesPage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Job Routes */}
+        <Route path="/post-job" element={
+          <ProtectedRoute requiresProfile={true} allowedUserTypes={['client', 'both']}>
+            <PostJobPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/my-jobs" element={
+          <ProtectedRoute requiresProfile={true}>
+            <BrowseJobsPage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Project Routes */}
+        <Route path="/post-project" element={
+          <ProtectedRoute requiresProfile={true} allowedUserTypes={['freelancer', 'both']}>
+            <PostProjectPage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Proposals */}
+        <Route path="/proposals" element={
+          <ProtectedRoute requiresProfile={true}>
+            <ProposalsPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/job/:jobId/proposals" element={
+          <ProtectedRoute requiresProfile={true} allowedUserTypes={['client', 'both']}>
+            <ProposalsPage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Contracts & Payments */}
+        <Route path="/contracts" element={
+          <ProtectedRoute requiresProfile={true}>
+            <ContractsPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/payments" element={
+          <ProtectedRoute requiresProfile={true}>
+            <PaymentsPage />
+          </ProtectedRoute>
+        } />
+        
+        {/* Other Protected Routes */}
+        <Route path="/notifications" element={
+          <ProtectedRoute>
+            <NotificationsPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        } />
+      </Route>
 
-        {/* 404 route */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </Router>
+      {/* 404 Route */}
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
   );
 };
 
+// Main App Component
 function App() {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    // Check for saved theme preference
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    } else {
+      // Check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setTheme(prefersDark ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', prefersDark);
+    }
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      const newTheme = e.matches ? 'dark' : 'light';
+      setTheme(newTheme);
+      document.documentElement.classList.toggle('dark', e.matches);
+      localStorage.setItem('theme', newTheme);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  useEffect(() => {
+    // Handle auth state changes and update user online status
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Update user online status
+        await UserService.updateOnlineStatus(user.uid, true);
+        
+        // Set up offline detection
+        window.addEventListener('beforeunload', async () => {
+          await UserService.updateOnlineStatus(user.uid, false);
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
+
   return (
     <ErrorBoundary>
-      <NextUIProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <AppContent />
-            <Toaster position="top-right" />
-          </AuthProvider>
-        </ThemeProvider>
-      </NextUIProvider>
+      <I18nextProvider i18n={i18n}>
+        <NextUIProvider>
+          <Router>
+            <AuthProvider>
+              <NotificationProvider>
+                <div className="min-h-screen bg-background text-foreground">
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <AppRoutes />
+                      </motion.div>
+                    </AnimatePresence>
+                  </Suspense>
+                  
+                  {/* Toast Notifications */}
+                  <Toaster
+                    position="top-right"
+                    toastOptions={{
+                      duration: 4000,
+                      style: {
+                        background: theme === 'dark' ? '#18181b' : '#ffffff',
+                        color: theme === 'dark' ? '#ffffff' : '#000000',
+                        border: `1px solid ${theme === 'dark' ? '#27272a' : '#e4e4e7'}`,
+                      },
+                      success: {
+                        iconTheme: {
+                          primary: '#10b981',
+                          secondary: '#ffffff',
+                        },
+                      },
+                      error: {
+                        iconTheme: {
+                          primary: '#ef4444',
+                          secondary: '#ffffff',
+                        },
+                      },
+                    }}
+                  />
+                </div>
+              </NotificationProvider>
+            </AuthProvider>
+          </Router>
+        </NextUIProvider>
+      </I18nextProvider>
     </ErrorBoundary>
   );
 }

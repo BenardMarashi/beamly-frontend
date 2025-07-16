@@ -1,21 +1,42 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Input, Textarea, Select, SelectItem, Button, Card, CardBody, Chip, Image } from "@nextui-org/react";
+import { 
+  Input, 
+  Textarea, 
+  Select, 
+  SelectItem, 
+  Button, 
+  Card, 
+  CardBody, 
+  Chip, 
+  Image, 
+  Spinner,
+  Progress,
+  Tooltip
+} from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../lib/firebase';
+import { ProjectService, StorageService, firebaseService } from '../services/firebase-services';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
+interface LocationState {
+  freelancerId?: string;
+  freelancerName?: string;
+}
+
 export const PostProjectPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   const { user, userData, canPostProjects, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
+  // Get state from navigation (if coming from freelancer profile)
+  const locationState = location.state as LocationState;
   
   // Check permissions on mount
   useEffect(() => {
@@ -28,7 +49,7 @@ export const PostProjectPage: React.FC = () => {
         navigate('/dashboard');
       }
     }
-  }, [user, userData, canPostProjects, authLoading, navigate, t]);
+  }, [user, userData, canPostProjects, authLoading, navigate]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -38,56 +59,120 @@ export const PostProjectPage: React.FC = () => {
     skills: [] as string[],
     liveUrl: "",
     githubUrl: "",
+    demoUrl: "",
     images: [] as string[],
-    thumbnailUrl: ""
+    thumbnailUrl: "",
+    client: "",
+    duration: "",
+    teamSize: 1,
+    role: "",
+    technologies: [] as string[],
+    challenges: "",
+    solution: "",
+    impact: "",
+    testimonial: ""
   });
   
   const [currentSkill, setCurrentSkill] = useState("");
+  const [currentTech, setCurrentTech] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   const categories = [
-    { value: "web-design", label: t('categories.webDesign') },
-    { value: "mobile-app", label: t('categories.mobileApp') },
-    { value: "graphic-design", label: t('categories.graphicDesign') },
-    { value: "ui-ux", label: t('categories.uiux') },
-    { value: "branding", label: t('categories.branding') },
-    { value: "video-animation", label: t('categories.videoAnimation') },
-    { value: "writing", label: t('categories.writing') },
-    { value: "other", label: t('categories.other') }
+    { value: "web-development", label: "Web Development" },
+    { value: "mobile-development", label: "Mobile Development" },
+    { value: "ui-ux-design", label: "UI/UX Design" },
+    { value: "graphic-design", label: "Graphic Design" },
+    { value: "content-writing", label: "Content Writing" },
+    { value: "digital-marketing", label: "Digital Marketing" },
+    { value: "data-science", label: "Data Science" },
+    { value: "machine-learning", label: "Machine Learning" },
+    { value: "blockchain", label: "Blockchain" },
+    { value: "game-development", label: "Game Development" },
+    { value: "devops", label: "DevOps" },
+    { value: "other", label: "Other" }
   ];
-
-  const handleAddSkill = () => {
-    if (currentSkill.trim() && formData.skills.length < 10) {
-      setFormData({ ...formData, skills: [...formData.skills, currentSkill.trim()] });
+  
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.title.trim()) {
+      newErrors.title = "Project title is required";
+    }
+    if (!formData.description.trim()) {
+      newErrors.description = "Project description is required";
+    }
+    if (!formData.category) {
+      newErrors.category = "Please select a category";
+    }
+    if (formData.skills.length === 0) {
+      newErrors.skills = "Add at least one skill";
+    }
+    if (imageFiles.length === 0 && formData.images.length === 0) {
+      newErrors.images = "Add at least one project image";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+  
+  const handleAddSkill = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && currentSkill.trim()) {
+      e.preventDefault();
+      if (!formData.skills.includes(currentSkill.trim())) {
+        setFormData({
+          ...formData,
+          skills: [...formData.skills, currentSkill.trim()]
+        });
+        setErrors({ ...errors, skills: "" });
+      }
       setCurrentSkill("");
     }
   };
-
+  
   const handleRemoveSkill = (skillToRemove: string) => {
     setFormData({
       ...formData,
       skills: formData.skills.filter(skill => skill !== skillToRemove)
     });
   };
-
+  
+  const handleAddTechnology = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && currentTech.trim()) {
+      e.preventDefault();
+      if (!formData.technologies.includes(currentTech.trim())) {
+        setFormData({
+          ...formData,
+          technologies: [...formData.technologies, currentTech.trim()]
+        });
+      }
+      setCurrentTech("");
+    }
+  };
+  
+  const handleRemoveTechnology = (techToRemove: string) => {
+    setFormData({
+      ...formData,
+      technologies: formData.technologies.filter(tech => tech !== techToRemove)
+    });
+  };
+  
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
-    // Validate file count
-    if (imageFiles.length + files.length > 5) {
-      toast.error(t('postProject.maxImages'));
+    if (files.length + imageFiles.length > 10) {
+      toast.error('Maximum 10 images allowed');
       return;
     }
     
     // Validate file types and sizes
     const validFiles = files.filter(file => {
       if (!file.type.startsWith('image/')) {
-        toast.error(t('postProject.invalidImageType', { name: file.name }));
+        toast.error(`${file.name} is not an image`);
         return false;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(t('postProject.imageTooLarge', { name: file.name }));
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error(`${file.name} is too large (max 5MB)`);
         return false;
       }
       return true;
@@ -98,8 +183,9 @@ export const PostProjectPage: React.FC = () => {
     
     setImageFiles([...imageFiles, ...validFiles]);
     setImagePreviews([...imagePreviews, ...newPreviews]);
+    setErrors({ ...errors, images: "" });
   };
-
+  
   const handleRemoveImage = (index: number) => {
     // Revoke the object URL to prevent memory leaks
     URL.revokeObjectURL(imagePreviews[index]);
@@ -107,85 +193,55 @@ export const PostProjectPage: React.FC = () => {
     setImageFiles(imageFiles.filter((_, i) => i !== index));
     setImagePreviews(imagePreviews.filter((_, i) => i !== index));
   };
-
+  
   const uploadImages = async (): Promise<string[]> => {
     if (imageFiles.length === 0) return [];
     
     setUploadingImages(true);
-    const uploadPromises = imageFiles.map(async (file, index) => {
-      const timestamp = Date.now();
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const fileName = `${timestamp}_${index}_${sanitizedFileName}`;
-      
-      try {
-        // Use temp path first to avoid CORS issues
-        const tempRef = ref(storage, `temp/${user!.uid}/${fileName}`);
-        
-        // Convert file to array buffer for more reliable upload
-        const arrayBuffer = await file.arrayBuffer();
-        
-        console.log(`Uploading ${fileName} to temp storage...`);
-        const snapshot = await uploadBytes(tempRef, arrayBuffer, {
-          contentType: file.type || 'application/octet-stream'
-        });
-        
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        console.log(`Successfully uploaded ${fileName}:`, downloadURL);
-        return downloadURL;
-      } catch (error: any) {
-        console.error('Upload error for file:', fileName, error);
-        
-        // More specific error handling
-        if (error.code === 'storage/unauthorized') {
-          toast.error(`Authentication required. Please refresh and try again.`);
-        } else if (error.code === 'storage/unknown' || error.message?.includes('CORS')) {
-          // Fallback: try using the original projects path
-          try {
-            const projectRef = ref(storage, `projects/${user!.uid}/${fileName}`);
-            const arrayBuffer = await file.arrayBuffer();
-            const snapshot = await uploadBytes(projectRef, arrayBuffer, {
-              contentType: file.type || 'application/octet-stream'
-            });
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            return downloadURL;
-          } catch (fallbackError: any) {
-            console.error('Fallback upload failed:', fallbackError);
-            toast.error(`Upload failed for ${file.name}. Please try with a smaller image.`);
-            throw fallbackError;
-          }
-        } else {
-          toast.error(`Failed to upload ${file.name}: ${error.message}`);
-          throw error;
-        }
-      }
-    });
+    setUploadProgress(0);
     
     try {
-      const urls = await Promise.all(uploadPromises);
-      setUploadingImages(false);
-      return urls;
+      const uploadedUrls: string[] = [];
+      const totalFiles = imageFiles.length;
+      
+      for (let i = 0; i < totalFiles; i++) {
+        const file = imageFiles[i];
+        const progress = ((i + 1) / totalFiles) * 100;
+        setUploadProgress(progress);
+        
+        try {
+          const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const path = `projects/${user!.uid}/${Date.now()}_${i}_${sanitizedFileName}`;
+          const result = await StorageService.uploadFile(file, path);
+          
+          if (result.success && result.downloadURL) {
+            uploadedUrls.push(result.downloadURL);
+          } else {
+            toast.error(`Failed to upload ${file.name}`);
+          }
+        } catch (error) {
+          console.error('Error uploading file:', error);
+          toast.error(`Failed to upload ${file.name}`);
+        }
+      }
+      
+      return uploadedUrls;
     } catch (error) {
+      console.error('Error uploading images:', error);
+      toast.error('Failed to upload images');
+      return [];
+    } finally {
       setUploadingImages(false);
-      throw error;
+      setUploadProgress(0);
     }
   };
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
-    if (!formData.title || !formData.description || !formData.category) {
-      toast.error(t('postProject.fillRequired'));
-      return;
-    }
-    
-    if (formData.skills.length === 0) {
-      toast.error(t('postProject.addSkills'));
-      return;
-    }
-    
-    if (imageFiles.length === 0) {
-      toast.error(t('postProject.addImages'));
+    if (!validateForm()) {
+      toast.error('Please fill in all required fields');
       return;
     }
     
@@ -193,315 +249,508 @@ export const PostProjectPage: React.FC = () => {
     
     try {
       // Upload images first
-      const imageUrls = await uploadImages();
+      const uploadedImageUrls = await uploadImages();
       
-      const projectId = doc(collection(db, 'projects')).id;
+      if (imageFiles.length > 0 && uploadedImageUrls.length === 0) {
+        toast.error('Failed to upload images');
+        setLoading(false);
+        return;
+      }
       
+      // Create project data
       const projectData = {
-        id: projectId,
         freelancerId: user!.uid,
-        freelancerName: userData?.displayName || 'Anonymous',
+        freelancerName: userData?.displayName || 'Unknown',
         freelancerPhotoURL: userData?.photoURL || '',
-        title: formData.title,
-        description: formData.description,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
         category: formData.category,
         skills: formData.skills,
-        images: imageUrls,
-        thumbnailUrl: imageUrls[0], // First image as thumbnail
-        liveUrl: formData.liveUrl,
-        githubUrl: formData.githubUrl,
-        viewCount: 0,
-        likeCount: 0,
-        isPublished: true,
-        isFeatured: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        images: uploadedImageUrls,
+        thumbnailUrl: uploadedImageUrls[0] || '',
+        liveUrl: formData.liveUrl.trim(),
+        githubUrl: formData.githubUrl.trim(),
+        demoUrl: formData.demoUrl.trim(),
+        client: formData.client.trim(),
+        duration: formData.duration.trim(),
+        teamSize: formData.teamSize,
+        role: formData.role.trim(),
+        technologies: formData.technologies,
+        challenges: formData.challenges.trim(),
+        solution: formData.solution.trim(),
+        impact: formData.impact.trim(),
+        testimonial: formData.testimonial.trim()
       };
       
-      await setDoc(doc(db, 'projects', projectId), projectData);
+      // Create project
+      const result = await ProjectService.createProject(projectData);
       
-      toast.success(t('postProject.success'));
-      navigate('/projects/manage');
+      if (result.success) {
+        // Track analytics event
+        await firebaseService.AnalyticsService.trackEvent(user!.uid, 'project_created', {
+          projectId: result.projectId,
+          category: formData.category,
+          skillsCount: formData.skills.length
+        });
+        
+        toast.success('Project posted successfully!');
+        navigate(`/profile/${user!.uid}?tab=portfolio`);
+      } else {
+        toast.error('Failed to post project');
+      }
     } catch (error) {
       console.error('Error posting project:', error);
-      toast.error(t('postProject.error'));
+      toast.error('Failed to post project');
     } finally {
       setLoading(false);
     }
   };
-
+  
+  const handleSaveDraft = async () => {
+    // Save to localStorage for now
+    const draft = {
+      ...formData,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem('projectDraft', JSON.stringify(draft));
+    toast.success('Draft saved locally');
+  };
+  
+  const loadDraft = () => {
+    const savedDraft = localStorage.getItem('projectDraft');
+    if (savedDraft) {
+      const draft = JSON.parse(savedDraft);
+      setFormData(draft);
+      toast.success('Draft loaded');
+    }
+  };
+  
+  // Check for saved draft on mount
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('projectDraft');
+    if (savedDraft) {
+      const draft = JSON.parse(savedDraft);
+      const savedDate = new Date(draft.savedAt);
+      const hoursSinceSaved = (Date.now() - savedDate.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursSinceSaved < 24) {
+        toast((t) => (
+          <div className="flex items-center gap-2">
+            <span>You have a saved draft from {savedDate.toLocaleDateString()}</span>
+            <Button size="sm" color="primary" onClick={() => {
+              loadDraft();
+              toast.dismiss(t.id);
+            }}>
+              Load
+            </Button>
+          </div>
+        ), { duration: 5000 });
+      }
+    }
+  }, []);
+  
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-400">{t('common.loading')}</p>
-        </div>
+        <Spinner size="lg" />
       </div>
     );
   }
-
+  
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.5 }}
       >
-        <h1 className="text-3xl font-bold text-white mb-8">{t('postProject.title')}</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold">Post a Project</h1>
+          <Button
+            variant="flat"
+            size="sm"
+            onClick={handleSaveDraft}
+            startContent={<Icon icon="solar:diskette-bold-duotone" />}
+          >
+            Save Draft
+          </Button>
+        </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card className="glass-effect border-none">
-            <CardBody className="p-4 sm:p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Project Details</h2>
-              
-              <div className="grid grid-cols-1 gap-6">
-                <div className="w-full">
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <Card>
+              <CardBody className="space-y-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <Icon icon="solar:info-circle-bold-duotone" className="text-primary" />
+                  Basic Information
+                </h2>
+                
+                <Input
+                  label="Project Title"
+                  placeholder="Enter your project title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  isRequired
+                  isInvalid={!!errors.title}
+                  errorMessage={errors.title}
+                  startContent={<Icon icon="solar:pen-bold-duotone" />}
+                  description="Choose a clear, descriptive title for your project"
+                />
+                
+                <Textarea
+                  label="Project Description"
+                  placeholder="Describe your project in detail..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  minRows={4}
+                  isRequired
+                  isInvalid={!!errors.description}
+                  errorMessage={errors.description}
+                  description="Explain what the project is about, its goals, and key features"
+                />
+                
+                <Select
+                  label="Category"
+                  placeholder="Select a category"
+                  selectedKeys={formData.category ? [formData.category] : []}
+                  onSelectionChange={(keys) => {
+                    setFormData({ ...formData, category: Array.from(keys)[0] as string });
+                    setErrors({ ...errors, category: "" });
+                  }}
+                  isRequired
+                  isInvalid={!!errors.category}
+                  errorMessage={errors.category}
+                  startContent={<Icon icon="solar:widget-bold-duotone" />}
+                >
+                  {categories.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </Select>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="Project Title"
-                    placeholder="Enter your project title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    variant="bordered"
-                    classNames={{
-                      input: "text-white",
-                      inputWrapper: "bg-gray-900/50 border-gray-600 hover:border-gray-500 focus-within:border-white",
-                      label: "text-gray-300"
-                    }}
-                    isRequired
+                    label="Client/Company Name"
+                    placeholder="e.g., ABC Company"
+                    value={formData.client}
+                    onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                    startContent={<Icon icon="solar:buildings-bold-duotone" />}
                   />
-                </div>
-                
-                <div className="w-full">
-                  <Textarea
-                    label="Project Description"
-                    placeholder="Describe your project in detail"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    variant="bordered"
-                    classNames={{
-                      input: "text-white",
-                      inputWrapper: "bg-gray-900/50 border-gray-600 hover:border-gray-500 focus-within:border-white",
-                      label: "text-gray-300"
-                    }}
-                    minRows={6}
-                    isRequired
-                  />
-                </div>
-                
-                <div className="w-full">
-                  <Select
-                    label="Category"
-                    placeholder="Select a category"
-                    selectedKeys={formData.category ? [formData.category] : []}
-                    onSelectionChange={(keys) => {
-                      const selected = Array.from(keys)[0] as string;
-                      setFormData({ ...formData, category: selected });
-                    }}
-                    variant="bordered"
-                    classNames={{
-                      trigger: "bg-gray-900/50 border-gray-600 hover:border-gray-500 data-[open=true]:border-white",
-                      value: "text-white",
-                      label: "text-gray-300",
-                      listbox: "bg-gray-900",
-                      popoverContent: "bg-gray-900 border border-gray-700",
-                    }}
-                    isRequired
-                  >
-                    {categories.map(cat => (
-                      <SelectItem key={cat.value} value={cat.value} className="text-white">
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </Select>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-          
-          <Card className="glass-effect border-none">
-            <CardBody className="p-4 sm:p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Skills & Links</h2>
-              
-              <div className="grid grid-cols-1 gap-6">
-                <div className="w-full">
-                  <label className="text-sm text-gray-300 mb-3 block font-medium">Technologies Used</label>
-                  <div className="flex flex-col sm:flex-row gap-2 mb-3">
-                    <Input
-                      placeholder="Add a skill (e.g., React, Python)"
-                      value={currentSkill}
-                      onChange={(e) => setCurrentSkill(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
-                      variant="bordered"
-                      classNames={{
-                        input: "text-white",
-                        inputWrapper: "bg-gray-900/50 border-gray-600 hover:border-gray-500 focus-within:border-white"
-                      }}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      color="secondary"
-                      onPress={handleAddSkill}
-                      isDisabled={!currentSkill.trim() || formData.skills.length >= 10}
-                      className="sm:w-auto w-full"
-                      startContent={<Icon icon="lucide:plus" />}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 min-h-[2rem]">
-                    {formData.skills.map(skill => (
-                      <Chip
-                        key={skill}
-                        onClose={() => handleRemoveSkill(skill)}
-                        variant="flat"
-                        color="secondary"
-                        className="bg-secondary/20 text-white"
-                      >
-                        {skill}
-                      </Chip>
-                    ))}
-                    {formData.skills.length === 0 && (
-                      <p className="text-gray-500 text-sm">Add skills to showcase your expertise</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="w-full">
+                  
                   <Input
-                    label="Live Demo URL (Optional)"
-                    placeholder="https://your-project.com"
-                    value={formData.liveUrl}
-                    onChange={(e) => setFormData({ ...formData, liveUrl: e.target.value })}
-                    variant="bordered"
-                    classNames={{
-                      input: "text-white",
-                      inputWrapper: "bg-gray-900/50 border-gray-600 hover:border-gray-500 focus-within:border-white",
-                      label: "text-gray-300"
-                    }}
-                    startContent={<Icon icon="lucide:globe" className="text-gray-400" />}
+                    label="Project Duration"
+                    placeholder="e.g., 3 months"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                    startContent={<Icon icon="solar:calendar-bold-duotone" />}
                   />
+                </div>
+              </CardBody>
+            </Card>
+            
+            {/* Skills & Technologies */}
+            <Card>
+              <CardBody className="space-y-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <Icon icon="solar:star-bold-duotone" className="text-primary" />
+                  Skills & Technologies
+                </h2>
+                
+                <div>
+                  <Input
+                    label="Add Skills"
+                    placeholder="Type a skill and press Enter"
+                    value={currentSkill}
+                    onChange={(e) => setCurrentSkill(e.target.value)}
+                    onKeyDown={handleAddSkill}
+                    startContent={<Icon icon="solar:star-bold-duotone" />}
+                    description="Press Enter to add skill"
+                    isInvalid={!!errors.skills}
+                    errorMessage={errors.skills}
+                  />
+                  
+                  {formData.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {formData.skills.map((skill, index) => (
+                        <Chip
+                          key={index}
+                          onClose={() => handleRemoveSkill(skill)}
+                          variant="flat"
+                          color="primary"
+                        >
+                          {skill}
+                        </Chip>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
-                <div className="w-full">
+                <div>
                   <Input
-                    label="GitHub Repository (Optional)"
-                    placeholder="https://github.com/username/repo"
-                    value={formData.githubUrl}
-                    onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
-                    variant="bordered"
-                    classNames={{
-                      input: "text-white",
-                      inputWrapper: "bg-gray-900/50 border-gray-600 hover:border-gray-500 focus-within:border-white",
-                      label: "text-gray-300"
-                    }}
-                    startContent={<Icon icon="lucide:github" className="text-gray-400" />}
+                    label="Add Technologies"
+                    placeholder="Type a technology and press Enter"
+                    value={currentTech}
+                    onChange={(e) => setCurrentTech(e.target.value)}
+                    onKeyDown={handleAddTechnology}
+                    startContent={<Icon icon="solar:cpu-bolt-bold-duotone" />}
+                    description="Technologies used in this project"
+                  />
+                  
+                  {formData.technologies.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {formData.technologies.map((tech, index) => (
+                        <Chip
+                          key={index}
+                          onClose={() => handleRemoveTechnology(tech)}
+                          variant="flat"
+                          color="secondary"
+                        >
+                          {tech}
+                        </Chip>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Your Role"
+                    placeholder="e.g., Full Stack Developer"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    startContent={<Icon icon="solar:user-bold-duotone" />}
+                  />
+                  
+                  <Input
+                    label="Team Size"
+                    type="number"
+                    placeholder="1"
+                    value={formData.teamSize.toString()}
+                    onChange={(e) => setFormData({ ...formData, teamSize: parseInt(e.target.value) || 1 })}
+                    startContent={<Icon icon="solar:users-group-rounded-bold-duotone" />}
                   />
                 </div>
-              </div>
-            </CardBody>
-          </Card>
-          
-          <Card className="glass-effect border-none">
-            <CardBody className="p-4 sm:p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Project Images</h2>
-              <p className="text-gray-400 text-sm mb-6">Upload images to showcase your project. First image will be used as thumbnail.</p>
-              
-              <div className="space-y-6">
-                <div className="w-full">
+              </CardBody>
+            </Card>
+            
+            {/* Project Details */}
+            <Card>
+              <CardBody className="space-y-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <Icon icon="solar:document-text-bold-duotone" className="text-primary" />
+                  Project Details
+                </h2>
+                
+                <Textarea
+                  label="Challenges"
+                  placeholder="What challenges did you face in this project?"
+                  value={formData.challenges}
+                  onChange={(e) => setFormData({ ...formData, challenges: e.target.value })}
+                  minRows={3}
+                />
+                
+                <Textarea
+                  label="Solution"
+                  placeholder="How did you solve these challenges?"
+                  value={formData.solution}
+                  onChange={(e) => setFormData({ ...formData, solution: e.target.value })}
+                  minRows={3}
+                />
+                
+                <Textarea
+                  label="Impact/Results"
+                  placeholder="What was the impact or results of your project?"
+                  value={formData.impact}
+                  onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
+                  minRows={3}
+                />
+                
+                <Textarea
+                  label="Client Testimonial"
+                  placeholder="Add a testimonial from your client (optional)"
+                  value={formData.testimonial}
+                  onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
+                  minRows={2}
+                />
+              </CardBody>
+            </Card>
+            
+            {/* Project Links */}
+            <Card>
+              <CardBody className="space-y-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <Icon icon="solar:link-bold-duotone" className="text-primary" />
+                  Project Links
+                </h2>
+                
+                <Input
+                  label="Live URL"
+                  placeholder="https://example.com"
+                  value={formData.liveUrl}
+                  onChange={(e) => setFormData({ ...formData, liveUrl: e.target.value })}
+                  startContent={<Icon icon="solar:link-bold-duotone" />}
+                  type="url"
+                />
+                
+                <Input
+                  label="GitHub URL"
+                  placeholder="https://github.com/username/repo"
+                  value={formData.githubUrl}
+                  onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
+                  startContent={<Icon icon="mdi:github" />}
+                  type="url"
+                />
+                
+                <Input
+                  label="Demo URL"
+                  placeholder="https://demo.example.com"
+                  value={formData.demoUrl}
+                  onChange={(e) => setFormData({ ...formData, demoUrl: e.target.value })}
+                  startContent={<Icon icon="solar:play-circle-bold-duotone" />}
+                  type="url"
+                />
+              </CardBody>
+            </Card>
+            
+            {/* Project Images */}
+            <Card>
+              <CardBody className="space-y-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <Icon icon="solar:gallery-bold-duotone" className="text-primary" />
+                  Project Images
+                </h2>
+                
+                {errors.images && (
+                  <div className="text-danger text-sm">{errors.images}</div>
+                )}
+                
+                <div className="space-y-4">
                   <input
                     type="file"
-                    accept="image/*"
+                    id="image-upload"
                     multiple
+                    accept="image/*"
                     onChange={handleImageSelect}
                     className="hidden"
-                    id="image-upload"
-                    disabled={imageFiles.length >= 5}
+                    disabled={imageFiles.length >= 10}
                   />
-                  <label htmlFor="image-upload" className="block">
-                    <Button
-                      as="span"
-                      color="secondary"
-                      variant="flat"
-                      startContent={<Icon icon="lucide:upload" />}
-                      className={`w-full sm:w-auto cursor-pointer ${imageFiles.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      size="lg"
-                    >
-                      Upload Images ({imageFiles.length}/5)
-                    </Button>
+                  
+                  <label
+                    htmlFor="image-upload"
+                    className={`flex items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-default-100 transition-colors ${
+                      imageFiles.length >= 10 ? 'opacity-50 cursor-not-allowed' : ''
+                    } ${errors.images ? 'border-danger' : 'border-default-300'}`}
+                  >
+                    <div className="text-center">
+                      <Icon icon="solar:upload-bold-duotone" className="text-4xl text-default-400 mx-auto mb-2" />
+                      <p className="text-sm text-default-600">
+                        Click to upload images (max 10)
+                      </p>
+                      <p className="text-xs text-default-400">
+                        PNG, JPG, GIF up to 5MB each
+                      </p>
+                    </div>
                   </label>
+                  
+                  {uploadingImages && (
+                    <Progress 
+                      value={uploadProgress} 
+                      color="primary" 
+                      showValueLabel={true}
+                      className="mb-4"
+                    />
+                  )}
+                  
+                  {imagePreviews.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <Image
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                            <Tooltip content="Set as thumbnail">
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                color={formData.thumbnailUrl === preview ? "success" : "primary"}
+                                variant="solid"
+                                onClick={() => setFormData({ ...formData, thumbnailUrl: preview })}
+                              >
+                                <Icon icon="solar:star-bold" />
+                              </Button>
+                            </Tooltip>
+                            <Tooltip content="Remove">
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                color="danger"
+                                variant="solid"
+                                onClick={() => handleRemoveImage(index)}
+                              >
+                                <Icon icon="solar:trash-bin-trash-bold" />
+                              </Button>
+                            </Tooltip>
+                          </div>
+                          {formData.thumbnailUrl === preview && (
+                            <Chip
+                              size="sm"
+                              color="success"
+                              className="absolute top-2 left-2"
+                            >
+                              Thumbnail
+                            </Chip>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-default-500">
+                    {imagePreviews.length > 0 && 
+                      `${imagePreviews.length} image${imagePreviews.length > 1 ? 's' : ''} selected. Click the star icon to set thumbnail.`
+                    }
+                  </p>
                 </div>
-                
-                {imagePreviews.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {imagePreviews.map((preview, index) => (
-                      <div key={index} className="relative group aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                        <Image
-                          src={preview}
-                          alt={`Project image ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <Button
-                          isIconOnly
-                          color="danger"
-                          variant="solid"
-                          size="sm"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                          onPress={() => handleRemoveImage(index)}
-                          aria-label={`Remove image ${index + 1}`}
-                        >
-                          <Icon icon="lucide:x" />
-                        </Button>
-                        {index === 0 && (
-                          <Chip
-                            size="sm"
-                            color="secondary"
-                            className="absolute bottom-2 left-2 z-10"
-                          >
-                            Thumbnail
-                          </Chip>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {imagePreviews.length === 0 && (
-                  <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center">
-                    <Icon icon="lucide:image" className="text-gray-500 text-4xl mb-4 mx-auto" />
-                    <p className="text-gray-500">No images uploaded yet</p>
-                    <p className="text-gray-600 text-sm">Click the upload button to add project images</p>
-                  </div>
-                )}
+              </CardBody>
+            </Card>
+            
+            {/* Submit Buttons */}
+            <div className="flex justify-between items-center">
+              <Button
+                variant="flat"
+                onClick={() => navigate(-1)}
+                isDisabled={loading || uploadingImages}
+              >
+                Cancel
+              </Button>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="flat"
+                  onClick={handleSaveDraft}
+                  isDisabled={loading || uploadingImages}
+                  startContent={<Icon icon="solar:diskette-bold-duotone" />}
+                >
+                  Save Draft
+                </Button>
+                <Button
+                  type="submit"
+                  color="primary"
+                  isLoading={loading || uploadingImages}
+                  startContent={!loading && <Icon icon="solar:upload-bold-duotone" />}
+                >
+                  {uploadingImages ? 'Uploading Images...' : 'Post Project'}
+                </Button>
               </div>
-            </CardBody>
-          </Card>
-          
-          <div className="flex flex-col sm:flex-row gap-4 pt-6">
-            <Button
-              type="button"
-              variant="bordered"
-              className="flex-1 text-white border-white/30 hover:bg-white/10"
-              onPress={() => navigate('/dashboard')}
-              size="lg"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              color="primary"
-              className="flex-1"
-              isLoading={loading || uploadingImages}
-              size="lg"
-            >
-              {loading || uploadingImages ? 'Posting Project...' : 'Post Project'}
-            </Button>
+            </div>
           </div>
         </form>
       </motion.div>
     </div>
   );
 };
-
-export default PostProjectPage;

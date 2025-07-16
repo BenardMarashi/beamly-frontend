@@ -8,6 +8,7 @@ admin.initializeApp();
 
 const db = admin.firestore();
 const messaging = admin.messaging();
+const storage = admin.storage();
 
 // Trigger: Send notification when a new proposal is received
 export const onNewProposal = onDocumentCreated("proposals/{proposalId}", async (event) => {
@@ -1167,5 +1168,56 @@ export const getJobRecommendations = onCall(async (request) => {
   } catch (error) {
     console.error("Error in getJobRecommendations:", error);
     throw new HttpsError("internal", "Error getting recommendations");
+  }
+});
+
+// HTTP Function: Upload file to avoid CORS issues
+export const uploadFile = onCall({cors: true}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+
+  const { fileData, fileName, contentType, path } = request.data;
+  
+  if (!fileData || !fileName || !path) {
+    throw new HttpsError("invalid-argument", "Missing required fields");
+  }
+
+  try {
+    const bucket = storage.bucket();
+    const userId = request.auth.uid;
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const timestamp = Date.now();
+    const fullPath = `${path}/${userId}/${timestamp}_${sanitizedFileName}`;
+
+    // Convert base64 to buffer
+    const buffer = Buffer.from(fileData, 'base64');
+    
+    const file = bucket.file(fullPath);
+    
+    await file.save(buffer, {
+      metadata: {
+        contentType: contentType || 'application/octet-stream',
+        metadata: {
+          uploadedBy: userId,
+          uploadedAt: new Date().toISOString(),
+          originalName: fileName
+        }
+      }
+    });
+
+    // Make file publicly readable
+    await file.makePublic();
+    
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fullPath}`;
+    
+    return {
+      success: true,
+      downloadURL: publicUrl,
+      path: fullPath
+    };
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    throw new HttpsError("internal", "Error uploading file");
   }
 });
