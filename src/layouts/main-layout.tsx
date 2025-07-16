@@ -10,8 +10,8 @@ import { useSignOut } from "../hooks/use-auth";
 import { useTheme } from "../contexts/theme-context";
 
 interface MainLayoutProps {
-  isLoggedIn: boolean;
-  onLogout: () => void;
+  isLoggedIn?: boolean;
+  onLogout?: () => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) => {
@@ -22,9 +22,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
   const { isDarkMode } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   
+  // Use prop or derive from auth context
+  const actualIsLoggedIn = isLoggedIn ?? !!user;
+  
   const handleLogout = async () => {
     await signOut();
-    onLogout();
+    onLogout?.();
     navigate('/');
   };
   
@@ -84,7 +87,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
         <HamburgerMenu 
           isOpen={menuOpen} 
           onClose={() => setMenuOpen(false)} 
-          isLoggedIn={isLoggedIn} 
+          isLoggedIn={actualIsLoggedIn} 
           onLogout={handleLogout}
         />
         

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { NotificationService } from '@services/firebase-services';
+import { NotificationService } from '../services/firebase-services';
 import { toast } from 'react-hot-toast';
 
 interface Notification {
