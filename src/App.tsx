@@ -19,7 +19,7 @@ import { DashboardLayout } from './layouts/dashboard-layout';
 
 // Regular imports for frequently used pages
 import { HomePage } from './pages/home';
-import { LoginPage } from './pages/login';
+import LoginPage from './pages/login';
 import { SignupPage } from './pages/signup';
 import { MessagesPage } from './pages/messages';
 import { ConversationsListPage } from './pages/conversations-list';

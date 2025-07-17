@@ -358,7 +358,7 @@ export const PostProjectPage: React.FC = () => {
   }
   
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl pt-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -379,86 +379,116 @@ export const PostProjectPage: React.FC = () => {
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
             {/* Basic Information */}
-            <Card>
+            <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                   <Icon icon="solar:info-circle-bold-duotone" className="text-primary" />
                   Basic Information
                 </h2>
                 
-                <Input
-                  label="Project Title"
-                  placeholder="Enter your project title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  isRequired
-                  isInvalid={!!errors.title}
-                  errorMessage={errors.title}
-                  startContent={<Icon icon="solar:pen-bold-duotone" />}
-                  description="Choose a clear, descriptive title for your project"
-                />
-                
-                <Textarea
-                  label="Project Description"
-                  placeholder="Describe your project in detail..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  minRows={4}
-                  isRequired
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description}
-                  description="Explain what the project is about, its goals, and key features"
-                />
-                
-                <Select
-                  label="Category"
-                  placeholder="Select a category"
-                  selectedKeys={formData.category ? [formData.category] : []}
-                  onSelectionChange={(keys) => {
-                    setFormData({ ...formData, category: Array.from(keys)[0] as string });
-                    setErrors({ ...errors, category: "" });
-                  }}
-                  isRequired
-                  isInvalid={!!errors.category}
-                  errorMessage={errors.category}
-                  startContent={<Icon icon="solar:widget-bold-duotone" />}
-                >
-                  {categories.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </Select>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-field">
                   <Input
-                    label="Client/Company Name"
-                    placeholder="e.g., ABC Company"
-                    value={formData.client}
-                    onChange={(e) => setFormData({ ...formData, client: e.target.value })}
-                    startContent={<Icon icon="solar:buildings-bold-duotone" />}
+                    label="Project Title"
+                    placeholder="Enter your project title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    isRequired
+                    isInvalid={!!errors.title}
+                    errorMessage={errors.title}
+                    startContent={<Icon icon="solar:pen-bold-duotone" />}
+                    description="Choose a clear, descriptive title for your project"
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
                   />
+                </div>
+                
+                <div className="form-field">
+                  <Textarea
+                    label="Project Description"
+                    placeholder="Describe your project in detail..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    minRows={4}
+                    isRequired
+                    isInvalid={!!errors.description}
+                    errorMessage={errors.description}
+                    description="Explain what the project is about, its goals, and key features"
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
+                
+                <div className="form-grid form-grid-2">
+                  <div className="form-field">
+                    <Select
+                      label="Category"
+                      placeholder="Select a category"
+                      selectedKeys={formData.category ? [formData.category] : []}
+                      onSelectionChange={(keys) => {
+                        setFormData({ ...formData, category: Array.from(keys)[0] as string });
+                        setErrors({ ...errors, category: "" });
+                      }}
+                      isRequired
+                      isInvalid={!!errors.category}
+                      errorMessage={errors.category}
+                      startContent={<Icon icon="solar:widget-bold-duotone" />}
+                      classNames={{
+                        trigger: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10",
+                        value: "text-white"
+                      }}
+                    >
+                      {categories.map((category) => (
+                        <SelectItem key={category.value} value={category.value}>
+                          {category.label}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </div>
                   
+                  <div className="form-field">
+                    <Input
+                      label="Client/Company Name"
+                      placeholder="e.g., ABC Company"
+                      value={formData.client}
+                      onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                      startContent={<Icon icon="solar:buildings-bold-duotone" />}
+                      classNames={{
+                        input: "text-white",
+                        inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                      }}
+                    />
+                  </div>
+                </div>
+                
+                <div className="form-field">
                   <Input
                     label="Project Duration"
                     placeholder="e.g., 3 months"
                     value={formData.duration}
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                     startContent={<Icon icon="solar:calendar-bold-duotone" />}
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
                   />
                 </div>
               </CardBody>
             </Card>
             
             {/* Skills & Technologies */}
-            <Card>
+            <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                   <Icon icon="solar:star-bold-duotone" className="text-primary" />
                   Skills & Technologies
                 </h2>
                 
-                <div>
+                <div className="form-field">
                   <Input
                     label="Add Skills"
                     placeholder="Type a skill and press Enter"
@@ -469,6 +499,10 @@ export const PostProjectPage: React.FC = () => {
                     description="Press Enter to add skill"
                     isInvalid={!!errors.skills}
                     errorMessage={errors.skills}
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
                   />
                   
                   {formData.skills.length > 0 && (
@@ -479,6 +513,7 @@ export const PostProjectPage: React.FC = () => {
                           onClose={() => handleRemoveSkill(skill)}
                           variant="flat"
                           color="primary"
+                          className="bg-primary/20"
                         >
                           {skill}
                         </Chip>
@@ -487,7 +522,7 @@ export const PostProjectPage: React.FC = () => {
                   )}
                 </div>
                 
-                <div>
+                <div className="form-field">
                   <Input
                     label="Add Technologies"
                     placeholder="Type a technology and press Enter"
@@ -496,6 +531,10 @@ export const PostProjectPage: React.FC = () => {
                     onKeyDown={handleAddTechnology}
                     startContent={<Icon icon="solar:cpu-bolt-bold-duotone" />}
                     description="Technologies used in this project"
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
                   />
                   
                   {formData.technologies.length > 0 && (
@@ -506,6 +545,7 @@ export const PostProjectPage: React.FC = () => {
                           onClose={() => handleRemoveTechnology(tech)}
                           variant="flat"
                           color="secondary"
+                          className="bg-secondary/20"
                         >
                           {tech}
                         </Chip>
@@ -514,108 +554,162 @@ export const PostProjectPage: React.FC = () => {
                   )}
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    label="Your Role"
-                    placeholder="e.g., Full Stack Developer"
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    startContent={<Icon icon="solar:user-bold-duotone" />}
-                  />
+                <div className="form-grid form-grid-2">
+                  <div className="form-field">
+                    <Input
+                      label="Your Role"
+                      placeholder="e.g., Full Stack Developer"
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      startContent={<Icon icon="solar:user-bold-duotone" />}
+                      classNames={{
+                        input: "text-white",
+                        inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                      }}
+                    />
+                  </div>
                   
-                  <Input
-                    label="Team Size"
-                    type="number"
-                    placeholder="1"
-                    value={formData.teamSize.toString()}
-                    onChange={(e) => setFormData({ ...formData, teamSize: parseInt(e.target.value) || 1 })}
-                    startContent={<Icon icon="solar:users-group-rounded-bold-duotone" />}
-                  />
+                  <div className="form-field">
+                    <Input
+                      label="Team Size"
+                      type="number"
+                      placeholder="1"
+                      value={formData.teamSize.toString()}
+                      onChange={(e) => setFormData({ ...formData, teamSize: parseInt(e.target.value) || 1 })}
+                      startContent={<Icon icon="solar:users-group-rounded-bold-duotone" />}
+                      classNames={{
+                        input: "text-white",
+                        inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                      }}
+                    />
+                  </div>
                 </div>
               </CardBody>
             </Card>
             
             {/* Project Details */}
-            <Card>
+            <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                   <Icon icon="solar:document-text-bold-duotone" className="text-primary" />
                   Project Details
                 </h2>
                 
-                <Textarea
-                  label="Challenges"
-                  placeholder="What challenges did you face in this project?"
-                  value={formData.challenges}
-                  onChange={(e) => setFormData({ ...formData, challenges: e.target.value })}
-                  minRows={3}
-                />
+                <div className="form-field">
+                  <Textarea
+                    label="Challenges"
+                    placeholder="What challenges did you face in this project?"
+                    value={formData.challenges}
+                    onChange={(e) => setFormData({ ...formData, challenges: e.target.value })}
+                    minRows={3}
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
                 
-                <Textarea
-                  label="Solution"
-                  placeholder="How did you solve these challenges?"
-                  value={formData.solution}
-                  onChange={(e) => setFormData({ ...formData, solution: e.target.value })}
-                  minRows={3}
-                />
+                <div className="form-field">
+                  <Textarea
+                    label="Solution"
+                    placeholder="How did you solve these challenges?"
+                    value={formData.solution}
+                    onChange={(e) => setFormData({ ...formData, solution: e.target.value })}
+                    minRows={3}
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
                 
-                <Textarea
-                  label="Impact/Results"
-                  placeholder="What was the impact or results of your project?"
-                  value={formData.impact}
-                  onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
-                  minRows={3}
-                />
+                <div className="form-field">
+                  <Textarea
+                    label="Impact/Results"
+                    placeholder="What was the impact or results of your project?"
+                    value={formData.impact}
+                    onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
+                    minRows={3}
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
                 
-                <Textarea
-                  label="Client Testimonial"
-                  placeholder="Add a testimonial from your client (optional)"
-                  value={formData.testimonial}
-                  onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
-                  minRows={2}
-                />
+                <div className="form-field">
+                  <Textarea
+                    label="Client Testimonial"
+                    placeholder="Add a testimonial from your client (optional)"
+                    value={formData.testimonial}
+                    onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
+                    minRows={2}
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
               </CardBody>
             </Card>
             
             {/* Project Links */}
-            <Card>
+            <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                   <Icon icon="solar:link-bold-duotone" className="text-primary" />
                   Project Links
                 </h2>
                 
-                <Input
-                  label="Live URL"
-                  placeholder="https://example.com"
-                  value={formData.liveUrl}
-                  onChange={(e) => setFormData({ ...formData, liveUrl: e.target.value })}
-                  startContent={<Icon icon="solar:link-bold-duotone" />}
-                  type="url"
-                />
+                <div className="form-field">
+                  <Input
+                    label="Live URL"
+                    placeholder="https://example.com"
+                    value={formData.liveUrl}
+                    onChange={(e) => setFormData({ ...formData, liveUrl: e.target.value })}
+                    startContent={<Icon icon="solar:link-bold-duotone" />}
+                    type="url"
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
                 
-                <Input
-                  label="GitHub URL"
-                  placeholder="https://github.com/username/repo"
-                  value={formData.githubUrl}
-                  onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
-                  startContent={<Icon icon="mdi:github" />}
-                  type="url"
-                />
+                <div className="form-field">
+                  <Input
+                    label="GitHub URL"
+                    placeholder="https://github.com/username/repo"
+                    value={formData.githubUrl}
+                    onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
+                    startContent={<Icon icon="mdi:github" />}
+                    type="url"
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
                 
-                <Input
-                  label="Demo URL"
-                  placeholder="https://demo.example.com"
-                  value={formData.demoUrl}
-                  onChange={(e) => setFormData({ ...formData, demoUrl: e.target.value })}
-                  startContent={<Icon icon="solar:play-circle-bold-duotone" />}
-                  type="url"
-                />
+                <div className="form-field">
+                  <Input
+                    label="Demo URL"
+                    placeholder="https://demo.example.com"
+                    value={formData.demoUrl}
+                    onChange={(e) => setFormData({ ...formData, demoUrl: e.target.value })}
+                    startContent={<Icon icon="solar:play-circle-bold-duotone" />}
+                    type="url"
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
               </CardBody>
             </Card>
             
             {/* Project Images */}
-            <Card>
+            <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                   <Icon icon="solar:gallery-bold-duotone" className="text-primary" />
@@ -720,11 +814,12 @@ export const PostProjectPage: React.FC = () => {
             </Card>
             
             {/* Submit Buttons */}
-            <div className="flex justify-between items-center">
+            <div className="form-actions space-between">
               <Button
                 variant="flat"
                 onClick={() => navigate(-1)}
                 isDisabled={loading || uploadingImages}
+                className="border-white/20 text-white hover:bg-white/5"
               >
                 Cancel
               </Button>
@@ -735,6 +830,7 @@ export const PostProjectPage: React.FC = () => {
                   onClick={handleSaveDraft}
                   isDisabled={loading || uploadingImages}
                   startContent={<Icon icon="solar:diskette-bold-duotone" />}
+                  className="border-white/20 text-white hover:bg-white/5"
                 >
                   Save Draft
                 </Button>
@@ -743,6 +839,7 @@ export const PostProjectPage: React.FC = () => {
                   color="primary"
                   isLoading={loading || uploadingImages}
                   startContent={!loading && <Icon icon="solar:upload-bold-duotone" />}
+                  className="bg-beamly-secondary text-beamly-primary font-semibold"
                 >
                   {uploadingImages ? 'Uploading Images...' : 'Post Project'}
                 </Button>

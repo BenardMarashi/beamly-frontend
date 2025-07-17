@@ -169,8 +169,8 @@ export const MessagesPage: React.FC = () => {
   }
 
   if (!conversation || !otherUser) {
-    return (
-      <div className="container mx-auto px-4 py-8">
+return (
+    <div className="container mx-auto px-4 py-8 pt-20">
         <Card>
           <CardBody className="text-center py-12">
             <Icon icon="solar:chat-line-broken" className="text-6xl text-gray-400 mx-auto mb-4" />
@@ -180,12 +180,13 @@ export const MessagesPage: React.FC = () => {
             </Button>
           </CardBody>
         </Card>
-      </div>
-    );
+    </div>
+);
   }
 
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+return (
+    
+    <div className="container mx-auto px-4 py-8 pt-20">
       <Card className="h-[calc(100vh-12rem)] flex flex-col">
         {/* Header */}
         <div className="border-b px-6 py-4 flex items-center gap-4">
@@ -320,5 +321,5 @@ export const MessagesPage: React.FC = () => {
         </div>
       </Card>
     </div>
-  );
+);
 };

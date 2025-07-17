@@ -6,7 +6,9 @@ import { Avatar, Button } from '@nextui-org/react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/theme-context';
 import { BeamlyLogo } from '../beamly-logo';
-import { useSignOut } from '../../hooks/use-auth';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
+import { toast } from 'react-hot-toast';
 
 interface UnifiedHamburgerMenuProps {
   isLoggedIn: boolean;
@@ -20,7 +22,6 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, userData, isFreelancer, isClient, canPostJobs } = useAuth();
   const { theme, setTheme, isDarkMode } = useTheme();
-  const { signOut } = useSignOut();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -28,10 +29,16 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
     `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.displayName || user?.displayName || 'User')}&background=0F43EE&color=fff`;
 
   const handleLogout = async () => {
-    await signOut();
-    onLogout();
-    setIsMenuOpen(false);
-    navigate('/');
+    try {
+      await signOut(auth);
+      toast.success('Signed out successfully');
+      onLogout();
+      setIsMenuOpen(false);
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error('Failed to sign out');
+    }
   };
 
   const handleMenuItemClick = () => {
@@ -46,56 +53,55 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
   // Lock body scroll when menu is open
   useEffect(() => {
     if (isMenuOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.classList.add('menu-open');
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.classList.remove('menu-open');
     }
 
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.classList.remove('menu-open');
     };
   }, [isMenuOpen]);
 
   const getNavigationItems = () => {
-    if (!isLoggedIn) {
+    // For non-logged in users
+    if (!isLoggedIn || !user) {
       return [
         { path: '/', label: 'Home', icon: 'solar:home-2-bold' },
         { path: '/browse-freelancers', label: 'Browse Freelancers', icon: 'solar:users-group-rounded-bold' },
-        { path: '/browse-jobs', label: 'Looking for Work', icon: 'solar:case-round-minimalistic-bold' }, // Changed from /looking-for-work
+        { path: '/browse-jobs', label: 'Looking for Work', icon: 'solar:case-round-minimalistic-bold' },
         { path: '/how-it-works', label: 'How it Works', icon: 'solar:question-circle-bold' },
       ];
     }
 
-    const baseItems = [
-      { path: '/dashboard', label: 'Dashboard', icon: 'solar:home-2-bold' },
+    // For logged in users - show all navigation items regardless of page
+    const items = [
+      { path: '/', label: 'Home', icon: 'solar:home-2-bold' },
+      { path: '/browse-freelancers', label: 'Browse Freelancers', icon: 'solar:users-group-rounded-bold' },
+      { path: '/browse-jobs', label: 'Looking for Work', icon: 'solar:case-round-minimalistic-bold' },
+      { path: '/how-it-works', label: 'How it Works', icon: 'solar:question-circle-bold' },
+      { path: '/dashboard', label: 'Dashboard', icon: 'solar:widget-2-bold' },
+      { path: '/browse-jobs', label: 'Find Work', icon: 'solar:case-round-minimalistic-bold' },
+      { path: '/messages', label: 'Messages', icon: 'solar:chat-round-dots-bold' },
+      { path: '/settings', label: 'Settings', icon: 'solar:settings-bold' },
     ];
 
-    // User type specific items
+    // Add user type specific items
     if (userData?.userType === 'freelancer' || userData?.userType === 'both') {
-      baseItems.push(
-        { path: '/browse-jobs', label: 'Find Work', icon: 'solar:case-round-minimalistic-bold' }, // Changed from /looking-for-work
+      items.push(
         { path: '/post-project', label: 'Post Project', icon: 'solar:folder-plus-bold' },
         { path: '/projects/manage', label: 'My Projects', icon: 'solar:folder-bold' }
       );
     }
 
     if (userData?.userType === 'client' || userData?.userType === 'both') {
-      baseItems.push(
-        { path: '/browse-freelancers', label: 'Find Talent', icon: 'solar:users-group-rounded-bold' },
+      items.push(
         { path: '/post-job', label: 'Post Job', icon: 'solar:add-circle-bold' },
         { path: '/jobs/manage', label: 'My Jobs', icon: 'solar:briefcase-bold' }
       );
     }
 
-    // Common items for all logged-in users
-    baseItems.push(
-      { path: '/proposals', label: 'Proposals', icon: 'solar:document-text-bold' },
-      { path: '/chat', label: 'Messages', icon: 'solar:chat-round-dots-bold' },
-      { path: '/notifications', label: 'Notifications', icon: 'solar:bell-bold' },
-      { path: '/analytics', label: 'Analytics', icon: 'solar:chart-square-bold' }
-    );
-
-    return baseItems;
+    return items;
   };
 
   const navigationItems = getNavigationItems();
@@ -201,23 +207,24 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
       <AnimatePresence>
         {isMenuOpen && (
           <>
-            {/* Backdrop */}
+            {/* Backdrop Overlay - Fixed to properly close menu */}
             <motion.div
               variants={overlayVariants}
               initial="closed"
               animate="open"
               exit="closed"
               onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hamburger-overlay"
+              aria-hidden="true"
             />
 
-            {/* Menu Sidebar */}
+            {/* Menu Panel */}
             <motion.div
               variants={menuVariants}
               initial="closed"
               animate="open"
               exit="closed"
-              className="fixed top-0 right-0 bottom-0 z-50 w-full max-w-sm"
+              className="fixed top-0 right-0 bottom-0 z-50 w-full max-w-sm hamburger-menu-panel"
             >
               <div className="glass-effect h-full overflow-y-auto">
                 <div className="p-6">
@@ -232,111 +239,76 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                     </button>
                   </div>
 
-                  {/* User Profile Section */}
+                  {/* User Profile Section - Now Clickable */}
                   {isLoggedIn && userData && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 }}
-                      className="mb-8 p-4 rounded-2xl bg-white/5 border border-white/10"
+                      className="mb-8"
                     >
-                      <div className="flex items-center space-x-3 mb-3">
-                        <Avatar
-                          src={profilePicture}
-                          alt={userData.displayName}
-                          className="w-12 h-12"
-                        />
-                        <div>
-                          <h3 className="font-semibold text-white">
-                            {userData.displayName || 'User'}
-                          </h3>
-                          <p className="text-sm text-white/70 capitalize">
-                            {userData.userType === 'both' ? 'Freelancer & Client' : userData.userType}
-                          </p>
+                      <RouterLink
+                        to="/edit-profile"
+                        onClick={handleMenuItemClick}
+                        className="block p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-200"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <Avatar
+                            src={profilePicture}
+                            alt={userData.displayName}
+                            className="w-12 h-12"
+                          />
+                          <div>
+                            <h3 className="font-semibold text-white">
+                              {userData.displayName || 'User'}
+                            </h3>
+                            <p className="text-sm text-white/70 capitalize">
+                              {userData.userType === 'both' ? 'Freelancer & Client' : userData.userType}
+                            </p>
+                          </div>
+                          <Icon icon="solar:arrow-right-bold" className="w-5 h-5 text-white/50 ml-auto" />
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-2 text-xs text-white/60">
-                        <Icon icon="solar:star-bold" className="w-4 h-4 text-yellow-400" />
-                        <span>{userData.rating?.toFixed(1) || '0.0'}</span>
-                        <span>•</span>
-                        <span>{userData.completedProjects || 0} projects</span>
-                      </div>
+                      </RouterLink>
                     </motion.div>
                   )}
 
                   {/* Navigation Items */}
                   <nav className="space-y-2 mb-8">
-                    {navigationItems.map((item, index) => {
-                      const isActive = location.pathname === item.path;
-                      return (
-                        <motion.div
-                          key={item.path}
-                          custom={index}
-                          variants={itemVariants}
-                          initial="closed"
-                          animate="open"
+                    {navigationItems.filter((item, index, self) => 
+                      // Remove duplicate paths
+                      index === self.findIndex((i) => i.path === item.path)
+                    ).map((item, index) => (
+                      <motion.div
+                        key={`${item.path}-${index}`}
+                        custom={index}
+                        variants={itemVariants}
+                        initial="closed"
+                        animate="open"
+                      >
+                        <RouterLink
+                          to={item.path}
+                          onClick={handleMenuItemClick}
+                          className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                            location.pathname === item.path
+                              ? 'bg-beamly-secondary text-beamly-primary font-medium'
+                              : 'hover:bg-white/10 text-white'
+                          }`}
                         >
-                          <RouterLink
-                            to={item.path}
-                            onClick={handleMenuItemClick}
-                            className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                              isActive
-                                ? 'bg-beamly-primary text-white shadow-lg'
-                                : 'hover:bg-white/10 text-white/90 hover:text-white'
-                            }`}
-                          >
-                            <Icon icon={item.icon} className="w-6 h-6" />
-                            <span className="font-medium">{item.label}</span>
-                          </RouterLink>
-                        </motion.div>
-                      );
-                    })}
+                          <Icon icon={item.icon} className="w-5 h-5" />
+                          <span>{item.label}</span>
+                        </RouterLink>
+                      </motion.div>
+                    ))}
                   </nav>
 
-                  {/* Authentication Actions */}
-                  {!isLoggedIn ? (
+                  {/* User Actions */}
+                  {isLoggedIn && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
-                      className="space-y-3 mb-8"
+                      className="space-y-2 border-t border-white/10 pt-6"
                     >
-                      <Button
-                        as={RouterLink}
-                        to="/login"
-                        onPress={handleMenuItemClick}
-                        variant="bordered"
-                        className="w-full border-white/20 text-white hover:bg-white/10"
-                      >
-                        Login
-                      </Button>
-                      <Button
-                        as={RouterLink}
-                        to="/signup"
-                        onPress={handleMenuItemClick}
-                        color="secondary"
-                        className="w-full font-semibold"
-                      >
-                        Sign Up
-                      </Button>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="mb-8 space-y-3"
-                    >
-                      <Button
-                        as={RouterLink}
-                        to="/edit-profile"
-                        onPress={handleMenuItemClick}
-                        variant="bordered"
-                        className="w-full border-white/20 text-white hover:bg-white/10"
-                        startContent={<Icon icon="solar:user-bold" className="w-4 h-4" />}
-                      >
-                        Edit Profile
-                      </Button>
                       <Button
                         as={RouterLink}
                         to="/settings"
@@ -358,6 +330,35 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                     </motion.div>
                   )}
 
+                  {/* Login/Signup for non-authenticated users */}
+                  {!isLoggedIn && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="space-y-2 border-t border-white/10 pt-6"
+                    >
+                      <Button
+                        as={RouterLink}
+                        to="/login"
+                        onPress={handleMenuItemClick}
+                        variant="bordered"
+                        className="w-full border-white/20 text-white hover:bg-white/10"
+                      >
+                        Login
+                      </Button>
+                      <Button
+                        as={RouterLink}
+                        to="/signup"
+                        onPress={handleMenuItemClick}
+                        color="primary"
+                        className="w-full"
+                      >
+                        Sign Up
+                      </Button>
+                    </motion.div>
+                  )}
+
                   {/* Preferences */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -367,19 +368,6 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                   >
                     <h4 className="text-sm font-medium text-white/60 mb-4">Preferences</h4>
                     
-                    {/* Language Selector */}
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-white/80">Language</span>
-                      <Button
-                        size="sm"
-                        variant="flat"
-                        className="bg-white/10 text-white min-w-0 px-3"
-                      >
-                        English
-                        <Icon icon="solar:arrow-down-bold" className="w-4 h-4 ml-1" />
-                      </Button>
-                    </div>
-
                     {/* Theme Toggle */}
                     <div className="flex items-center justify-between">
                       <span className="text-white/80">Theme</span>
