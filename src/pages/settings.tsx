@@ -197,9 +197,6 @@ return (
                   <SelectItem key="dark" value="dark">
                     {t('settings.appearance.dark')}
                   </SelectItem>
-                  <SelectItem key="system" value="system">
-                    {t('settings.appearance.system')}
-                  </SelectItem>
                 </Select>
               </div>
               
@@ -240,17 +237,6 @@ return (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-white">Email Notifications</p>
-                  <p className="text-gray-400 text-sm">Receive notifications via email</p>
-                </div>
-                <Switch
-                  isSelected={settings.emailNotifications}
-                  onValueChange={(value) => updateSetting('emailNotifications', value)}
-                />
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div>
                   <p className="text-white">Push Notifications</p>
                   <p className="text-gray-400 text-sm">Receive push notifications</p>
                 </div>
@@ -259,20 +245,7 @@ return (
                   onValueChange={(value) => updateSetting('pushNotifications', value)}
                 />
               </div>
-              
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-white">SMS Notifications</p>
-                  <p className="text-gray-400 text-sm">Receive SMS notifications</p>
-                </div>
-                <Switch
-                  isSelected={settings.smsNotifications}
-                  onValueChange={(value) => updateSetting('smsNotifications', value)}
-                />
-              </div>
-              
               <Divider className="my-4" />
-              
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-white">Marketing Emails</p>
@@ -282,48 +255,6 @@ return (
                   isSelected={settings.marketingEmails}
                   onValueChange={(value) => updateSetting('marketingEmails', value)}
                 />
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-white">Weekly Reports</p>
-                  <p className="text-gray-400 text-sm">Receive weekly activity reports</p>
-                </div>
-                <Switch
-                  isSelected={settings.weeklyReports}
-                  onValueChange={(value) => updateSetting('weeklyReports', value)}
-                />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-        
-        {/* Privacy Settings */}
-        <Card className="glass-effect mb-6">
-          <CardBody className="p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Privacy</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-white">Profile Visibility</p>
-                  <p className="text-gray-400 text-sm">Control who can see your profile</p>
-                </div>
-                <Select
-                  selectedKeys={[settings.profileVisibility]}
-                  onSelectionChange={(keys) => updateSetting('profileVisibility', Array.from(keys)[0])}
-                  className="w-40"
-                  variant="bordered"
-                  classNames={{
-                    trigger: "bg-gray-900/50 border-gray-600 text-white",
-                    value: "text-white",
-                    listbox: "bg-gray-900",
-                    popoverContent: "bg-gray-900",
-                  }}
-                >
-                  <SelectItem key="public" value="public">Public</SelectItem>
-                  <SelectItem key="clients-only" value="clients-only">Clients Only</SelectItem>
-                  <SelectItem key="private" value="private">Private</SelectItem>
-                </Select>
               </div>
             </div>
           </CardBody>
@@ -344,15 +275,6 @@ return (
                 fullWidth
               >
                 Change Password
-              </Button>
-              
-              <Button
-                variant="flat"
-                color="warning"
-                startContent={<Icon icon="lucide:download" />}
-                fullWidth
-              >
-                Download Account Data
               </Button>
             </div>
           </CardBody>
