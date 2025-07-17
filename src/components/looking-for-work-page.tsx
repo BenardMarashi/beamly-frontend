@@ -18,6 +18,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { PageHeader } from "./page-header";
 import { JobCard } from "./job-card";
 
+
 interface LookingForWorkPageProps {
   setCurrentPage?: (page: string) => void;
   isDarkMode?: boolean;

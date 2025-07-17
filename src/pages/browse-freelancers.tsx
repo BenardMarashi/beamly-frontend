@@ -17,7 +17,8 @@ import { collection, query, where, orderBy, limit, getDocs, DocumentSnapshot, st
 import { db } from "../lib/firebase";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-export const BrowseFreelancersPage: React.FC = () => {
+
+const BrowseFreelancersPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -147,188 +148,194 @@ export const BrowseFreelancersPage: React.FC = () => {
   }, [navigate]);
 
   return (
-    <div className="container mx-auto px-4 py-6 pb-20">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <h1 className="text-2xl font-bold mb-2 text-white">Browse Freelancers</h1>
-        <p className="text-gray-300 mb-6">Find talented professionals for your projects</p>
-        
-        {/* Search and Filters */}
-        <div className="glass-effect p-6 rounded-xl mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
-            <Input
-              size="lg"
-              variant="bordered"
-              placeholder={t('browseFreelancers.searchPlaceholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-white/10"
-              startContent={<Icon icon="lucide:search" className="text-gray-400" />}
-            />
-            <Select
-              variant="bordered"
-              selectedKeys={[selectedCategory]}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="md:w-48"
-              aria-label="Filter by category"
-              classNames={{
-                trigger: "bg-gray-900/50 border-gray-600 text-white",
-                value: "text-white",
-                listbox: "bg-gray-900",
-                popoverContent: "bg-gray-900",
-              }}
-            >
-              {categories.map((cat) => (
-                <SelectItem key={cat.value} value={cat.value}>
-                  {cat.label}
-                </SelectItem>
-              ))}
-            </Select>
-            <Select
-              variant="bordered"
-              selectedKeys={[sortBy]}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="md:w-48"
-              aria-label="Sort freelancers by"
-              classNames={{
-                trigger: "bg-gray-900/50 border-gray-600 text-white",
-                value: "text-white",
-                listbox: "bg-gray-900",
-                popoverContent: "bg-gray-900",
-              }}
-            >
-              <SelectItem key="rating" value="rating">Highest Rated</SelectItem>
-              <SelectItem key="projects" value="projects">Most Projects</SelectItem>
-              <SelectItem key="newest" value="newest">Newest</SelectItem>
-            </Select>
-          </div>
-        </div>
-        
-        {/* Freelancers Grid */}
-        {loading && freelancers.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, index) => (
-              <Card key={index} className="glass-card">
-                <CardBody className="p-5">
-                  <Skeleton className="rounded-full w-16 h-16 mx-auto mb-3" />
-                  <Skeleton className="h-4 w-3/4 mx-auto mb-2" />
-                  <Skeleton className="h-3 w-1/2 mx-auto" />
-                </CardBody>
-              </Card>
-            ))}
-          </div>
-        ) : filteredFreelancers.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredFreelancers.map((freelancer, index) => {
-              const cardClass = `${index % 2 === 0 ? 'glass-card' : 'yellow-glass'} border-none card-hover cursor-pointer`;
-              return (
-                <motion.div
-                  key={freelancer.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.5) }}
+      <div className="container mx-auto px-4 py-6 pb-20 pt-20">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-white">Browse Freelancers</h1>
+          <p className="text-gray-300 mb-6">Find talented professionals for your projects</p>
+          
+          {/* Search and Filters */}
+          <div className="glass-effect p-4 md:p-6 rounded-xl mb-8">
+            <div className="flex flex-col gap-4">
+              <Input
+                size="lg"
+                variant="bordered"
+                placeholder={t('common.search') || "Search freelancers..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full"
+                classNames={{
+                  input: "text-white",
+                  inputWrapper: "bg-white/5 border-white/20 hover:border-white/30"
+                }}
+                startContent={<Icon icon="lucide:search" className="text-gray-400" />}
+              />
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Select
+                  variant="bordered"
+                  selectedKeys={[selectedCategory]}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  aria-label="Filter by category"
+                  classNames={{
+                    trigger: "bg-white/5 border-white/20 hover:border-white/30 text-white",
+                    value: "text-white",
+                    listbox: "bg-gray-900",
+                    popoverContent: "bg-gray-900",
+                  }}
                 >
-                  <Card 
-                    className={cardClass}
-                    isPressable
-                    onPress={() => handleFreelancerClick(freelancer.id)}
-                  >
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </Select>
+                
+                <Select
+                  variant="bordered"
+                  selectedKeys={[sortBy]}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  aria-label="Sort freelancers by"
+                  classNames={{
+                    trigger: "bg-white/5 border-white/20 hover:border-white/30 text-white",
+                    value: "text-white",
+                    listbox: "bg-gray-900",
+                    popoverContent: "bg-gray-900",
+                  }}
+                >
+                  <SelectItem key="rating" value="rating">Highest Rated</SelectItem>
+                  <SelectItem key="projects" value="projects">Most Projects</SelectItem>
+                  <SelectItem key="newest" value="newest">Newest</SelectItem>
+                </Select>
+              </div>
+            </div>
+          </div>
+          
+          {/* Freelancers Grid */}
+          {loading && freelancers.length === 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {[...Array(6)].map((_, index) => (
+                <Card key={index} className="glass-card">
                   <CardBody className="p-5">
-                    <div className="flex items-center gap-4">
-                      <Avatar 
-                        src={freelancer.photoURL} 
-                        name={freelancer.displayName}
-                        className="w-16 h-16"
-                      />
-                      <div>
-                        <h3 className="font-semibold text-white">{freelancer.displayName || 'Unnamed User'}</h3>
-                        <p className="text-gray-400 text-sm">{freelancer.bio || 'No bio available'}</p>
-                        <div className="flex items-center mt-1">
-                          <Icon icon="lucide:star" className="text-beamly-secondary mr-1" />
-                          <span className="text-white">{freelancer.rating || '0.0'}</span>
-                          <span className="text-gray-400 text-xs ml-2">({freelancer.completedProjects || 0} projects)</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4">
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {freelancer.skills?.slice(0, 3).map((skill: string, i: number) => (
-                          <Chip 
-                            key={i} 
-                            size="sm"
-                            className="bg-white/10 text-white"
-                          >
-                            {skill}
-                          </Chip>
-                        ))}
-                      </div>
-                      
-                      {/* Hourly Rate and View Profile Button */}
-                      <div className="flex justify-between items-center mt-4">
-                        <div>
-                          {freelancer.hourlyRate && (
-                            <span className="text-beamly-secondary font-bold">
-                              ${freelancer.hourlyRate}
-                            </span>
-                          )}
-                          {freelancer.hourlyRate && (
-                            <span className="text-gray-400 text-xs ml-1">/ hr</span>
-                          )}
-                        </div>
-                        <div
-                          className="px-3 py-1 bg-beamly-secondary text-beamly-third text-sm font-medium rounded-lg hover:bg-beamly-secondary/80 transition-colors cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFreelancerClick(freelancer.id);
-                          }}
-                        >
-                          View Profile
-                        </div>
-                      </div>
-                      
-                      {/* Availability Badge */}
-                      {freelancer.isAvailable && (
-                        <div className="mt-2">
-                          <Chip
-                            size="sm"
-                            color="success"
-                            variant="dot"
-                          >
-                            Available
-                          </Chip>
-                        </div>
-                      )}
-                    </div>
+                    <Skeleton className="rounded-full w-16 h-16 mx-auto mb-3" />
+                    <Skeleton className="h-4 w-3/4 mx-auto mb-2" />
+                    <Skeleton className="h-3 w-1/2 mx-auto" />
                   </CardBody>
                 </Card>
-              </motion.div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <Icon icon="lucide:users-x" className="text-6xl text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No freelancers found</h3>
-            <p className="text-gray-400">Try adjusting your search or filters</p>
-          </div>
-        )}
-        
-        {/* Load More */}
-        {!loading && hasMore && filteredFreelancers.length > 0 && (
-          <div className="text-center mt-8">
-            <Button
-              color="primary"
-              variant="bordered"
-              onPress={() => fetchFreelancers(false)}
-              className="text-white border-white/30"
-            >
-              Load More
-            </Button>
-          </div>
-        )}
+              ))}
+            </div>
+          ) : filteredFreelancers.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {filteredFreelancers.map((freelancer, index) => {
+                const cardClass = `${index % 2 === 0 ? 'glass-card' : 'yellow-glass'} border-none card-hover cursor-pointer`;
+                return (
+                  <motion.div
+                    key={freelancer.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.5) }}
+                  >
+                    <Card 
+                      className={cardClass}
+                      isPressable
+                      onPress={() => handleFreelancerClick(freelancer.id)}
+                    >
+                      <CardBody className="p-5">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                          <Avatar 
+                            src={freelancer.photoURL} 
+                            name={freelancer.displayName}
+                            className="w-16 h-16"
+                          />
+                          <div className="text-center sm:text-left flex-1">
+                            <h3 className="font-semibold text-white">{freelancer.displayName || 'Unnamed User'}</h3>
+                            <p className="text-gray-400 text-sm line-clamp-2">{freelancer.bio || 'No bio available'}</p>
+                            <div className="flex items-center justify-center sm:justify-start mt-1">
+                              <Icon icon="lucide:star" className="text-beamly-secondary mr-1" />
+                              <span className="text-white">{freelancer.rating || '0.0'}</span>
+                              <span className="text-gray-400 text-xs ml-2">({freelancer.completedProjects || 0} projects)</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4">
+                          <div className="flex flex-wrap gap-2 mb-4 justify-center sm:justify-start">
+                            {freelancer.skills?.slice(0, 3).map((skill: string, i: number) => (
+                              <Chip 
+                                key={i} 
+                                size="sm"
+                                className="bg-white/10 text-white"
+                              >
+                                {skill}
+                              </Chip>
+                            ))}
+                          </div>
+                          
+                          {/* Hourly Rate and View Profile Button */}
+                          <div className="flex justify-between items-center mt-4">
+                            <div>
+                              {freelancer.hourlyRate && (
+                                <>
+                                  <span className="text-beamly-secondary font-bold">
+                                    ${freelancer.hourlyRate}
+                                  </span>
+                                  <span className="text-gray-400 text-xs ml-1">/ hr</span>
+                                </>
+                              )}
+                            </div>
+                            <div
+                              className="px-3 py-1 bg-beamly-secondary text-beamly-third text-sm font-medium rounded-lg hover:bg-beamly-secondary/80 transition-colors cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleFreelancerClick(freelancer.id);
+                              }}
+                            >
+                              View Profile
+                            </div>
+                          </div>
+                          
+                          {/* Availability Badge */}
+                          {freelancer.isAvailable && (
+                            <div className="mt-2 text-center sm:text-left">
+                              <Chip
+                                size="sm"
+                                color="success"
+                                variant="dot"
+                              >
+                                Available
+                              </Chip>
+                            </div>
+                          )}
+                        </div>
+                      </CardBody>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Icon icon="lucide:users-x" className="text-6xl text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">No freelancers found</h3>
+              <p className="text-gray-400">Try adjusting your search or filters</p>
+            </div>
+          )}
+          
+          {/* Load More */}
+          {!loading && hasMore && filteredFreelancers.length > 0 && (
+            <div className="text-center mt-8">
+              <Button
+                color="primary"
+                variant="bordered"
+                onPress={() => fetchFreelancers(false)}
+                className="text-white border-white/30"
+              >
+                Load More
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
   );
 };
 

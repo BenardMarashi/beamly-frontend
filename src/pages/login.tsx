@@ -1,32 +1,26 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Card, CardBody, Input, Button, Checkbox, Divider } from "@nextui-org/react";
-import { Icon } from "@iconify/react";
-import { Link, useNavigate } from "react-router-dom";
-import { BeamlyLogo } from "../components/beamly-logo";
-import { useAuth } from "../contexts/AuthContext";
+// src/pages/login.tsx
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Input, Button, Checkbox, Card, CardBody } from '@nextui-org/react';
+import { Icon } from '@iconify/react';
+import { BeamlyLogo } from '../components/beamly-logo';
 import { useSignIn } from '../hooks/use-auth';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth } from '../lib/firebase';
+import { firebaseService } from '../services/firebase-services';
 import { toast } from 'react-hot-toast';
+import { motion } from 'framer-motion';
 
-export const LoginPage: React.FC = () => {
+export default function LoginPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { signInWithEmail, signInWithGoogle, loading } = useSignIn();
-  
+  const { signInWithEmail, loading } = useSignIn(); // Changed from signIn to signInWithEmail
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+    email: '',
+    password: '',
     rememberMe: false
   });
-  const [showPassword, setShowPassword] = useState(false);
-  
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -34,164 +28,190 @@ export const LoginPage: React.FC = () => {
       toast.error('Please fill in all fields');
       return;
     }
-    
-    const result = await signInWithEmail(formData.email, formData.password);
-    if (result) {
+
+    const user = await signInWithEmail(formData.email, formData.password); // Changed from signIn
+    if (user) {
       navigate('/dashboard');
     }
   };
-  
-  const handleGoogleLogin = async () => {
-    const result = await signInWithGoogle();
-    if (result) {
-      navigate('/dashboard');
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      
+      // Check if user exists in Firestore - Fixed path
+      const userData = await firebaseService.UserService.getUser(result.user.uid); // Changed from firebaseService.getUser
+      
+      if (!userData) {
+        // New user - redirect to complete profile
+        navigate('/complete-profile');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      toast.error('Failed to sign in with Google');
     }
   };
-  
+
   return (
-    <div className="min-h-screen bg-mesh flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
+        {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block mb-6">
-            <BeamlyLogo />
-          </Link>
+          <BeamlyLogo className="mx-auto mb-6" />
           <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
           <p className="text-gray-400">Sign in to continue to Beamly</p>
         </div>
-        
+
+        {/* Login Form */}
         <Card className="glass-effect border-none">
           <CardBody className="p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <Input
-                type="email"
-                label="Email"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                variant="bordered"
-                className="text-white"
-                startContent={<Icon icon="lucide:mail" className="text-gray-400" />}
-                isRequired
-              />
-              
-              <Input
-                type={showPassword ? "text" : "password"}
-                label="Password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                variant="bordered"
-                className="text-white"
-                startContent={<Icon icon="lucide:lock" className="text-gray-400" />}
-                endContent={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    <Icon icon={showPassword ? "lucide:eye-off" : "lucide:eye"} />
-                  </button>
-                }
-                isRequired
-              />
-              
-              <div className="flex justify-between items-center">
+              {/* Email Field */}
+              <div className="form-field">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Email
+                </label>
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  variant="bordered"
+                  size="lg"
+                  classNames={{
+                    input: "text-white",
+                    inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                  }}
+                  startContent={
+                    <Icon icon="solar:letter-bold" className="text-gray-400 text-xl" />
+                  }
+                />
+              </div>
+
+              {/* Password Field */}
+              <div className="form-field">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Password
+                </label>
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  variant="bordered"
+                  size="lg"
+                  classNames={{
+                    input: "text-white",
+                    inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                  }}
+                  startContent={
+                    <Icon icon="solar:lock-password-bold" className="text-gray-400 text-xl" />
+                  }
+                  endContent={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      <Icon 
+                        icon={showPassword ? "solar:eye-closed-bold" : "solar:eye-bold"} 
+                        className="text-xl"
+                      />
+                    </button>
+                  }
+                />
+              </div>
+
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between">
                 <Checkbox
                   isSelected={formData.rememberMe}
                   onValueChange={(checked) => setFormData({ ...formData, rememberMe: checked })}
                   size="sm"
-                  className="text-gray-400"
+                  classNames={{
+                    label: "text-gray-300 text-sm"
+                  }}
                 >
                   Remember me
                 </Checkbox>
                 <Link 
                   to="/forgot-password" 
-                  className="text-primary hover:underline text-sm"
+                  className="text-beamly-secondary hover:text-beamly-secondary/80 text-sm transition-colors"
                 >
                   Forgot password?
                 </Link>
               </div>
-              
+
+              {/* Sign In Button */}
               <Button
                 type="submit"
                 color="primary"
                 size="lg"
-                fullWidth
+                className="w-full bg-beamly-secondary text-beamly-primary font-semibold"
                 isLoading={loading}
               >
                 Sign In
               </Button>
-            </form>
-            
-            <div className="my-6">
-              <div className="relative">
-                <Divider />
-                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-4 text-gray-400 text-sm">
-                  OR
-                </span>
+
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-700"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-gray-900 text-gray-400">OR</span>
+                </div>
               </div>
-            </div>
-            
-            <div className="space-y-3">
-              <Button
-                variant="bordered"
-                size="lg"
-                fullWidth
-                startContent={
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    />
-                  </svg>
-                }
-                onClick={handleGoogleLogin}
-                isLoading={loading}
-              >
-                Continue with Google
-              </Button>
-              
-              <Button
-                variant="bordered"
-                size="lg"
-                fullWidth
-                startContent={<Icon icon="lucide:github" className="text-white" />}
-                isDisabled
-              >
-                Continue with GitHub
-              </Button>
-            </div>
+
+              {/* Social Login */}
+              <div className="space-y-3">
+                <Button
+                  variant="bordered"
+                  size="lg"
+                  className="w-full border-white/20 text-white hover:bg-white/5"
+                  onPress={handleGoogleSignIn}
+                  startContent={
+                    <Icon icon="flat-color-icons:google" className="text-xl" />
+                  }
+                >
+                  Continue with Google
+                </Button>
+                
+                <Button
+                  variant="bordered"
+                  size="lg"
+                  className="w-full border-white/20 text-white hover:bg-white/5"
+                  isDisabled
+                  startContent={
+                    <Icon icon="mdi:github" className="text-xl" />
+                  }
+                >
+                  Continue with GitHub
+                </Button>
+              </div>
+
+              {/* Sign Up Link */}
+              <div className="text-center mt-6">
+                <span className="text-gray-400">Don't have an account? </span>
+                <Link 
+                  to="/signup" 
+                  className="text-beamly-secondary hover:text-beamly-secondary/80 font-medium transition-colors"
+                >
+                  Sign up
+                </Link>
+              </div>
+            </form>
           </CardBody>
         </Card>
-        
-        <div className="mt-8 text-center">
-          <p className="text-gray-400">
-            Don't have an account?{" "}
-            <Link to="/signup" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </div>
       </motion.div>
     </div>
   );
 };
-
-export default LoginPage;

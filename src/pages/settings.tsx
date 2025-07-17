@@ -31,6 +31,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
+
 const SettingsPage: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
@@ -156,8 +157,8 @@ const SettingsPage: React.FC = () => {
     i18n.changeLanguage(value);
   };
   
-  return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
+return (
+        <div className="container mx-auto px-4 py-8 pt-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -445,7 +446,7 @@ const SettingsPage: React.FC = () => {
         </ModalContent>
       </Modal>
     </div>
-  );
+);
 };
 
 export default SettingsPage;
