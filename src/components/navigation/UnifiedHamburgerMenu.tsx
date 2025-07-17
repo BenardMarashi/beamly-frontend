@@ -159,9 +159,9 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
 
   return (
     <>
-      {/* Fixed Header */}
-      <div className="fixed top-0 left-0 right-0 z-40 h-16">
-        <div className="glass-effect h-full flex items-center justify-between px-4 md:px-6">
+      {/* Fixed Header - This will stick to the top */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-16 bg-gray-950 border-b border-white/10">
+        <div className="h-full flex items-center justify-between px-4 md:px-6">
           {/* Logo */}
           <RouterLink to="/" className="flex items-center">
             <BeamlyLogo />
@@ -214,20 +214,20 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
               animate="open"
               exit="closed"
               onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hamburger-overlay"
+              className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm cursor-pointer hamburger-overlay"
               aria-hidden="true"
             />
 
             {/* Menu Panel */}
-            <motion.div
-              variants={menuVariants}
-              initial="closed"
-              animate="open"
-              exit="closed"
-              className="fixed top-0 right-0 bottom-0 z-50 w-full max-w-sm hamburger-menu-panel"
-            >
-              <div className="glass-effect h-full overflow-y-auto">
-                <div className="p-6">
+              <motion.div
+                variants={menuVariants}
+                initial="closed"
+                animate="open"
+                exit="closed"
+                className="fixed top-0 right-0 bottom-0 z-[70] w-full max-w-sm bg-gray-950 hamburger-menu-panel"
+              >
+              <div className="glass-effect h-full overflow-y-auto flex flex-col">
+                <div className="p-6 flex-1">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-8">
                     <BeamlyLogo />
@@ -258,7 +258,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                             alt={userData.displayName}
                             className="w-12 h-12"
                           />
-                          <div>
+                          <div className="flex-1">
                             <h3 className="font-semibold text-white">
                               {userData.displayName || 'User'}
                             </h3>
@@ -266,7 +266,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                               {userData.userType === 'both' ? 'Freelancer & Client' : userData.userType}
                             </p>
                           </div>
-                          <Icon icon="solar:arrow-right-bold" className="w-5 h-5 text-white/50 ml-auto" />
+                          <Icon icon="solar:arrow-right-bold" className="w-5 h-5 text-white/50" />
                         </div>
                       </RouterLink>
                     </motion.div>
@@ -301,35 +301,6 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                     ))}
                   </nav>
 
-                  {/* User Actions */}
-                  {isLoggedIn && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="space-y-2 border-t border-white/10 pt-6"
-                    >
-                      <Button
-                        as={RouterLink}
-                        to="/settings"
-                        onPress={handleMenuItemClick}
-                        variant="bordered"
-                        className="w-full border-white/20 text-white hover:bg-white/10"
-                        startContent={<Icon icon="solar:settings-bold" className="w-4 h-4" />}
-                      >
-                        Settings
-                      </Button>
-                      <Button
-                        onPress={handleLogout}
-                        variant="bordered"
-                        className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
-                        startContent={<Icon icon="solar:logout-2-bold" className="w-4 h-4" />}
-                      >
-                        Logout
-                      </Button>
-                    </motion.div>
-                  )}
-
                   {/* Login/Signup for non-authenticated users */}
                   {!isLoggedIn && (
                     <motion.div
@@ -359,7 +330,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                     </motion.div>
                   )}
 
-                  {/* Preferences */}
+                  {/* Theme Toggle */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -368,7 +339,6 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                   >
                     <h4 className="text-sm font-medium text-white/60 mb-4">Preferences</h4>
                     
-                    {/* Theme Toggle */}
                     <div className="flex items-center justify-between">
                       <span className="text-white/80">Theme</span>
                       <div className="flex items-center space-x-2">
@@ -378,39 +348,31 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
                           className="relative w-11 h-6 bg-white/20 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-beamly-primary focus:ring-offset-2 focus:ring-offset-transparent"
                         >
                           <motion.div
-                            animate={{ x: isDarkMode ? 20 : 2 }}
+                            animate={{ x: isDarkMode ? 22 : 2 }}
                             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            className="w-5 h-5 bg-beamly-secondary rounded-full shadow-md"
+                            className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
                           />
                         </button>
                         <Icon icon="solar:moon-bold" className="w-4 h-4 text-white/60" />
                       </div>
                     </div>
                   </motion.div>
-
-                  {/* Social Links */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="flex items-center justify-center space-x-4 mt-8"
-                  >
-                    {[
-                      { icon: 'ri:facebook-fill', href: '#' },
-                      { icon: 'ri:twitter-x-fill', href: '#' },
-                      { icon: 'ri:instagram-fill', href: '#' },
-                      { icon: 'ri:linkedin-fill', href: '#' }
-                    ].map((social, index) => (
-                      <a
-                        key={index}
-                        href={social.href}
-                        className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors duration-200"
-                      >
-                        <Icon icon={social.icon} className="w-5 h-5 text-white/70" />
-                      </a>
-                    ))}
-                  </motion.div>
                 </div>
+
+                {/* Sign Out Button - Fixed at bottom */}
+                {isLoggedIn && (
+                    <div className="p-6 pt-0 mt-auto">
+                      <Button
+                        onPress={handleLogout}
+                        color="danger"
+                        variant="flat"
+                        className="w-full"
+                        startContent={<Icon icon="solar:logout-2-bold" className="w-4 h-4" />}
+                      >
+                        Sign Out
+                      </Button>
+                    </div>
+                  )}
               </div>
             </motion.div>
           </>

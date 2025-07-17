@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet, Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
-import { Button, Avatar } from "@nextui-org/react";
+import { Button } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { BeamlyLogo } from "../components/beamly-logo";
 import { Footer } from "../components/footer";
@@ -30,9 +30,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
     onLogout?.();
     navigate('/');
   };
-  
-  const profilePicture = userData?.photoURL || user?.photoURL || 
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.displayName || user?.displayName || 'User')}&background=0F43EE&color=fff`;
   
   return (
     <div className={`min-h-screen overflow-hidden ${isDarkMode ? 'bg-mesh' : 'bg-white'}`}>
