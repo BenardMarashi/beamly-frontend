@@ -313,15 +313,6 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
           <p className="text-gray-400">
             Found {jobs.length} jobs matching your criteria
           </p>
-          {user && (
-            <Button
-              variant="flat"
-              color="primary"
-              startContent={<Icon icon="lucide:bell" />}
-            >
-              Create Job Alert
-            </Button>
-          )}
         </div>
       )}
 

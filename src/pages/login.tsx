@@ -184,18 +184,6 @@ export default function LoginPage() {
                 >
                   Continue with Google
                 </Button>
-                
-                <Button
-                  variant="bordered"
-                  size="lg"
-                  className="w-full border-white/20 text-white hover:bg-white/5"
-                  isDisabled
-                  startContent={
-                    <Icon icon="mdi:github" className="text-xl" />
-                  }
-                >
-                  Continue with GitHub
-                </Button>
               </div>
 
               {/* Sign Up Link */}

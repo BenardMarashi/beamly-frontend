@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { Button, Avatar } from '@nextui-org/react';
+import { Button } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useTheme } from '../contexts/theme-context';
 import { useAuth } from '../contexts/AuthContext';
@@ -158,71 +158,61 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
     }
   };
 
-  const profilePicture = userData?.photoURL || user?.photoURL || 
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.displayName || user?.displayName || 'User')}&background=0F43EE&color=fff`;
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Overlay */}
-          <motion.div
-            variants={overlayVariants}
-            initial="closed"
-            animate="open"
-            exit="closed"
-            className="fixed inset-0 bg-black z-[9998] hamburger-overlay"
-            onClick={onClose}
-            role="presentation"
-            aria-hidden="true"
-          />
+return (
+  <AnimatePresence>
+    {isOpen && (
+      <>
+        {/* Overlay */}
+        <motion.div
+          variants={overlayVariants}
+          initial="closed"
+          animate="open"
+          exit="closed"
+          className="fixed inset-0 bg-black z-[9998] hamburger-overlay"
+          onClick={onClose}
+        />
+        
+        {/* Menu Panel */}
+        <motion.div
+          className={`fixed inset-y-0 right-0 w-full sm:w-80 z-[9999] hamburger-menu-panel ${
+            isDarkMode ? 'glass-effect' : 'bg-white'
+          } ${isDarkMode ? 'text-white' : 'text-gray-900'} shadow-xl`}
+          variants={menuVariants}
+          initial="closed"
+          animate="open"
+          exit="closed"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold">Menu</h2>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <Icon icon="lucide:x" className="w-6 h-6" />
+            </button>
+          </div>
           
-          {/* Menu */}
-          <motion.div
-            className={`fixed inset-y-0 right-0 w-full sm:w-80 z-[9999] hamburger-menu-panel ${isDarkMode ? 'glass-effect' : 'bg-white'} ${isDarkMode ? 'text-white' : 'text-gray-900'} shadow-xl`}
-            variants={menuVariants}
-            initial="closed"
-            animate="open"
-            exit="closed"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation menu"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold">Menu</h2>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                aria-label="Close menu"
-              >
-                <Icon icon="lucide:x" className="w-6 h-6" />
-              </button>
-            </div>
-            
-            {/* User Profile Section - Only show when logged in */}
-            {isLoggedIn && user && (
-              <div 
-                className="p-6 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                onClick={() => handleNavigation('/edit-profile')}
-              >
-                <div className="flex items-center gap-4">
-                  <Avatar
-                    src={profilePicture}
-                    name={userData?.displayName || 'User'}
-                    size="lg"
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{userData?.displayName || 'User'}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                      {userType}
-                    </p>
-                  </div>
-                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-gray-400" />
+          {/* User Profile Section */}
+          {isLoggedIn && user && (
+            <div 
+              className="p-6 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              onClick={() => handleNavigation('/edit-profile')}
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <h3 className="font-semibold">{userData?.displayName || 'User'}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                    {userType}
+                  </p>
                 </div>
+                <Icon icon="lucide:chevron-right" className="w-5 h-5 text-gray-400" />
               </div>
-            )}
-            
+            </div>
+          )}
+          
+          {/* Main Content Area - Remove flex-1 to prevent stretching */}
+          <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
             {/* Navigation Items */}
             <nav className="p-6 space-y-1">
               {menuItems.map((item) => (
@@ -235,44 +225,52 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
                   <span>{item.name}</span>
                 </button>
               ))}
+              
+              {/* Sign Out Section - Now part of the menu items list */}
+              {isLoggedIn && (
+                <>
+                  {/* Divider */}
+                  <div className="my-4 pt-4 border-t border-gray-200 dark:border-gray-700" />
+                  
+                  {/* Sign Out Button */}
+                  <Button
+                    color="danger"
+                    variant="flat"
+                    className="w-full"
+                    onClick={handleLogout}
+                    startContent={<Icon icon="lucide:log-out" />}
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              )}
             </nav>
-            
-            {/* Bottom Actions */}
-            {isLoggedIn ? (
-              <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-200 dark:border-gray-700">
-                <Button
-                  color="danger"
-                  variant="flat"
-                  className="w-full"
-                  onClick={handleLogout}
-                  startContent={<Icon icon="lucide:log-out" />}
-                >
-                  Sign Out
-                </Button>
-              </div>
-            ) : (
-              <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-200 dark:border-gray-700 space-y-3">
-                <Button
-                  color="primary"
-                  className="w-full"
-                  onClick={() => handleNavigation('/login')}
-                >
-                  Sign In
-                </Button>
-                <Button
-                  variant="bordered"
-                  className="w-full"
-                  onClick={() => handleNavigation('/signup')}
-                >
-                  Sign Up
-                </Button>
-              </div>
-            )}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
+          </div>
+          
+          {/* Sign In/Up buttons for non-authenticated users - Keep at bottom */}
+          {!isLoggedIn && (
+            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-200 dark:border-gray-700 space-y-3">
+              <Button
+                color="primary"
+                className="w-full"
+                onClick={() => handleNavigation('/login')}
+              >
+                Sign In
+              </Button>
+              <Button
+                variant="bordered"
+                className="w-full"
+                onClick={() => handleNavigation('/signup')}
+              >
+                Sign Up
+              </Button>
+            </div>
+          )}
+        </motion.div>
+      </>
+    )}
+  </AnimatePresence>
+);
 });
 
 HamburgerMenu.displayName = 'HamburgerMenu';
