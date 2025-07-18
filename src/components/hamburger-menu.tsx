@@ -237,7 +237,7 @@ return (
                     color="danger"
                     variant="flat"
                     className="w-full"
-                    onClick={handleLogout}
+                    onPress={handleLogout}
                     startContent={<Icon icon="lucide:log-out" />}
                   >
                     Sign Out

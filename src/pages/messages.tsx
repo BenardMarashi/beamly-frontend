@@ -1,3 +1,4 @@
+// src/pages/messages.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardBody, Button, Input, Avatar, Spinner, Badge } from '@nextui-org/react';
@@ -7,6 +8,7 @@ import { ConversationService } from '../services/firebase-services';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Message {
   id: string;
@@ -49,16 +51,21 @@ export const MessagesPage: React.FC = () => {
 
   // Load conversation details
   useEffect(() => {
-    if (!conversationId || !user) return;
+    if (!conversationId || !user) {
+      console.log('Missing conversationId or user');
+      return;
+    }
 
     const loadConversation = async () => {
       try {
+        console.log('Loading conversation:', conversationId);
         const result = await ConversationService.getConversationWithDetails(
           conversationId,
           user.uid
         );
 
         if (result.success && result.conversation) {
+          console.log('Conversation loaded:', result.conversation);
           setConversation(result.conversation);
           if (result.otherUser) {
             setOtherUser(result.otherUser as OtherUser);
@@ -67,6 +74,7 @@ export const MessagesPage: React.FC = () => {
           // Mark messages as read
           await ConversationService.markMessagesAsRead(conversationId, user.uid);
         } else {
+          console.error('Conversation not found');
           toast.error('Conversation not found');
           navigate('/messages');
         }
@@ -83,7 +91,12 @@ export const MessagesPage: React.FC = () => {
 
   // Subscribe to messages
   useEffect(() => {
-    if (!conversationId || !user) return;
+    if (!conversationId || !user) {
+      console.log('Skipping message subscription - missing conversationId or user');
+      return;
+    }
+
+    console.log('Setting up message subscription for conversation:', conversationId);
 
     const q = query(
       collection(db, 'messages'),
@@ -91,183 +104,240 @@ export const MessagesPage: React.FC = () => {
       orderBy('createdAt', 'asc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newMessages = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Message));
-      setMessages(newMessages);
+    const unsubscribe = onSnapshot(
+      q, 
+      (snapshot) => {
+        console.log('Messages snapshot received, count:', snapshot.docs.length);
+        const newMessages = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Message));
+        
+        console.log('Messages:', newMessages);
+        setMessages(newMessages);
 
-      // Mark new messages as read if they're for us
-      const unreadMessages = newMessages.filter(
-        msg => msg.recipientId === user.uid && msg.status !== 'read'
-      );
-      if (unreadMessages.length > 0) {
-        ConversationService.markMessagesAsRead(conversationId, user.uid);
+        // Mark new messages as read if they're for us
+        const unreadMessages = newMessages.filter(
+          msg => msg.recipientId === user.uid && msg.status !== 'read'
+        );
+        if (unreadMessages.length > 0) {
+          ConversationService.markMessagesAsRead(conversationId, user.uid);
+        }
+      },
+      (error) => {
+        console.error('Error in message subscription:', error);
+        toast.error('Failed to load messages');
       }
-    });
+    );
 
-    return () => unsubscribe();
+    return () => {
+      console.log('Cleaning up message subscription');
+      unsubscribe();
+    };
   }, [conversationId, user]);
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !otherUser || !conversationId) return;
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    if (!newMessage.trim() || !otherUser || !conversationId) {
+      console.log('Cannot send message - missing data');
+      return;
+    }
+
+    const messageText = newMessage.trim();
+    setNewMessage(''); // Clear input immediately for better UX
 
     setSending(true);
     try {
+      console.log('Sending message:', messageText);
       const result = await ConversationService.sendMessage({
         conversationId,
         senderId: user!.uid,
         senderName: userData?.displayName || 'User',
         recipientId: otherUser.id,
-        text: newMessage.trim()
+        text: messageText
       });
 
       if (result.success) {
-        setNewMessage('');
+        console.log('Message sent successfully');
         messageInputRef.current?.focus();
       } else {
+        console.error('Failed to send message:', result.error);
         toast.error('Failed to send message');
+        setNewMessage(messageText); // Restore message on error
       }
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
+      setNewMessage(messageText); // Restore message on error
     } finally {
       setSending(false);
     }
   };
 
   const formatMessageTime = (timestamp: any) => {
-    if (!timestamp || !timestamp.toDate) return '';
-    const date = timestamp.toDate();
-    const today = new Date();
-    const messageDate = new Date(date);
+    if (!timestamp) return '';
     
-    // If today, show time only
-    if (messageDate.toDateString() === today.toDateString()) {
-      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      
+      // Less than a minute
+      if (diffInSeconds < 60) return 'Just now';
+      
+      // Less than an hour
+      if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      }
+      
+      // Today
+      if (date.toDateString() === now.toDateString()) {
+        return date.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+      }
+      
+      // Yesterday
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday ' + date.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+      }
+      
+      // Within a week
+      if (diffInSeconds < 604800) {
+        return formatDistanceToNow(date, { addSuffix: true });
+      }
+      
+      // Older than a week
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
     }
-    
-    // If yesterday
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (messageDate.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    }
-    
-    // Otherwise show date and time
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + 
-           ' ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[600px]">
         <Spinner size="lg" />
       </div>
     );
   }
 
   if (!conversation || !otherUser) {
-return (
-    <div className="container mx-auto px-4 py-8 pt-20">
-        <Card>
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="glass-effect border-none">
           <CardBody className="text-center py-12">
-            <Icon icon="solar:chat-line-broken" className="text-6xl text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">No conversation found</p>
-            <Button onClick={() => navigate('/messages')} color="primary">
+            <Icon icon="lucide:message-circle-x" className="text-6xl text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400 mb-4">Conversation not found</p>
+            <Button 
+              color="secondary"
+              onPress={() => navigate('/messages')}
+            >
               Back to Messages
             </Button>
           </CardBody>
         </Card>
-    </div>
-);
+      </div>
+    );
   }
 
-return (
-    
-    <div className="container mx-auto px-4 py-8 pt-20">
-      <Card className="h-[calc(100vh-12rem)] flex flex-col">
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <Card className="glass-effect border-none h-[600px] flex flex-col">
         {/* Header */}
-        <div className="border-b px-6 py-4 flex items-center gap-4">
+        <div className="p-4 border-b border-white/10 flex items-center gap-4">
           <Button
             isIconOnly
             variant="light"
-            onClick={() => navigate('/messages')}
+            onPress={() => navigate('/messages')}
+            className="text-white"
           >
-            <Icon icon="solar:arrow-left-line-duotone" className="text-xl" />
+            <Icon icon="lucide:arrow-left" className="text-xl" />
           </Button>
+          
           <Badge
             content=""
             color="success"
             placement="bottom-right"
             isInvisible={!otherUser.isOnline}
             classNames={{
-              badge: "w-3 h-3 border-2 border-white"
+              badge: "w-3 h-3 border-2 border-gray-900"
             }}
           >
             <Avatar
-              src={otherUser.photoURL}
+              src={otherUser.photoURL || `https://ui-avatars.com/api/?name=${otherUser.displayName}&background=FCE90D&color=011241`}
               name={otherUser.displayName}
-              size="sm"
               className="cursor-pointer"
               onClick={() => navigate(`/freelancer/${otherUser.id}`)}
             />
           </Badge>
+          
           <div className="flex-1">
-            <h3 className="font-semibold">{otherUser.displayName}</h3>
-            <p className="text-sm text-gray-500">
-              {otherUser.userType === 'freelancer' ? 'Freelancer' : 'Client'}
+            <h3 className="font-semibold text-white">{otherUser.displayName}</h3>
+            <p className="text-sm text-gray-400 capitalize">
+              {otherUser.userType === 'freelancer' ? 'Freelancer' : 
+               otherUser.userType === 'client' ? 'Client' : 'User'}
               {otherUser.isOnline && ' • Online'}
             </p>
           </div>
-          <Button
-            isIconOnly
-            variant="light"
-          >
-            <Icon icon="solar:menu-dots-bold" className="text-xl" />
-          </Button>
         </div>
 
-        {/* Messages */}
-        <CardBody className="flex-1 overflow-y-auto p-6">
+        {/* Messages Area */}
+        <CardBody className="flex-1 overflow-y-auto p-4">
           {messages.length === 0 ? (
             <div className="text-center py-12">
-              <Icon icon="solar:chat-dots-broken" className="text-6xl text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">No messages yet. Start the conversation!</p>
+              <Icon icon="lucide:message-circle" className="text-6xl text-gray-500 mx-auto mb-4" />
+              <p className="text-gray-400">No messages yet. Start the conversation!</p>
             </div>
           ) : (
             <div className="space-y-4">
               {messages.map((message, index) => {
                 const isOwn = message.senderId === user?.uid;
                 const showTime = index === 0 || 
-                  (messages[index - 1] && 
+                  (index > 0 && 
                    formatMessageTime(messages[index - 1].createdAt) !== formatMessageTime(message.createdAt));
                 
                 return (
                   <div key={message.id}>
                     {showTime && (
                       <div className="text-center my-4">
-                        <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
+                        <span className="text-xs text-gray-500 bg-white/5 px-3 py-1 rounded-full">
                           {formatMessageTime(message.createdAt)}
                         </span>
                       </div>
                     )}
-                    <div
-                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2`}
-                    >
+                    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2`}>
                       <div
                         className={`max-w-[70%] rounded-2xl px-4 py-2 ${
                           isOwn
-                            ? 'bg-primary text-white'
-                            : 'bg-gray-100 dark:bg-gray-800'
+                            ? 'bg-beamly-secondary text-beamly-third'
+                            : 'bg-white/10 text-white'
                         }`}
                       >
-                        <p className="break-words">{message.text}</p>
-                        {message.status === 'read' && isOwn && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <Icon icon="solar:check-read-linear" className="text-xs opacity-70" />
-                            <span className="text-xs opacity-70">Read</span>
+                        <p className="break-words text-sm">{message.text}</p>
+                        {isOwn && (
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                            <Icon 
+                              icon={message.status === 'read' ? "lucide:check-check" : "lucide:check"} 
+                              className={`text-xs ${message.status === 'read' ? 'text-blue-400' : 'opacity-70'}`}
+                            />
                           </div>
                         )}
                       </div>
@@ -280,46 +350,40 @@ return (
           )}
         </CardBody>
 
-        {/* Input */}
-        <div className="border-t px-6 py-4">
-          <div className="flex gap-2">
-            <Button
-              isIconOnly
-              variant="light"
-              size="lg"
-            >
-              <Icon icon="solar:paperclip-bold" className="text-xl" />
-            </Button>
+        {/* Input Area */}
+        <div className="p-4 border-t border-white/10">
+          <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
               ref={messageInputRef}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
               placeholder="Type a message..."
               disabled={sending}
               classNames={{
-                input: "text-base",
-                inputWrapper: "h-12"
+                input: "text-white",
+                inputWrapper: "bg-white/5 border-white/20 hover:border-white/30"
               }}
+              endContent={
+                newMessage.trim() && (
+                  <Button
+                    type="submit"
+                    size="sm"
+                    color="secondary"
+                    isIconOnly
+                    disabled={!newMessage.trim() || sending}
+                    isLoading={sending}
+                    className="min-w-unit-8 h-unit-8"
+                  >
+                    <Icon icon="lucide:send" className="text-base" />
+                  </Button>
+                )
+              }
             />
-            <Button
-              isIconOnly
-              color="primary"
-              size="lg"
-              isDisabled={!newMessage.trim() || sending}
-              onClick={handleSendMessage}
-              isLoading={sending}
-            >
-              <Icon icon="solar:send-square-bold" className="text-xl" />
-            </Button>
-          </div>
+          </form>
         </div>
       </Card>
     </div>
-);
+  );
 };
+
+export default MessagesPage;

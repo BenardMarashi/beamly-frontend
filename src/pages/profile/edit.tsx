@@ -29,19 +29,19 @@ export const EditProfilePage: React.FC = () => {
   
   type ExperienceLevel = 'entry' | 'intermediate' | 'expert';
   
-  const [profileData, setProfileData] = useState({
-    displayName: userData?.displayName || '',
-    bio: userData?.bio || '',
-    skills: userData?.skills || [],
-    hourlyRate: userData?.hourlyRate || 0,
-    languages: userData?.languages || ['English'],
-    experienceLevel: (userData?.experienceLevel || 'intermediate') as ExperienceLevel,
-    experience: userData?.experience || '',
-    companyName: userData?.companyName || '',
-    industry: userData?.industry || '',
-    isAvailable: userData?.isAvailable ?? true,
-    photoURL: userData?.photoURL || ''
-  });
+    const [profileData, setProfileData] = useState({
+      displayName: userData?.displayName || '',
+      bio: userData?.bio || '',
+      skills: userData?.skills || [],
+      hourlyRate: userData?.hourlyRate || 0,
+      languages: userData?.languages || ['English'],
+      experienceLevel: (userData?.experienceLevel || 'intermediate') as ExperienceLevel,
+      experience: userData?.experience || '',
+      companyName: userData?.companyName || '',
+      industry: userData?.industry || '',
+      isAvailable: userData?.isAvailable ?? true,
+      photoURL: userData?.photoURL || ''
+    });
   
   const [skillInput, setSkillInput] = useState('');
   const [languageInput, setLanguageInput] = useState('');
@@ -356,10 +356,12 @@ export const EditProfilePage: React.FC = () => {
                     {/* Experience Level */}
                     <Select
                       label="Experience Level *"
-                      selectedKeys={profileData.experienceLevel ? new Set([profileData.experienceLevel]) : new Set([])}
+                      selectedKeys={profileData.experienceLevel ? new Set([profileData.experienceLevel]) : new Set(['intermediate'])}
                       onSelectionChange={(keys) => {
                         const selected = Array.from(keys)[0] as ExperienceLevel;
-                        setProfileData({ ...profileData, experienceLevel: selected });
+                        if (selected) {
+                          setProfileData({ ...profileData, experienceLevel: selected });
+                        }
                       }}
                       variant="bordered"
                       isRequired
@@ -370,7 +372,6 @@ export const EditProfilePage: React.FC = () => {
                         </SelectItem>
                       ))}
                     </Select>
-                    
                     {/* Experience Description */}
                     <Textarea
                       label="Experience Summary"

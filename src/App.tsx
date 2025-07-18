@@ -146,16 +146,15 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } />
         
-        {/* Messaging Routes */}
         <Route path="/messages" element={
           <ProtectedRoute requiresProfile={true}>
             <ConversationsListPage />
           </ProtectedRoute>
         } />
-        
+
         <Route path="/messages/:conversationId" element={
           <ProtectedRoute requiresProfile={true}>
-            <MessagesPage />
+            {window.innerWidth < 768 ? <MessagesPage /> : <ConversationsListPage />}
           </ProtectedRoute>
         } />
         
