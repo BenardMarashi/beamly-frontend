@@ -70,10 +70,15 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
   console.log('FreelancerProfilePage loaded with ID:', id);
 
   useEffect(() => {
-    if (id) {
-      fetchFreelancerData();
+    if (!id) {
+      console.error('FreelancerProfilePage: No ID provided');
+      toast.error('Invalid freelancer profile');
+      navigate('/browse-freelancers');
+      return;
     }
-  }, [id]);
+    
+    fetchFreelancerData();
+  }, [id, navigate]);
 
   const fetchFreelancerData = async () => {
     if (!id) return;
@@ -138,6 +143,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
     } catch (error) {
       console.error('Error fetching freelancer data:', error);
       toast.error('Failed to load freelancer profile');
+      navigate('/browse-freelancers');
     } finally {
       setLoading(false);
     }
@@ -396,10 +402,8 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                               variant="flat"
                               startContent={<Icon icon="lucide:external-link" className="w-3 h-3" />}
                               onPress={(e: any) => {
-                                window.open(project.liveUrl, '_blank');
-                              }}
-                              onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation();
+                                window.open(project.liveUrl, '_blank');
                               }}
                             >
                               Live
@@ -412,10 +416,8 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                               className="border-white/30"
                               startContent={<Icon icon="mdi:github" className="w-3 h-3" />}
                               onPress={(e: any) => {
-                                window.open(project.githubUrl, '_blank');
-                              }}
-                              onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation();
+                                window.open(project.githubUrl, '_blank');
                               }}
                             >
                               Code

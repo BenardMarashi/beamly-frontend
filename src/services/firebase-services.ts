@@ -154,6 +154,9 @@ interface ConversationData {
       lastReadAt?: Timestamp | FieldValue;
       isTyping?: boolean;
       isMuted?: boolean;
+      displayName?: string;
+      photoURL?: string;
+      userType?: string;
     };
   };
   lastMessage: string;
@@ -948,6 +951,7 @@ export const ConversationService = {
       // Sort participants to ensure consistent order
       const participants = [participant1Id, participant2Id].sort();
       
+      // Check if conversation already exists
       const q = query(
         collection(db, 'conversations'),
         where('participants', '==', participants)
@@ -961,10 +965,22 @@ export const ConversationService = {
         return { 
           success: true, 
           conversationId: conversationDoc.id,
-          conversation: mapDocumentData<ConversationData>(conversationDoc),
+          conversation: {
+            id: conversationDoc.id,
+            ...conversationDoc.data()
+          },
           isNew: false
         };
       }
+      
+      // Get both users' data for the conversation
+      const [user1Doc, user2Doc] = await Promise.all([
+        getDoc(doc(db, 'users', participant1Id)),
+        getDoc(doc(db, 'users', participant2Id))
+      ]);
+      
+      const user1Data = user1Doc.data();
+      const user2Data = user2Doc.data();
       
       // Create new conversation
       const conversationRef = doc(collection(db, 'conversations'));
@@ -972,13 +988,22 @@ export const ConversationService = {
         id: conversationRef.id,
         participants,
         participantDetails: {
-          [participant1Id]: { unreadCount: 0 },
-          [participant2Id]: { unreadCount: 0 }
+          [participant1Id]: { 
+            unreadCount: 0,
+            displayName: user1Data?.displayName || 'Unknown',
+            photoURL: user1Data?.photoURL || '',
+            userType: user1Data?.userType || 'freelancer'
+          },
+          [participant2Id]: { 
+            unreadCount: 0,
+            displayName: user2Data?.displayName || 'Unknown',
+            photoURL: user2Data?.photoURL || '',
+            userType: user2Data?.userType || 'freelancer'
+          }
         },
         lastMessage: '',
         lastMessageTime: serverTimestamp(),
         lastMessageSenderId: '',
-        context: context || {},
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
@@ -997,7 +1022,7 @@ export const ConversationService = {
     }
   },
 
-  // Send message (Fixed Implementation)
+  // Send message
   async sendMessage(messageData: {
     conversationId: string;
     senderId: string;
@@ -1007,48 +1032,55 @@ export const ConversationService = {
     attachments?: string[];
   }) {
     try {
-      // Create message
+      const { conversationId, senderId, senderName, recipientId, text, attachments = [] } = messageData;
+      
+      // Create message in top-level messages collection
       const messageRef = doc(collection(db, 'messages'));
-      const message = {
+      const messageDoc = {
         id: messageRef.id,
-        conversationId: messageData.conversationId,
-        senderId: messageData.senderId,
-        senderName: messageData.senderName,
-        recipientId: messageData.recipientId,
-        text: messageData.text,
-        attachments: messageData.attachments || [],
-        type: 'text' as const,
-        status: 'sent' as const,
-        createdAt: serverTimestamp(),
-        readAt: null
+        conversationId,
+        senderId,
+        senderName,
+        recipientId,
+        text,
+        attachments,
+        status: 'sent',
+        createdAt: serverTimestamp()
       };
       
-      await setDoc(messageRef, message);
+      // Use batch write for atomicity
+      const batch = writeBatch(db);
+      
+      // Add message
+      batch.set(messageRef, messageDoc);
       
       // Update conversation
-      const conversationRef = doc(db, 'conversations', messageData.conversationId);
-      const updateData: any = {
-        lastMessage: messageData.text,
+      const conversationRef = doc(db, 'conversations', conversationId);
+      batch.update(conversationRef, {
+        lastMessage: text,
         lastMessageTime: serverTimestamp(),
-        lastMessageSenderId: messageData.senderId,
+        lastMessageSenderId: senderId,
+        [`participantDetails.${recipientId}.unreadCount`]: increment(1),
         updatedAt: serverTimestamp()
-      };
+      });
       
-      // Increment unread count for recipient
-      updateData[`participantDetails.${messageData.recipientId}.unreadCount`] = increment(1);
-      
-      await updateDoc(conversationRef, updateData);
+      // Commit batch
+      await batch.commit();
       
       // Create notification for recipient
-      await NotificationService.createNotification({
-        userId: messageData.recipientId,
+      await addDoc(collection(db, 'notifications'), {
+        userId: recipientId,
         title: 'New Message',
-        body: `${messageData.senderName}: ${messageData.text.substring(0, 50)}...`,
+        body: `${senderName}: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`,
         type: 'message',
-        relatedId: messageData.conversationId,
-        senderId: messageData.senderId,
-        senderName: messageData.senderName,
-        actionUrl: `/messages/${messageData.conversationId}`
+        actionUrl: `/messages/${conversationId}`,
+        actionData: {
+          conversationId,
+          senderId,
+          senderName
+        },
+        read: false,
+        createdAt: serverTimestamp()
       });
       
       return { success: true, messageId: messageRef.id };
@@ -1058,94 +1090,63 @@ export const ConversationService = {
     }
   },
 
-  // Get conversation messages
-  async getConversationMessages(conversationId: string, lastDoc?: DocumentSnapshot) {
-    try {
-      const constraints: QueryConstraint[] = [
-        where('conversationId', '==', conversationId),
-        orderBy('createdAt', 'desc'),
-        limit(50)
-      ];
-      
-      if (lastDoc) {
-        constraints.push(startAfter(lastDoc));
-      }
-      
-      const q = query(collection(db, 'messages'), ...constraints);
-      const querySnapshot = await getDocs(q);
-      const messages = querySnapshot.docs.map(doc => mapDocumentData<MessageData>(doc));
-      
-      const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-      
-      return { 
-        success: true, 
-        messages: messages.reverse(), 
-        lastDoc: lastVisible 
-      };
-    } catch (error) {
-      console.error('Error getting messages:', error);
-      return { success: false, error, messages: [] };
-    }
-  },
-
   // Get conversation with details
-  async getConversationWithDetails(conversationId: string, userId: string) {
+  // In firebase-services.ts, fix the getConversationWithDetails method:
+
+  async getConversationWithDetails(conversationId: string, currentUserId: string) {
     try {
-      const conversationRef = doc(db, 'conversations', conversationId);
-      const conversationDoc = await getDoc(conversationRef);
+      const conversationDoc = await getDoc(doc(db, 'conversations', conversationId));
       
       if (!conversationDoc.exists()) {
         return { success: false, error: 'Conversation not found' };
       }
       
-      const conversation = mapDocumentData<ConversationData>(conversationDoc);
+      const conversationData = conversationDoc.data() as ConversationData;
       
-      // Get other participant's details
-      const otherUserId = conversation.participants.find(id => id !== userId);
+      // Don't include id in the data since we're adding it separately
+      const { id: _, ...dataWithoutId } = conversationData;
+      
+      const conversation = {
+        id: conversationDoc.id,
+        ...dataWithoutId
+      };
+      
+      // Get other user ID - now TypeScript knows participants is string[]
+      const otherUserId = conversation.participants.find((id: string) => id !== currentUserId);
+      
+      // Get other user details from participantDetails or fetch from users collection
+      let otherUser = null;
       if (otherUserId) {
-        const userDoc = await getDoc(doc(db, 'users', otherUserId));
-        if (userDoc.exists()) {
-          const otherUser = userDoc.data();
-          return {
-            success: true,
-            conversation,
-            otherUser: {
-              id: otherUserId,
-              displayName: otherUser.displayName || 'Unknown User',
-              photoURL: otherUser.photoURL || '',
-              userType: otherUser.userType,
-              isOnline: otherUser.isOnline || false
-            }
+        if (conversation.participantDetails?.[otherUserId]) {
+          otherUser = {
+            id: otherUserId,
+            displayName: conversation.participantDetails[otherUserId].displayName || 'Unknown',
+            photoURL: conversation.participantDetails[otherUserId].photoURL || '',
+            userType: conversation.participantDetails[otherUserId].userType || 'freelancer',
+            ...conversation.participantDetails[otherUserId]
           };
+        } else {
+          // Fallback: fetch from users collection
+          const otherUserDoc = await getDoc(doc(db, 'users', otherUserId));
+          if (otherUserDoc.exists()) {
+            const userData = otherUserDoc.data();
+            otherUser = {
+              id: otherUserId,
+              displayName: userData.displayName || 'Unknown',
+              photoURL: userData.photoURL || '',
+              userType: userData.userType || 'freelancer',
+              ...userData
+            };
+          }
         }
       }
       
-      return { success: true, conversation };
+      return { success: true, conversation, otherUser };
     } catch (error) {
       console.error('Error getting conversation:', error);
       return { success: false, error };
     }
   },
-
-  // Get user conversations
-  async getUserConversations(userId: string) {
-    try {
-      const q = query(
-        collection(db, 'conversations'),
-        where('participants', 'array-contains', userId),
-        orderBy('lastMessageTime', 'desc')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const conversations = querySnapshot.docs.map(doc => mapDocumentData<ConversationData>(doc));
-      
-      return { success: true, conversations };
-    } catch (error) {
-      console.error('Error getting conversations:', error);
-      return { success: false, error, conversations: [] };
-    }
-  },
-
   // Mark messages as read
   async markMessagesAsRead(conversationId: string, userId: string) {
     try {
@@ -1159,8 +1160,11 @@ export const ConversationService = {
       
       const querySnapshot = await getDocs(q);
       
+      if (querySnapshot.empty) return { success: true };
+      
       // Update messages in batch
       const batch = writeBatch(db);
+      
       querySnapshot.docs.forEach(doc => {
         batch.update(doc.ref, {
           status: 'read',
@@ -1994,6 +1998,12 @@ export const AnalyticsService = {
   // Track event
   async trackEvent(userId: string, event: string, data?: any) {
     try {
+      // Only track events if user is authenticated
+      if (!userId) {
+        console.warn('Cannot track event without userId');
+        return { success: false, error: 'No userId provided' };
+      }
+      
       await addDoc(collection(db, 'analytics_events'), {
         userId,
         event,
@@ -2004,6 +2014,7 @@ export const AnalyticsService = {
       return { success: true };
     } catch (error) {
       console.error('Error tracking event:', error);
+      // Don't throw, just log the error
       return { success: false, error };
     }
   }

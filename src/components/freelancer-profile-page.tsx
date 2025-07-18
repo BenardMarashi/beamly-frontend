@@ -277,14 +277,6 @@ export const FreelancerProfilePage: React.FC = () => {
             >
               Send Message
             </Button>
-            <Button
-              variant="flat"
-              size="lg"
-              className="w-full bg-white/10 text-white border border-white/20"
-              startContent={<Icon icon="lucide:bookmark" />}
-            >
-              Save Profile
-            </Button>
           </div>
         </div>
 

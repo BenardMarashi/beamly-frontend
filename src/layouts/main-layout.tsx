@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
@@ -24,6 +24,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
   
   // Use prop or derive from auth context
   const actualIsLoggedIn = isLoggedIn ?? !!user;
+  
+  // Close menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
   
   const handleLogout = async () => {
     await signOut();
@@ -55,26 +60,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ isLoggedIn, onLogout }) 
                 </RouterLink>
               </div>
               
-              {/* Hamburger Menu Button */}
+              {/* Hamburger Menu Button - Updated to use onPress */}
               <div className="relative z-50">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                <Button
+                  isIconOnly
+                  variant="light"
+                  onPress={() => {
                     console.log('Hamburger menu clicked, current state:', menuOpen);
                     setMenuOpen(!menuOpen);
                   }}
-                  className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/20 touch-manipulation`}
+                  className={`${isDarkMode ? 'text-white hover:bg-white/10' : 'text-gray-800 hover:bg-gray-100'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/20`}
                   aria-label="Open menu"
-                  type="button"
-                  style={{ 
-                    WebkitTapHighlightColor: 'transparent',
-                    userSelect: 'none',
-                    touchAction: 'manipulation'
-                  }}
                 >
                   <Icon icon="lucide:menu" width={24} height={24} />
-                </button>
+                </Button>
               </div>
             </div>
           </div>

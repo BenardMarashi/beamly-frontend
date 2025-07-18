@@ -1,11 +1,15 @@
+// src/pages/conversations-list.tsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardBody, Avatar, Badge, Spinner, Input, Button } from '@nextui-org/react';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { Card, CardBody, Avatar, Chip, Spinner, Input, Button } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
+import { ConversationService } from '../services/firebase-services';
+import { toast } from 'react-hot-toast';
+import { MessagesView } from '../components/MessagesView'; // We'll create this
 
 interface ConversationWithUser {
   id: string;
@@ -23,11 +27,84 @@ interface ConversationWithUser {
 
 export const ConversationsListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { conversationId } = useParams(); // For desktop view
+  const { user, userData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState<ConversationWithUser[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredConversations, setFilteredConversations] = useState<ConversationWithUser[]>([]);
+  const [creatingConversation, setCreatingConversation] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(conversationId || null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Handle URL parameter for starting new conversation
+  useEffect(() => {
+    const userId = searchParams.get('user');
+    if (userId && user && !creatingConversation) {
+      handleStartConversation(userId);
+    }
+  }, [searchParams, user]);
+
+  // Update selected conversation when URL changes
+  useEffect(() => {
+    if (conversationId && !isMobile) {
+      setSelectedConversationId(conversationId);
+    }
+  }, [conversationId, isMobile]);
+
+  const handleStartConversation = async (otherUserId: string) => {
+    if (!user || !userData || creatingConversation) return;
+    
+    setCreatingConversation(true);
+    try {
+      const existingConversation = conversations.find(
+        conv => conv.otherUser.id === otherUserId
+      );
+      
+      if (existingConversation) {
+        handleConversationClick(existingConversation.id);
+        return;
+      }
+      
+      const result = await ConversationService.findOrCreateConversation(
+        user.uid,
+        otherUserId
+      );
+      
+      if (result.success && result.conversationId) {
+        handleConversationClick(result.conversationId);
+        toast.success(result.isNew ? 'Conversation started!' : 'Opening conversation...');
+      } else {
+        toast.error('Failed to start conversation');
+      }
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      toast.error('Failed to start conversation');
+    } finally {
+      setCreatingConversation(false);
+    }
+  };
+
+  const handleConversationClick = (conversationId: string) => {
+    if (isMobile) {
+      // On mobile, navigate to separate page
+      navigate(`/messages/${conversationId}`);
+    } else {
+      // On desktop, update URL and show in split view
+      setSelectedConversationId(conversationId);
+      navigate(`/messages/${conversationId}`, { replace: true });
+    }
+  };
 
   useEffect(() => {
     if (!user) {
@@ -35,209 +112,206 @@ export const ConversationsListPage: React.FC = () => {
       return;
     }
 
-    const loadConversations = async () => {
-      const q = query(
-        collection(db, 'conversations'),
-        where('participants', 'array-contains', user.uid),
-        orderBy('lastMessageTime', 'desc')
-      );
+    const q = query(
+      collection(db, 'conversations'),
+      where('participants', 'array-contains', user.uid),
+      orderBy('lastMessageTime', 'desc')
+    );
 
-      const unsubscribe = onSnapshot(q, async (snapshot) => {
-        const conversationsData: ConversationWithUser[] = [];
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const conversationsData: ConversationWithUser[] = [];
 
-        for (const docSnapshot of snapshot.docs) {
-          const data = docSnapshot.data();
-          const otherUserId = data.participants.find((id: string) => id !== user.uid);
+      for (const docSnapshot of snapshot.docs) {
+        const data = docSnapshot.data();
+        const otherUserId = data.participants.find((id: string) => id !== user.uid);
+        
+        if (otherUserId) {
+          let otherUserData = data.participantDetails?.[otherUserId];
           
-          if (otherUserId) {
-            // Get other user's details
+          if (!otherUserData) {
             const userDoc = await getDoc(doc(db, 'users', otherUserId));
             if (userDoc.exists()) {
-              const otherUserData = userDoc.data();
-              conversationsData.push({
-                id: docSnapshot.id,
-                lastMessage: data.lastMessage || '',
-                lastMessageTime: data.lastMessageTime,
-                unreadCount: data.participantDetails?.[user.uid]?.unreadCount || 0,
-                otherUser: {
-                  id: otherUserId,
-                  displayName: otherUserData.displayName || 'Unknown User',
-                  photoURL: otherUserData.photoURL || '',
-                  userType: otherUserData.userType || 'user',
-                  isOnline: otherUserData.isOnline
-                }
-              });
+              otherUserData = userDoc.data();
             }
           }
+          
+          if (otherUserData) {
+            conversationsData.push({
+              id: docSnapshot.id,
+              lastMessage: data.lastMessage || 'No messages yet',
+              lastMessageTime: data.lastMessageTime,
+              unreadCount: data.participantDetails?.[user.uid]?.unreadCount || 0,
+              otherUser: {
+                id: otherUserId,
+                displayName: otherUserData.displayName || 'Unknown User',
+                photoURL: otherUserData.photoURL || `https://ui-avatars.com/api/?name=${otherUserData.displayName || 'User'}&background=FCE90D&color=011241`,
+                userType: otherUserData.userType || 'freelancer',
+                isOnline: otherUserData.isOnline || false
+              }
+            });
+          }
         }
+      }
 
-        setConversations(conversationsData);
-        setFilteredConversations(conversationsData);
-        setLoading(false);
-      });
+      setConversations(conversationsData);
+      setLoading(false);
+    });
 
-      return () => unsubscribe();
-    };
-
-    loadConversations();
+    return () => unsubscribe();
   }, [user, navigate]);
 
-  // Filter conversations based on search term
-  useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredConversations(conversations);
-    } else {
-      const filtered = conversations.filter(conv =>
-        conv.otherUser.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredConversations(filtered);
-    }
-  }, [searchTerm, conversations]);
-
   const formatTime = (timestamp: any) => {
-    if (!timestamp || !timestamp.toDate) return '';
-    
-    try {
-      return formatDistanceToNow(timestamp.toDate(), { addSuffix: true });
-    } catch (error) {
-      return 'Recently';
-    }
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return formatDistanceToNow(date, { addSuffix: true });
   };
 
-  const getTotalUnreadCount = () => {
-    return conversations.reduce((total, conv) => total + conv.unreadCount, 0);
-  };
-
-  if (loading) {
+  if (loading || creatingConversation) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner size="lg" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Spinner size="lg" />
+          <p className="text-gray-400 mt-4">
+            {creatingConversation ? 'Starting conversation...' : 'Loading conversations...'}
+          </p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Messages</h1>
-          {getTotalUnreadCount() > 0 && (
-            <p className="text-sm text-gray-500 mt-1">
-              {getTotalUnreadCount()} unread message{getTotalUnreadCount() > 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
-        <Button
-          color="primary"
-          startContent={<Icon icon="solar:pen-new-square-bold" />}
-          onClick={() => navigate('/browse-freelancers')}
-        >
-          New Message
-        </Button>
-      </div>
+  const filteredConversations = conversations.filter(conv =>
+    conv.otherUser.displayName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-      {/* Search Bar */}
-      <div className="mb-6">
+  const conversationsList = (
+    <div className="h-full flex flex-col">
+      <div className="p-4 border-b border-white/10">
+        <h1 className="text-2xl font-bold text-white mb-4">Messages</h1>
+        <p className="text-gray-400 text-sm mb-4">Your conversations with freelancers and clients</p>
         <Input
           placeholder="Search conversations..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          startContent={<Icon icon="solar:magnifer-line-duotone" className="text-default-400" />}
-          isClearable
-          onClear={() => setSearchTerm('')}
+          startContent={<Icon icon="lucide:search" className="text-gray-400" />}
+          classNames={{
+            input: "text-white",
+            inputWrapper: "bg-white/5 border-white/20 hover:border-white/30"
+          }}
         />
       </div>
 
-      {filteredConversations.length === 0 ? (
-        <Card>
-          <CardBody className="text-center py-12">
-            <Icon 
-              icon={searchTerm ? "solar:magnifer-broken" : "solar:chat-line-broken"} 
-              className="text-6xl text-gray-400 mx-auto mb-4" 
-            />
-            <p className="text-gray-600 mb-4">
-              {searchTerm 
-                ? `No conversations found for "${searchTerm}"`
-                : "No conversations yet"
-              }
-            </p>
-            {!searchTerm && (
-              <p className="text-sm text-gray-500">
-                Start a conversation by messaging a freelancer or client
-              </p>
-            )}
-          </CardBody>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {filteredConversations.map((conversation) => (
-            <Card
-              key={conversation.id}
-              isPressable
-              onClick={() => navigate(`/messages/${conversation.id}`)}
-              className={`hover:shadow-md transition-all ${
-                conversation.unreadCount > 0 ? 'ring-2 ring-primary/20' : ''
-              }`}
+      <div className="flex-1 overflow-y-auto">
+        {filteredConversations.length === 0 ? (
+          <div className="text-center py-12 px-4">
+            <Icon icon="lucide:message-circle" className="text-6xl text-gray-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">No conversations yet</h3>
+            <p className="text-gray-400 mb-6">Start a conversation by messaging a freelancer</p>
+            <Button
+              color="secondary"
+              onPress={() => navigate('/browse-freelancers')}
+              startContent={<Icon icon="lucide:search" />}
             >
-              <CardBody className="flex flex-row items-center gap-4 p-4">
-                <Badge
-                  content={conversation.unreadCount}
-                  isInvisible={conversation.unreadCount === 0}
-                  color="danger"
-                  size="sm"
-                >
-                  <Badge
-                    content=""
-                    color="success"
-                    placement="bottom-right"
-                    isInvisible={!conversation.otherUser.isOnline}
-                    classNames={{
-                      badge: "w-3 h-3 border-2 border-white"
-                    }}
-                  >
+              Browse Freelancers
+            </Button>
+          </div>
+        ) : (
+          <div className="p-4 space-y-2">
+            {filteredConversations.map((conversation) => (
+              <div
+                key={conversation.id}
+                onClick={() => handleConversationClick(conversation.id)}
+                className={`p-4 rounded-lg cursor-pointer transition-colors ${
+                  selectedConversationId === conversation.id && !isMobile
+                    ? 'bg-white/10'
+                    : 'hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative">
                     <Avatar
                       src={conversation.otherUser.photoURL}
                       name={conversation.otherUser.displayName}
-                      size="md"
+                      className="w-12 h-12"
                     />
-                  </Badge>
-                </Badge>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className={`font-semibold truncate ${
-                      conversation.unreadCount > 0 ? 'text-primary' : ''
-                    }`}>
-                      {conversation.otherUser.displayName}
-                    </h3>
-                    <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                      {formatTime(conversation.lastMessageTime)}
-                    </span>
+                    {conversation.unreadCount > 0 && (
+                      <Chip 
+                        color="danger" 
+                        size="sm"
+                        variant="solid"
+                        className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1"
+                      >
+                        {conversation.unreadCount}
+                      </Chip>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <p className={`text-sm truncate flex-1 ${
-                      conversation.unreadCount > 0 
-                        ? 'font-semibold text-default-700' 
-                        : 'text-gray-600'
-                    }`}>
-                      {conversation.lastMessage || 'No messages yet'}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold text-white truncate">
+                        {conversation.otherUser.displayName}
+                      </h3>
+                      <span className="text-gray-400 text-xs">
+                        {formatTime(conversation.lastMessageTime)}
+                      </span>
+                    </div>
+                    <p className="text-gray-400 text-sm truncate">
+                      {conversation.lastMessage}
                     </p>
-                    <span className="text-xs text-gray-500 ml-2">
-                      {conversation.otherUser.userType === 'freelancer' ? 'Freelancer' : 'Client'}
-                    </span>
                   </div>
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
-                <Icon 
-                  icon="solar:arrow-right-line-duotone" 
-                  className="text-xl text-gray-400 flex-shrink-0"
-                />
-              </CardBody>
-            </Card>
-          ))}
-        </div>
-      )}
+  // Mobile layout - just the conversations list
+  if (isMobile) {
+    return (
+      <div className="h-screen flex flex-col bg-mesh">
+        <Card className="glass-effect border-none h-full rounded-none">
+          <CardBody className="p-0">
+            {conversationsList}
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+
+  // Desktop layout - split view
+  return (
+    <div className="h-[calc(100vh-4rem)] flex gap-4 p-4">
+      {/* Conversations List - Left Side */}
+      <Card className="glass-effect border-none w-96 flex-shrink-0">
+        <CardBody className="p-0">
+          {conversationsList}
+        </CardBody>
+      </Card>
+
+      {/* Messages View - Right Side */}
+      <Card className="glass-effect border-none flex-1">
+        <CardBody className="p-0">
+          {selectedConversationId ? (
+            <MessagesView 
+              conversationId={selectedConversationId} 
+              onBack={() => setSelectedConversationId(null)}
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <Icon icon="lucide:message-square" className="text-6xl text-gray-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Select a conversation
+                </h3>
+                <p className="text-gray-400">
+                  Choose a conversation from the list to start messaging
+                </p>
+              </div>
+            </div>
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 };
