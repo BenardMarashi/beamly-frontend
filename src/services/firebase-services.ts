@@ -806,7 +806,7 @@ export const ProposalService = {
           body: `${proposalData.freelancerName} submitted a proposal for "${proposalData.jobTitle}"`,
           type: 'proposal',
           relatedId: proposalRef.id,
-          actionUrl: `/jobs/${proposalData.jobId}/proposals`
+          actionUrl: `/job/${proposalData.jobId}/proposals`
         });
       }
       

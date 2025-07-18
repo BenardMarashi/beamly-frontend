@@ -18,7 +18,6 @@ export const CreateProfilePage: React.FC = () => {
     bio: userData?.bio || '',
     skills: userData?.skills || [],
     hourlyRate: userData?.hourlyRate || 0,
-    portfolio: userData?.portfolio || '',
     languages: userData?.languages || ['English'],
     experienceLevel: userData?.experienceLevel || 'intermediate'
   });
@@ -156,16 +155,6 @@ export const CreateProfilePage: React.FC = () => {
                   className="text-white"
                   minRows={4}
                   isRequired
-                />
-                
-                <Input
-                  label="Portfolio Link (Optional)"
-                  placeholder="https://your-portfolio.com"
-                  value={formData.portfolio}
-                  onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })}
-                  variant="bordered"
-                  className="text-white"
-                  startContent={<Icon icon="lucide:link" className="text-gray-400" />}
                 />
               </div>
             </CardBody>

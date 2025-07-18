@@ -13,15 +13,20 @@ export interface UserData {
   userType: 'freelancer' | 'client' | 'both';
   profileCompleted?: boolean;
   
-  // Freelancer specific fields
+  // Basic Info
   bio?: string;
+  
+  // Freelancer specific fields
   skills?: string[];
   hourlyRate?: number;
-  portfolio?: string;
   experienceLevel?: 'entry' | 'intermediate' | 'expert';
+  experience?: string; // Experience description/summary
   languages?: string[];
   isAvailable?: boolean;
+  
+  // Stats (usually calculated/updated by system)
   rating?: number;
+  reviewCount?: number;
   completedProjects?: number;
   
   // Client specific fields  
@@ -29,12 +34,13 @@ export interface UserData {
   industry?: string;
   activeJobs?: number;
   
-  // Common fields
+  // System fields
   createdAt?: Date;
   updatedAt?: Date;
   lastActive?: Date;
   isVerified?: boolean;
   isBlocked?: boolean;
+  joinedAt?: Date; // Alternative to createdAt for display
   
   // Notification settings
   notifications?: {
@@ -50,4 +56,8 @@ export interface UserData {
     endDate: Date;
     status: 'active' | 'cancelled' | 'expired';
   };
+  
+  // Additional profile metadata
+  savedProfiles?: string[]; // IDs of saved freelancer profiles
+  viewCount?: number; // Profile view count
 }

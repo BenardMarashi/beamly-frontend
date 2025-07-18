@@ -244,7 +244,7 @@ const DashboardPage: React.FC = () => {
         
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Recent Jobs/Proposals */}
+          {/* Recent job/Proposals */}
           <Card className="glass-effect border-none">
             <CardBody className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -254,7 +254,7 @@ const DashboardPage: React.FC = () => {
                 <Button
                   size="sm"
                   variant="light"
-                  onPress={() => navigate(userData?.userType === 'client' ? '/jobs/manage' : '/proposals')}
+                  onPress={() => navigate(userData?.userType === 'client' ? '/job/manage' : '/proposals')}
                 >
                   View All
                 </Button>

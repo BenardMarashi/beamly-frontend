@@ -118,7 +118,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
     if (isClient) {
       menuItems.push(
         { name: "Post Job", path: "/post-job", icon: "lucide:plus-circle" },
-        { name: "My Jobs", path: "/jobs/manage", icon: "lucide:briefcase" }
+        { name: "My Jobs", path: "/job/manage", icon: "lucide:briefcase" }
       );
     }
 

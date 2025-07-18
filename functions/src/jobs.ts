@@ -67,7 +67,7 @@ async function notifyFreelancersAboutNewJob(job: any) {
       title: "New Job Match",
       body: `New ${job.category} job: "${job.title}"`,
       type: "new-job",
-      actionUrl: `/jobs/${job.id}`,
+      actionUrl: `/job/${job.id}`,
       actionData: { jobId: job.id },
       read: false,
       pushSent: false,

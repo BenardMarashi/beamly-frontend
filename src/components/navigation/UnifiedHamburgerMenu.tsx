@@ -97,7 +97,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
     if (userData?.userType === 'client' || userData?.userType === 'both') {
       items.push(
         { path: '/post-job', label: 'Post Job', icon: 'solar:add-circle-bold' },
-        { path: '/jobs/manage', label: 'My Jobs', icon: 'solar:briefcase-bold' }
+        { path: '/job/manage', label: 'My Jobs', icon: 'solar:briefcase-bold' }
       );
     }
 

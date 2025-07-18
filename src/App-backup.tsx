@@ -26,7 +26,7 @@ import PostJobPage from './pages/post-job';
 import { PostProjectPage } from './pages/post-project';
 import CreateProfilePage from './pages/create-profile';
 import EditProfilePage from './pages/profile/edit';
-import ManageJobsPage from './pages/jobs/manage';
+import ManageJobsPage from './pages/job/manage';
 import ManageProjectsPage from './pages/projects/manage';
 import ProposalsPage from './pages/proposals';
 import AnalyticsPage from './pages/analytics';
@@ -94,8 +94,8 @@ const AppContent: React.FC = () => {
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="browse-freelancers" element={<BrowseFreelancersPage />} />
           <Route path="looking-for-work" element={<LookingForWorkPage />} />
-          <Route path="jobs/:id" element={<JobDetailsPage />} />
-          <Route path="jobs/:id/apply" element={<JobApplyPage />} />
+          <Route path="job/:id" element={<JobDetailsPage />} />
+          <Route path="job/:id/apply" element={<JobApplyPage />} />
           <Route path="freelancer/:id" element={<FreelancerProfilePage />} />
         </Route>
 
@@ -107,7 +107,7 @@ const AppContent: React.FC = () => {
             <Route path="post-project" element={<PostProjectPage />} />
             <Route path="create-profile" element={<CreateProfilePage />} />
             <Route path="profile/edit" element={<EditProfilePage />} />
-            <Route path="jobs/manage" element={<ManageJobsPage />} />
+            <Route path="job/manage" element={<ManageJobsPage />} />
             <Route path="projects/manage" element={<ManageProjectsPage />} />
             <Route path="proposals" element={<ProposalsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />

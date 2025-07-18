@@ -184,7 +184,7 @@ export const ManageJobsPage: React.FC = () => {
                         <TableCell>
                           <Button
                             variant="light"
-                            onPress={() => navigate(`/jobs/${job.id}`)}
+                            onPress={() => navigate(`/job/${job.id}`)}
                             className="text-white hover:text-primary p-0"
                           >
                             {job.title}
@@ -210,7 +210,7 @@ export const ManageJobsPage: React.FC = () => {
                               size="sm"
                               variant="light"
                               isIconOnly
-                              onPress={() => navigate(`/jobs/${job.id}/edit`)}
+                              onPress={() => navigate(`/job/${job.id}/edit`)}
                             >
                               <Icon icon="lucide:edit" />
                             </Button>

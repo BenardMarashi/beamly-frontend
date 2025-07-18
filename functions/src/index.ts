@@ -19,7 +19,7 @@ export const onNewProposal = onDocumentCreated("proposals/{proposalId}", async (
 
   try {
     // Get job details
-    const jobDoc = await db.doc(`jobs/${proposal.jobId}`).get();
+    const jobDoc = await db.doc(`job/${proposal.jobId}`).get();
     const job = jobDoc.data();
 
     if (!job) return;
@@ -272,7 +272,7 @@ async function notifyFreelancersAboutNewJob(job: any) {
         title: "New Job Match",
         body: `New ${job.category} job: "${job.title}"`,
         type: "new-job",
-        actionUrl: `/jobs/${job.id}`,
+        actionUrl: `/job/${job.id}`,
         actionData: { jobId: job.id },
         read: false,
         pushSent: false,
@@ -321,7 +321,7 @@ export const submitProposal = onCall(
       }
 
       // Get job data
-      const jobDoc = await db.doc(`jobs/${data.jobId}`).get();
+      const jobDoc = await db.doc(`job/${data.jobId}`).get();
       const jobData = jobDoc.data();
 
       if (!jobDoc.exists || !jobData) {
@@ -373,7 +373,7 @@ export const submitProposal = onCall(
         transaction.set(proposalRef, proposalData);
 
         // Increment proposal count on job
-        const jobRef = db.doc(`jobs/${data.jobId}`);
+        const jobRef = db.doc(`job/${data.jobId}`);
         transaction.update(jobRef, {
           proposalCount: admin.firestore.FieldValue.increment(1),
           updatedAt: now,
@@ -471,7 +471,7 @@ export const createContract = onCall(
         });
 
         // Update job status
-        const jobRef = db.doc(`jobs/${proposalData.jobId}`);
+        const jobRef = db.doc(`job/${proposalData.jobId}`);
         transaction.update(jobRef, {
           status: "in-progress",
           hiredFreelancerId: proposalData.freelancerId,
@@ -1082,7 +1082,7 @@ export const getJobRecommendations = onCall(async (request) => {
     // Extract job categories from recent proposals
     const recentJobIds = recentProposals.docs.map((doc) => doc.data().jobId);
     const recentJobs = await Promise.all(
-      recentJobIds.map((jobId) => db.doc(`jobs/${jobId}`).get())
+      recentJobIds.map((jobId) => db.doc(`job/${jobId}`).get())
     );
 
     const recentCategories = recentJobs

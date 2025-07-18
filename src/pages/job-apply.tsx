@@ -179,7 +179,7 @@ export const JobApplyPage: React.FC = () => {
           <Button
             variant="light"
             startContent={<Icon icon="lucide:arrow-left" />}
-            onPress={() => navigate(`/jobs/${job.id}`)}
+            onPress={() => navigate(`/job/${job.id}`)}
             className="text-white mb-4"
           >
             Back to Job Details
@@ -293,7 +293,7 @@ export const JobApplyPage: React.FC = () => {
                   <Button
                     variant="bordered"
                     className="text-white border-white/30"
-                    onPress={() => navigate(`/jobs/${job.id}`)}
+                    onPress={() => navigate(`/job/${job.id}`)}
                     disabled={submitting}
                   >
                     Cancel

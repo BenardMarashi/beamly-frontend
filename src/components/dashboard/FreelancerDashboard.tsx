@@ -178,7 +178,7 @@ export const FreelancerDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkM
                   className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
                     isDarkMode ? 'border-gray-700 hover:border-gray-600' : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => navigate(`/jobs/${proposal.jobId}`)}
+                  onClick={() => navigate(`/job/${proposal.jobId}`)}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
