@@ -147,7 +147,7 @@ export const PostJobPage: React.FC = () => {
       await setDoc(doc(db, 'jobs', jobId), jobData);
       
       toast.success('Job posted successfully!');
-      navigate('/jobs/manage');
+      navigate('/job/manage');
     } catch (error) {
       console.error('Error posting job:', error);
       toast.error('Failed to post job. Please try again.');

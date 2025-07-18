@@ -45,7 +45,7 @@ service firebase.storage {
     }
     
     // Job attachments
-    match /jobs/{jobId}/attachments/{fileName} {
+    match /job/{jobId}/attachments/{fileName} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && isValidSize();
       allow delete: if isAuthenticated();

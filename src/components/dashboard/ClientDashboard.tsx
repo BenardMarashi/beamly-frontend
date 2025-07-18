@@ -222,7 +222,7 @@ export const ClientDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode 
                 <div
                   key={job.id}
                   className="p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/jobs/${job.id}`)}
+                  onClick={() => navigate(`/job/${job.id}`)}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -254,7 +254,7 @@ export const ClientDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode 
             <div className="mt-4 text-center">
               <Button
                 variant="light"
-                onPress={() => navigate('/jobs/manage')}
+                onPress={() => navigate('/job/manage')}
               >
                 View All Jobs
               </Button>

@@ -7,6 +7,7 @@ import { db } from "../lib/firebase";
 import { PageHeader } from "./page-header";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import { JobApplicationModal } from "../components/job-application-modal"; // Add this import
 
 interface JobDetails {
   id: string;
@@ -41,6 +42,7 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
   const { user, userData } = useAuth();
   const [job, setJob] = useState<JobDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false); // Add this state
 
   const isFreelancer = userData?.userType === 'freelancer' || userData?.userType === 'both';
 
@@ -82,7 +84,8 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
       return;
     }
     
-    navigate(`/jobs/${id}/apply`);
+    // Open modal instead of navigating
+    setIsApplicationModalOpen(true);
   };
 
   const formatBudget = () => {
@@ -307,6 +310,27 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
             </Card>
           </div>
         </div>
+
+        {/* Job Application Modal */}
+        {job && isApplicationModalOpen && (
+          <JobApplicationModal
+            isOpen={isApplicationModalOpen}
+            onClose={() => setIsApplicationModalOpen(false)}
+            job={{
+              id: job.id,
+              title: job.title,
+              clientId: job.clientId,
+              clientName: job.clientName,
+              budgetMin: job.budgetMin,
+              budgetMax: job.budgetMax || job.budgetMin, // Provide default if budgetMax is undefined
+              budgetType: job.budgetType
+            }}
+            onSuccess={() => {
+              // Refresh the job details to update proposal count
+              fetchJobDetails();
+            }}
+          />
+        )}
     </div>
   );
 };

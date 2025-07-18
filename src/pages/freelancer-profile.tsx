@@ -7,12 +7,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../contexts/AuthContext"; // Add this import
 
 interface FreelancerData {
   id: string;
   displayName: string;
   bio: string;
-  location: string;
   photoURL: string;
   hourlyRate: number;
   rating: number;
@@ -20,7 +20,10 @@ interface FreelancerData {
   completedProjects: number;
   skills: string[];
   experience: string;
+  experienceLevel: string;
+  languages: string[];
   isVerified: boolean;
+  isAvailable: boolean;
   joinedAt: any;
   lastActive: any;
 }
@@ -32,16 +35,19 @@ interface Project {
   images: string[];
   thumbnailUrl: string;
   skills: string[];
+  category: string; // Add category
   liveUrl?: string;
   githubUrl?: string;
 }
 
 interface Review {
   id: string;
+  clientId: string;
   clientName: string;
   clientPhotoURL: string;
   rating: number;
   comment: string;
+  projectId?: string;
   createdAt: any;
 }
 
@@ -54,6 +60,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth(); // Add this to get current user
   
   const [freelancer, setFreelancer] = useState<FreelancerData | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -81,17 +88,19 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
           id: userDoc.id,
           displayName: userData.displayName || 'Anonymous',
           bio: userData.bio || 'No bio available',
-          location: userData.location || 'Location not specified',
-          photoURL: userData.photoURL || `https://i.pravatar.cc/150?u=${id}`,
+          photoURL: userData.photoURL || `https://ui-avatars.com/api/?name=${userData.displayName || 'User'}&background=FCE90D&color=011241`,
           hourlyRate: userData.hourlyRate || 0,
           rating: userData.rating || 0,
           reviewCount: userData.reviewCount || 0,
           completedProjects: userData.completedProjects || 0,
           skills: userData.skills || [],
-          experience: userData.experience || 'Experience not specified',
+          experience: userData.experience || '',
+          experienceLevel: userData.experienceLevel || 'intermediate',
+          languages: userData.languages || ['English'],
           isVerified: userData.isVerified || false,
+          isAvailable: userData.isAvailable ?? true,
           joinedAt: userData.createdAt,
-          lastActive: userData.lastActive
+          lastActive: userData.lastActive || userData.updatedAt || new Date()
         });
 
         // Fetch freelancer's projects
@@ -108,9 +117,19 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
         } as Project));
         setProjects(projectsData);
 
-        // Fetch reviews (would need to be implemented in your schema)
-        // For now using mock data as reviews system might not be fully implemented
-        setReviews([]);
+        // Fetch reviews for this freelancer
+        const reviewsQuery = query(
+          collection(db, 'reviews'),
+          where('freelancerId', '==', id),
+          orderBy('createdAt', 'desc'),
+          limit(5)
+        );
+        const reviewsSnapshot = await getDocs(reviewsQuery);
+        const reviewsData = reviewsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Review));
+        setReviews(reviewsData);
         
       } else {
         toast.error('Freelancer not found');
@@ -143,6 +162,33 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
     if (diffInHours < 24) return `${diffInHours} hours ago`;
     if (diffInHours < 48) return 'Yesterday';
     return `${Math.floor(diffInHours / 24)} days ago`;
+  };
+
+  const formatReviewDate = (date: any) => {
+    if (!date) return 'Recently';
+    const reviewDate = date.toDate ? date.toDate() : new Date(date);
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - reviewDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffInDays === 0) return 'Today';
+    if (diffInDays === 1) return 'Yesterday';
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
+    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
+    return `${Math.floor(diffInDays / 365)} years ago`;
+  };
+
+  const getExperienceLevelLabel = (level: string) => {
+    switch (level) {
+      case 'entry':
+        return 'Entry Level';
+      case 'intermediate':
+        return 'Intermediate';
+      case 'expert':
+        return 'Expert';
+      default:
+        return 'Freelancer';
+    }
   };
 
   if (loading) {
@@ -190,8 +236,13 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                 )}
               </div>
               <p className="text-beamly-secondary font-medium mb-2">
-                {freelancer.experience || 'Freelancer'}
+                {getExperienceLevelLabel(freelancer.experienceLevel)}
               </p>
+              {freelancer.isAvailable ? (
+                <Chip color="success" size="sm" className="mb-4">Available</Chip>
+              ) : (
+                <Chip color="default" size="sm" className="mb-4">Not Available</Chip>
+              )}
               <div className="flex items-center mb-4">
                 <div className="flex">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -209,10 +260,6 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
               
               <div className="w-full border-t border-white/10 pt-4 mt-2">
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">Location:</span>
-                  <span className="text-white">{freelancer.location}</span>
-                </div>
-                <div className="flex justify-between mb-2">
                   <span className="text-gray-300">Member Since:</span>
                   <span className="text-white">{formatJoinDate(freelancer.joinedAt)}</span>
                 </div>
@@ -227,8 +274,12 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   </span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">Projects:</span>
-                  <span className="text-white">{freelancer.completedProjects}</span>
+                  <span className="text-gray-300">Completed:</span>
+                  <span className="text-white">{freelancer.completedProjects} projects</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-300">Languages:</span>
+                  <span className="text-white">{freelancer.languages.join(', ')}</span>
                 </div>
               </div>
               
@@ -236,10 +287,8 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                 <Button 
                   color="secondary" 
                   className="w-full font-medium text-beamly-third"
-                  onPress={() => {
-                    console.log("Hire me button clicked");
-                    // No navigation, just a log
-                  }}
+                  onPress={() => navigate(`/post-job`)}
+                  isDisabled={user?.uid === id}
                 >
                   Hire Me
                 </Button>
@@ -247,7 +296,8 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   variant="bordered" 
                   className="w-full text-white border-white/30"
                   startContent={<Icon icon="lucide:mail" />}
-                  onPress={() => navigate(`/chat?user=${freelancer.id}`)}
+                  onPress={() => navigate(`/messages?user=${freelancer.id}`)}
+                  isDisabled={user?.uid === id}
                 >
                   Send Message
                 </Button>
@@ -256,9 +306,9 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   className="w-full text-white"
                   startContent={<Icon icon="lucide:bookmark" />}
                   onPress={() => {
-                    console.log("Save profile button clicked");
-                    // No navigation, just a log
+                    toast.success('Profile saved');
                   }}
+                  isDisabled={user?.uid === id}
                 >
                   Save Profile
                 </Button>
@@ -270,7 +320,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
         <div className="md:w-2/3">
           <div className="glass-effect p-6 rounded-xl mb-6">
             <h2 className="text-xl font-bold text-white mb-4">About Me</h2>
-            <p className="text-gray-300">
+            <p className="text-gray-300 whitespace-pre-wrap">
               {freelancer.bio}
             </p>
           </div>
@@ -292,130 +342,201 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
           </div>
           
           <div className="glass-effect p-6 rounded-xl mb-6">
-            <h2 className="text-xl font-bold text-white mb-4">Portfolio</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-white">Portfolio</h2>
+              {user?.uid === id && (
+                <Button
+                  color="secondary"
+                  size="sm"
+                  startContent={<Icon icon="lucide:plus" />}
+                  onPress={() => navigate('/post-project')}
+                >
+                  Add Project
+                </Button>
+              )}
+            </div>
+            
             {projects.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {projects.map((project) => (
-                  <div key={project.id} className="relative overflow-hidden rounded-lg group">
-                    <img 
-                      src={project.thumbnailUrl || project.images?.[0] || `https://img.heroui.chat/image/dashboard?w=400&h=300&u=${project.id}`}
-                      alt={project.title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="text-center">
-                        <h4 className="text-white font-medium mb-2">{project.title}</h4>
+                  <Card 
+                    key={project.id}
+                    isPressable
+                    onPress={() => navigate(`/project/${project.id}`)}
+                    className="glass-card hover:scale-105 transition-transform cursor-pointer"
+                  >
+                    <CardBody className="p-0">
+                      <div className="relative aspect-video overflow-hidden">
+                        <img 
+                          src={project.thumbnailUrl || project.images?.[0] || `/api/placeholder/400/300`}
+                          alt={project.title}
+                          className="w-full h-full object-cover"
+                        />
+                        {project.category && (
+                          <Chip 
+                            size="sm" 
+                            className="absolute top-2 right-2 bg-black/60 text-white"
+                          >
+                            {project.category}
+                          </Chip>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h4 className="text-white font-semibold mb-2 line-clamp-1">
+                          {project.title}
+                        </h4>
+                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                          {project.description}
+                        </p>
                         <div className="flex gap-2">
                           {project.liveUrl && (
                             <Button 
                               size="sm" 
                               color="secondary"
-                              className="font-medium text-beamly-third"
-                              onPress={() => window.open(project.liveUrl, '_blank')}
+                              variant="flat"
+                              startContent={<Icon icon="lucide:external-link" className="w-3 h-3" />}
+                              onPress={(e: any) => {
+                                window.open(project.liveUrl, '_blank');
+                              }}
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                              }}
                             >
-                              View Live
+                              Live
                             </Button>
                           )}
                           {project.githubUrl && (
                             <Button 
                               size="sm" 
                               variant="bordered"
-                              className="text-white border-white"
-                              onPress={() => window.open(project.githubUrl, '_blank')}
+                              className="border-white/30"
+                              startContent={<Icon icon="mdi:github" className="w-3 h-3" />}
+                              onPress={(e: any) => {
+                                window.open(project.githubUrl, '_blank');
+                              }}
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                              }}
                             >
                               Code
                             </Button>
                           )}
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    </CardBody>
+                  </Card>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-400 text-center py-8">No projects to display</p>
+              <div className="text-center py-12">
+                <Icon 
+                  icon="lucide:folder-open" 
+                  className="text-5xl text-gray-400 mx-auto mb-3"
+                />
+                <p className="text-gray-400">
+                  {user?.uid === id 
+                    ? "You haven't posted any projects yet" 
+                    : "No projects in portfolio yet"}
+                </p>
+                {user?.uid === id && (
+                  <Button
+                    color="secondary"
+                    variant="flat"
+                    className="mt-4"
+                    onPress={() => navigate('/post-project')}
+                  >
+                    Post Your First Project
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            {projects.length >= 6 && (
+              <div className="text-center mt-4">
+                <Button
+                  variant="light"
+                  className="text-white"
+                  onPress={() => navigate(`/freelancer/${id}/projects`)}
+                >
+                  View All Projects
+                </Button>
+              </div>
             )}
           </div>
           
-          <div className="glass-effect p-6 rounded-xl mb-6">
-            <h2 className="text-xl font-bold text-white mb-4">Experience</h2>
-            <div className="space-y-6">
-              <div>
-                <div className="flex justify-between">
-                  <h3 className="font-semibold text-white">Senior UI/UX Designer</h3>
-                  <span className="text-beamly-secondary">2020 - Present</span>
-                </div>
-                <p className="text-gray-400">Designify Agency</p>
-                <p className="text-gray-300 mt-2">
-                  Led the design team in creating user-centered digital products for various clients. Conducted user research, created wireframes, prototypes, and final designs.
-                </p>
-              </div>
-              <div>
-                <div className="flex justify-between">
-                  <h3 className="font-semibold text-white">UI/UX Designer</h3>
-                  <span className="text-beamly-secondary">2018 - 2020</span>
-                </div>
-                <p className="text-gray-400">TechCorp Inc.</p>
-                <p className="text-gray-300 mt-2">
-                  Designed user interfaces for web and mobile applications. Collaborated with developers to ensure proper implementation of designs.
-                </p>
-              </div>
+          {freelancer.experience && (
+            <div className="glass-effect p-6 rounded-xl mb-6">
+              <h2 className="text-xl font-bold text-white mb-4">Professional Experience</h2>
+              <p className="text-gray-300 whitespace-pre-wrap">
+                {freelancer.experience}
+              </p>
             </div>
-          </div>
+          )}
           
-          <div className="glass-effect p-6 rounded-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">Reviews</h2>
-              <div className="flex items-center">
-                <div className="flex">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Icon key={star} icon="lucide:star" className="text-yellow-400 w-4 h-4" />
-                  ))}
-                </div>
-                <span className="text-gray-300 text-sm ml-2">5.0 (48 reviews)</span>
-              </div>
-            </div>
-            
-            <div className="space-y-6">
-              {[1, 2, 3].map((review) => (
-                <div key={review} className="border-t border-white/10 pt-4">
-                  <div className="flex justify-between">
-                    <div className="flex items-center">
-                      <Avatar
-                        src={`https://img.heroui.chat/image/avatar?w=100&h=100&u=client${review}`}
-                        className="w-10 h-10 mr-3"
+          {reviews.length > 0 && (
+            <div className="glass-effect p-6 rounded-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Reviews</h2>
+                <div className="flex items-center">
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Icon 
+                        key={star} 
+                        icon="lucide:star" 
+                        className={`w-4 h-4 ${star <= freelancer.rating ? 'text-yellow-400' : 'text-gray-600'}`}
                       />
-                      <div>
-                        <h3 className="font-semibold text-white">Client Name</h3>
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Icon key={star} icon="lucide:star" className="text-yellow-400 w-3 h-3" />
-                          ))}
+                    ))}
+                  </div>
+                  <span className="text-gray-300 text-sm ml-2">
+                    {freelancer.rating.toFixed(1)} ({freelancer.reviewCount} reviews)
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-6">
+                {reviews.map((review) => (
+                  <div key={review.id} className="border-t border-white/10 pt-4">
+                    <div className="flex justify-between">
+                      <div className="flex items-center">
+                        <Avatar
+                          src={review.clientPhotoURL || `https://ui-avatars.com/api/?name=${review.clientName}&background=FCE90D&color=011241`}
+                          className="w-10 h-10 mr-3"
+                        />
+                        <div>
+                          <h3 className="font-semibold text-white">{review.clientName}</h3>
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Icon 
+                                key={star} 
+                                icon="lucide:star" 
+                                className={`w-3 h-3 ${star <= review.rating ? 'text-yellow-400' : 'text-gray-600'}`}
+                              />
+                            ))}
+                          </div>
                         </div>
                       </div>
+                      <span className="text-gray-400 text-sm">{formatReviewDate(review.createdAt)}</span>
                     </div>
-                    <span className="text-gray-400 text-sm">2 weeks ago</span>
+                    <p className="text-gray-300 mt-2">
+                      {review.comment}
+                    </p>
                   </div>
-                  <p className="text-gray-300 mt-2">
-                    John did an amazing job on our project. He was very professional, responsive, and delivered high-quality work on time. Would definitely work with him again!
-                  </p>
+                ))}
+              </div>
+              
+              {freelancer.reviewCount > 5 && (
+                <div className="mt-6 text-center">
+                  <Button 
+                    variant="light" 
+                    className="text-white"
+                    onPress={() => navigate(`/freelancer/${id}/reviews`)}
+                  >
+                    See All Reviews ({freelancer.reviewCount})
+                  </Button>
                 </div>
-              ))}
+              )}
             </div>
-            
-            <div className="mt-6 text-center">
-              <Button 
-                variant="light" 
-                className="text-white"
-                onPress={() => {
-                  console.log("See more reviews button clicked");
-                  // No navigation, just a log
-                }}
-              >
-                See More
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

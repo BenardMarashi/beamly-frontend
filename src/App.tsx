@@ -26,6 +26,7 @@ import { ConversationsListPage } from './pages/conversations-list';
 import { PostProjectPage } from './pages/post-project';
 import { FreelancerProfilePage } from './pages/freelancer-profile';
 
+
 // Lazy load less frequently used pages
 const ProfilePage = lazy(() => import('./pages/freelancer-profile'));
 const EditProfilePage = lazy(() => import('./pages/profile/edit'));
@@ -42,6 +43,8 @@ const HelpPage = lazy(() => import('./pages/help'));
 const TermsPage = lazy(() => import('./pages/terms'));
 const PrivacyPage = lazy(() => import('./pages/privacy'));
 const NotFoundPage = lazy(() => import('./pages/404'));
+const AnalyticsPage = lazy(() => import('./pages/analytics'));
+const ManageJobsPage = lazy(() => import('./pages/jobs/manage'));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -118,6 +121,9 @@ const AppRoutes = () => {
         <Route path="/help" element={<HelpPage />} />
         <Route path="/looking-for-work" element={<Navigate to="/browse-jobs" replace />} />
         <Route path="/profile/edit" element={<Navigate to="/edit-profile" replace />} />
+        <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+        <Route path="/job/manage" element={<ProtectedRoute><ManageJobsPage /></ProtectedRoute>} />
+        <Route path="/chat" element={<Navigate to="/messages" replace />} />
       </Route>
 
       {/* Protected routes with DashboardLayout */}

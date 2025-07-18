@@ -21,7 +21,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, isDarkMode = true }) => {
   return (
     <Card 
       isPressable
-      onPress={() => navigate(`/jobs/${job.id}`)}
+      onPress={() => navigate(`/job/${job.id}`)}
       className={isDarkMode ? 'glass-effect' : ''}
     >
       <CardBody>

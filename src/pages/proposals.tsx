@@ -196,7 +196,7 @@ export const ProposalsPage: React.FC = () => {
                             size="sm"
                             variant="light"
                             isIconOnly
-                            onClick={() => navigate(`/jobs/${proposal.jobId}`)}
+                            onClick={() => navigate(`/job/${proposal.jobId}`)}
                           >
                             <Icon icon="lucide:eye" className="text-gray-400" />
                           </Button>

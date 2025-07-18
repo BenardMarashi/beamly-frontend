@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardBody, Button, Input, Textarea, Select, SelectItem, Chip, Avatar, Switch } from '@nextui-org/react';
+import { 
+  Card, 
+  CardBody, 
+  Button, 
+  Input, 
+  Textarea, 
+  Select, 
+  SelectItem, 
+  Chip, 
+  Avatar, 
+  Switch 
+} from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,14 +27,16 @@ export const EditProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
+  type ExperienceLevel = 'entry' | 'intermediate' | 'expert';
+  
   const [profileData, setProfileData] = useState({
     displayName: userData?.displayName || '',
     bio: userData?.bio || '',
     skills: userData?.skills || [],
     hourlyRate: userData?.hourlyRate || 0,
-    portfolio: userData?.portfolio || '',
     languages: userData?.languages || ['English'],
-    experienceLevel: userData?.experienceLevel || 'intermediate',
+    experienceLevel: (userData?.experienceLevel || 'intermediate') as ExperienceLevel,
+    experience: userData?.experience || '',
     companyName: userData?.companyName || '',
     industry: userData?.industry || '',
     isAvailable: userData?.isAvailable ?? true,
@@ -34,9 +47,9 @@ export const EditProfilePage: React.FC = () => {
   const [languageInput, setLanguageInput] = useState('');
   
   const experienceLevels = [
-    { value: 'entry', label: 'Entry Level' },
-    { value: 'intermediate', label: 'Intermediate' },
-    { value: 'expert', label: 'Expert' }
+    { value: 'entry', label: 'Entry Level (0-2 years)' },
+    { value: 'intermediate', label: 'Intermediate (2-5 years)' },
+    { value: 'expert', label: 'Expert (5+ years)' }
   ];
   
   const industries = [
@@ -46,8 +59,14 @@ export const EditProfilePage: React.FC = () => {
     { value: 'education', label: 'Education' },
     { value: 'retail', label: 'Retail' },
     { value: 'manufacturing', label: 'Manufacturing' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'design', label: 'Design' },
+    { value: 'consulting', label: 'Consulting' },
     { value: 'other', label: 'Other' }
   ];
+  
+  const showFreelancerFields = userData?.userType === 'freelancer' || userData?.userType === 'both';
+  const showClientFields = userData?.userType === 'client' || userData?.userType === 'both';
   
   useEffect(() => {
     if (!user) {
@@ -57,7 +76,13 @@ export const EditProfilePage: React.FC = () => {
   
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
+    
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -65,30 +90,21 @@ export const EditProfilePage: React.FC = () => {
       return;
     }
     
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
-      return;
-    }
-    
     setUploadingPhoto(true);
     
     try {
-      // Upload to Firebase Storage
-      const storageRef = ref(storage, `users/${user!.uid}/profile/${Date.now()}_${file.name}`);
+      const storageRef = ref(storage, `profile-photos/${user.uid}`);
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      // Update profile data
       setProfileData({ ...profileData, photoURL: downloadURL });
       
-      // Update in Firestore
-      await updateDoc(doc(db, 'users', user!.uid), {
-        photoURL: downloadURL,
-        updatedAt: serverTimestamp()
+      // Update in Firestore immediately
+      await updateDoc(doc(db, 'users', user.uid), {
+        photoURL: downloadURL
       });
       
-      toast.success('Profile photo updated');
+      toast.success('Photo uploaded successfully!');
     } catch (error) {
       console.error('Error uploading photo:', error);
       toast.error('Failed to upload photo');
@@ -97,116 +113,134 @@ export const EditProfilePage: React.FC = () => {
     }
   };
   
-  const addSkill = () => {
-    if (skillInput.trim() && profileData.skills.length < 10) {
-      setProfileData({ 
-        ...profileData, 
-        skills: [...profileData.skills, skillInput.trim()] 
+  const handleAddSkill = () => {
+    if (skillInput.trim() && profileData.skills.length < 15) {
+      setProfileData({
+        ...profileData,
+        skills: [...profileData.skills, skillInput.trim()]
       });
       setSkillInput('');
+    } else if (profileData.skills.length >= 15) {
+      toast.error('Maximum 15 skills allowed');
     }
   };
   
-  const removeSkill = (skillToRemove: string) => {
+  const handleRemoveSkill = (skillToRemove: string) => {
     setProfileData({
       ...profileData,
       skills: profileData.skills.filter(skill => skill !== skillToRemove)
     });
   };
   
-  const addLanguage = () => {
+  const handleAddLanguage = () => {
     if (languageInput.trim() && profileData.languages.length < 5) {
-      setProfileData({ 
-        ...profileData, 
-        languages: [...profileData.languages, languageInput.trim()] 
+      setProfileData({
+        ...profileData,
+        languages: [...profileData.languages, languageInput.trim()]
       });
       setLanguageInput('');
+    } else if (profileData.languages.length >= 5) {
+      toast.error('Maximum 5 languages allowed');
     }
   };
   
-  const removeLanguage = (languageToRemove: string) => {
+  const handleRemoveLanguage = (languageToRemove: string) => {
     if (profileData.languages.length > 1) {
       setProfileData({
         ...profileData,
         languages: profileData.languages.filter(lang => lang !== languageToRemove)
       });
+    } else {
+      toast.error('At least one language is required');
     }
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateProfile = () => {
+    if (!profileData.displayName.trim()) {
+      toast.error('Display name is required');
+      return false;
+    }
     
-    // Validate required fields
-    if (!profileData.displayName) {
-      toast.error('Please fill in all required fields');
-      return;
+    if (!profileData.bio.trim()) {
+      toast.error('Bio is required');
+      return false;
     }
     
     if ((userData?.userType === 'freelancer' || userData?.userType === 'both') && profileData.skills.length === 0) {
       toast.error('Please add at least one skill');
-      return;
+      return false;
     }
+    
+    if ((userData?.userType === 'freelancer' || userData?.userType === 'both') && profileData.hourlyRate <= 0) {
+      toast.error('Please set a valid hourly rate');
+      return false;
+    }
+    
+    return true;
+  };
+  
+  const handleSubmit = async () => {
+    if (!user || !validateProfile()) return;
     
     setLoading(true);
     
     try {
       const updateData: any = {
-        displayName: profileData.displayName,
-        bio: profileData.bio,
-        updatedAt: serverTimestamp()
+        displayName: profileData.displayName.trim(),
+        bio: profileData.bio.trim(),
+        updatedAt: serverTimestamp(),
+        lastActive: serverTimestamp(),
+        profileCompleted: true
       };
       
       // Add freelancer-specific fields
-      if (userData?.userType === 'freelancer' || userData?.userType === 'both') {
+      if (showFreelancerFields) {
         updateData.skills = profileData.skills;
-        updateData.hourlyRate = profileData.hourlyRate;
-        updateData.portfolio = profileData.portfolio;
+        updateData.hourlyRate = Number(profileData.hourlyRate);
         updateData.languages = profileData.languages;
         updateData.experienceLevel = profileData.experienceLevel;
+        updateData.experience = profileData.experience.trim();
         updateData.isAvailable = profileData.isAvailable;
       }
       
       // Add client-specific fields
-      if (userData?.userType === 'client' || userData?.userType === 'both') {
-        updateData.companyName = profileData.companyName;
+      if (showClientFields) {
+        updateData.companyName = profileData.companyName.trim();
         updateData.industry = profileData.industry;
       }
       
-      await updateDoc(doc(db, 'users', user!.uid), updateData);
+      await updateDoc(doc(db, 'users', user.uid), updateData);
       
       toast.success('Profile updated successfully!');
       navigate('/dashboard');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
   };
   
-  const userType = userData?.userType;
-  const showFreelancerFields = userType === 'freelancer' || userType === 'both';
-  const showClientFields = userType === 'client' || userType === 'both';
-  
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
+    <div className="min-h-screen bg-mesh">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        className="container mx-auto max-w-4xl px-4 py-8"
       >
-        <h1 className="text-3xl font-bold text-white mb-8">Edit Profile</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Edit Profile</h1>
+          <p className="text-gray-400">Update your profile information</p>
+        </div>
         
-        <form onSubmit={handleSubmit}>
+        <div className="space-y-6">
           {/* Profile Photo */}
-          <Card className="glass-effect border-none mb-6">
+          <Card className="glass-effect border-none">
             <CardBody className="p-6">
               <h2 className="text-xl font-semibold text-white mb-4">Profile Photo</h2>
               <div className="flex items-center gap-6">
                 <Avatar
-                  src={profileData.photoURL}
-                  name={profileData.displayName}
-                  size="lg"
+                  src={profileData.photoURL || `https://ui-avatars.com/api/?name=${profileData.displayName}&background=FCE90D&color=011241`}
                   className="w-24 h-24"
                 />
                 <div>
@@ -220,10 +254,10 @@ export const EditProfilePage: React.FC = () => {
                   <label htmlFor="photo-upload">
                     <Button
                       as="span"
-                      color="primary"
+                      color="secondary"
                       variant="flat"
                       isLoading={uploadingPhoto}
-                      className="cursor-pointer"
+                      disabled={uploadingPhoto}
                     >
                       {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
                     </Button>
@@ -237,7 +271,7 @@ export const EditProfilePage: React.FC = () => {
           </Card>
           
           {/* Basic Information */}
-          <Card className="glass-effect border-none mb-6">
+          <Card className="glass-effect border-none">
             <CardBody className="p-6">
               <h2 className="text-xl font-semibold text-white mb-4">Basic Information</h2>
               <div className="space-y-4">
@@ -246,20 +280,19 @@ export const EditProfilePage: React.FC = () => {
                   value={profileData.displayName}
                   onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
                   variant="bordered"
-                  className="text-white"
                   isRequired
                 />
                 
                 <Textarea
-                  label="Bio"
+                  label="Bio *"
                   placeholder="Tell others about yourself..."
                   value={profileData.bio}
                   onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                   variant="bordered"
-                  className="text-white"
                   minRows={4}
+                  maxRows={8}
+                  isRequired
                 />
-                
               </div>
             </CardBody>
           </Card>
@@ -267,31 +300,29 @@ export const EditProfilePage: React.FC = () => {
           {/* Freelancer-specific fields */}
           {showFreelancerFields && (
             <>
-              <Card className="glass-effect border-none mb-6">
+              <Card className="glass-effect border-none">
                 <CardBody className="p-6">
                   <h2 className="text-xl font-semibold text-white mb-4">Professional Details</h2>
                   <div className="space-y-4">
                     {/* Skills */}
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Skills * (Max 10)
+                        Skills * (Max 15)
                       </label>
                       <div className="flex gap-2 mb-2">
                         <Input
+                          placeholder="Add a skill..."
                           value={skillInput}
                           onChange={(e) => setSkillInput(e.target.value)}
-                          placeholder="Add a skill"
+                          onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
                           variant="bordered"
-                          className="text-white"
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                          size="sm"
                         />
                         <Button
-                          type="button"
-                          isIconOnly
                           color="secondary"
-                          variant="flat"
-                          onPress={addSkill}
-                          disabled={!skillInput.trim() || profileData.skills.length >= 10}
+                          size="sm"
+                          onPress={handleAddSkill}
+                          isIconOnly
                         >
                           <Icon icon="lucide:plus" />
                         </Button>
@@ -300,7 +331,7 @@ export const EditProfilePage: React.FC = () => {
                         {profileData.skills.map((skill) => (
                           <Chip
                             key={skill}
-                            onClose={() => removeSkill(skill)}
+                            onClose={() => handleRemoveSkill(skill)}
                             variant="flat"
                             color="secondary"
                           >
@@ -310,50 +341,45 @@ export const EditProfilePage: React.FC = () => {
                       </div>
                     </div>
                     
+                    {/* Hourly Rate */}
+                    <Input
+                      type="number"
+                      label="Hourly Rate (USD) *"
+                      value={profileData.hourlyRate.toString()}
+                      onChange={(e) => setProfileData({ ...profileData, hourlyRate: Number(e.target.value) })}
+                      variant="bordered"
+                      startContent="$"
+                      endContent="/hr"
+                      isRequired
+                    />
+                    
                     {/* Experience Level */}
                     <Select
-                      label="Experience Level"
-                      selectedKeys={[profileData.experienceLevel]}
+                      label="Experience Level *"
+                      selectedKeys={profileData.experienceLevel ? new Set([profileData.experienceLevel]) : new Set([])}
                       onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string;
-                        setProfileData({ ...profileData, experienceLevel: value as any });
+                        const selected = Array.from(keys)[0] as ExperienceLevel;
+                        setProfileData({ ...profileData, experienceLevel: selected });
                       }}
                       variant="bordered"
-                      classNames={{
-                        trigger: "bg-gray-900/50 border-gray-600 text-white",
-                        value: "text-white",
-                        listbox: "bg-gray-900",
-                        popoverContent: "bg-gray-900",
-                      }}
+                      isRequired
                     >
-                      {experienceLevels.map(level => (
+                      {experienceLevels.map((level) => (
                         <SelectItem key={level.value} value={level.value}>
                           {level.label}
                         </SelectItem>
                       ))}
                     </Select>
                     
-                    {/* Hourly Rate */}
-                    <Input
-                      type="number"
-                      label="Hourly Rate ($)"
-                      value={profileData.hourlyRate.toString()}
-                      onChange={(e) => setProfileData({ ...profileData, hourlyRate: parseFloat(e.target.value) || 0 })}
+                    {/* Experience Description */}
+                    <Textarea
+                      label="Experience Summary"
+                      placeholder="Describe your professional experience..."
+                      value={profileData.experience}
+                      onChange={(e) => setProfileData({ ...profileData, experience: e.target.value })}
                       variant="bordered"
-                      className="text-white"
-                      startContent={<span className="text-gray-400">$</span>}
-                      endContent={<span className="text-gray-400">/hour</span>}
-                    />
-                    
-                    {/* Portfolio */}
-                    <Input
-                      label="Portfolio Link"
-                      placeholder="https://your-portfolio.com"
-                      value={profileData.portfolio}
-                      onChange={(e) => setProfileData({ ...profileData, portfolio: e.target.value })}
-                      variant="bordered"
-                      className="text-white"
-                      startContent={<Icon icon="lucide:link" className="text-gray-400" />}
+                      minRows={3}
+                      maxRows={6}
                     />
                     
                     {/* Languages */}
@@ -363,20 +389,18 @@ export const EditProfilePage: React.FC = () => {
                       </label>
                       <div className="flex gap-2 mb-2">
                         <Input
+                          placeholder="Add a language..."
                           value={languageInput}
                           onChange={(e) => setLanguageInput(e.target.value)}
-                          placeholder="Add a language"
+                          onKeyPress={(e) => e.key === 'Enter' && handleAddLanguage()}
                           variant="bordered"
-                          className="text-white"
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLanguage())}
+                          size="sm"
                         />
                         <Button
-                          type="button"
-                          isIconOnly
                           color="secondary"
-                          variant="flat"
-                          onPress={addLanguage}
-                          disabled={!languageInput.trim() || profileData.languages.length >= 5}
+                          size="sm"
+                          onPress={handleAddLanguage}
+                          isIconOnly
                         >
                           <Icon icon="lucide:plus" />
                         </Button>
@@ -385,10 +409,9 @@ export const EditProfilePage: React.FC = () => {
                         {profileData.languages.map((language) => (
                           <Chip
                             key={language}
-                            onClose={() => removeLanguage(language)}
+                            onClose={() => handleRemoveLanguage(language)}
                             variant="flat"
-                            color="secondary"
-                            isCloseable={profileData.languages.length > 1}
+                            color="primary"
                           >
                             {language}
                           </Chip>
@@ -397,14 +420,17 @@ export const EditProfilePage: React.FC = () => {
                     </div>
                     
                     {/* Availability */}
-                    <div className="flex justify-between items-center">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white">Available for Work</p>
-                        <p className="text-gray-400 text-sm">Show your availability status to clients</p>
+                        <p className="text-white font-medium">Available for work</p>
+                        <p className="text-gray-400 text-sm">
+                          Let clients know you're open to new projects
+                        </p>
                       </div>
                       <Switch
                         isSelected={profileData.isAvailable}
                         onValueChange={(value) => setProfileData({ ...profileData, isAvailable: value })}
+                        color="success"
                       />
                     </div>
                   </div>
@@ -415,7 +441,7 @@ export const EditProfilePage: React.FC = () => {
           
           {/* Client-specific fields */}
           {showClientFields && (
-            <Card className="glass-effect border-none mb-6">
+            <Card className="glass-effect border-none">
               <CardBody className="p-6">
                 <h2 className="text-xl font-semibold text-white mb-4">Company Information</h2>
                 <div className="space-y-4">
@@ -424,26 +450,18 @@ export const EditProfilePage: React.FC = () => {
                     value={profileData.companyName}
                     onChange={(e) => setProfileData({ ...profileData, companyName: e.target.value })}
                     variant="bordered"
-                    className="text-white"
-                    startContent={<Icon icon="lucide:building" className="text-gray-400" />}
                   />
                   
                   <Select
                     label="Industry"
-                    selectedKeys={profileData.industry ? [profileData.industry] : []}
+                    selectedKeys={profileData.industry ? new Set([profileData.industry]) : new Set([])}
                     onSelectionChange={(keys) => {
-                      const value = Array.from(keys)[0] as string;
-                      setProfileData({ ...profileData, industry: value });
+                      const selected = Array.from(keys)[0] as string;
+                      setProfileData({ ...profileData, industry: selected });
                     }}
                     variant="bordered"
-                    classNames={{
-                      trigger: "bg-gray-900/50 border-gray-600 text-white",
-                      value: "text-white",
-                      listbox: "bg-gray-900",
-                      popoverContent: "bg-gray-900",
-                    }}
                   >
-                    {industries.map(industry => (
+                    {industries.map((industry) => (
                       <SelectItem key={industry.value} value={industry.value}>
                         {industry.label}
                       </SelectItem>
@@ -454,29 +472,31 @@ export const EditProfilePage: React.FC = () => {
             </Card>
           )}
           
-          {/* Identity Verification */}
-          <VerificationSection userData={userData} />
+          {/* Verification Section - Pass userData prop */}
+          {userData && <VerificationSection userData={userData} />}
           
           {/* Action Buttons */}
           <div className="flex gap-4">
             <Button
-              type="button"
-              variant="bordered"
+              color="secondary"
+              size="lg"
+              onPress={handleSubmit}
+              isLoading={loading}
+              disabled={loading}
               className="flex-1"
-              onPress={() => navigate('/dashboard')}
+            >
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+            <Button
+              variant="bordered"
+              size="lg"
+              onPress={() => navigate(-1)}
+              disabled={loading}
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              color="primary"
-              className="flex-1"
-              isLoading={loading}
-            >
-              Save Changes
-            </Button>
           </div>
-        </form>
+        </div>
       </motion.div>
     </div>
   );

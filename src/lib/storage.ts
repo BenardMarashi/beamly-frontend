@@ -11,7 +11,7 @@ export class StorageService {
   
   // Upload job attachment
   static async uploadJobAttachment(jobId: string, file: File): Promise<string> {
-    const storageRef = ref(storage, `jobs/${jobId}/attachments/${Date.now()}_${file.name}`);
+    const storageRef = ref(storage, `job/${jobId}/attachments/${Date.now()}_${file.name}`);
     const snapshot = await uploadBytes(storageRef, file);
     return getDownloadURL(snapshot.ref);
   }
