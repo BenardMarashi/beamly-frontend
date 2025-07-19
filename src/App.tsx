@@ -28,7 +28,6 @@ import { FreelancerProfilePage } from './pages/freelancer-profile';
 
 
 // Lazy load less frequently used pages
-const ProfilePage = lazy(() => import('./pages/freelancer-profile'));
 const EditProfilePage = lazy(() => import('./pages/profile/edit'));
 const DashboardPage = lazy(() => import('./pages/dashboard'));
 const BrowseJobsPage = lazy(() => import('./pages/looking-for-work'));
@@ -136,7 +135,7 @@ const AppRoutes = () => {
         
         <Route path="/profile/:userId" element={
           <ProtectedRoute>
-            <ProfilePage />
+            <FreelancerProfilePage />
           </ProtectedRoute>
         } />
         

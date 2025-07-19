@@ -2,7 +2,6 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Input, Button, Link, Tabs, Tab, Checkbox } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { BeamlyLogo } from "./beamly-logo";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/theme-context";
 import { useNavigate } from "react-router-dom";
@@ -111,7 +110,6 @@ export const SignupPage: React.FC<SignupPageProps> = ({ onSignup }) => {
         >
           <div className="text-center mb-6 md:mb-8">
             <Link href="/" className="inline-block">
-              <BeamlyLogo />
             </Link>
             <h2 className={`mt-4 md:mt-6 text-2xl md:text-3xl font-bold font-outfit ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               {t('signup.join')} <span className={isDarkMode ? "text-white" : "text-gray-900"}>Beamly</span> {t('signup.today')}

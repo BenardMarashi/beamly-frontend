@@ -307,17 +307,6 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                 >
                   Send Message
                 </Button>
-                <Button 
-                  variant="light" 
-                  className="w-full text-white"
-                  startContent={<Icon icon="lucide:bookmark" />}
-                  onPress={() => {
-                    toast.success('Profile saved');
-                  }}
-                  isDisabled={user?.uid === id}
-                >
-                  Save Profile
-                </Button>
               </div>
             </div>
           </div>
