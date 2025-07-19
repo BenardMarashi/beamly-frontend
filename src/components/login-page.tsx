@@ -4,7 +4,7 @@ import { Input, Button, Card, CardBody, Link } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { BeamlyLogo } from "./beamly-logo";
+
 
 interface LoginPageProps {
   onEmailLogin?: (email: string, password: string) => Promise<void>;
@@ -63,7 +63,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           <CardBody className="p-8">
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
-                <BeamlyLogo />
               </div>
               <h1 className="text-2xl font-bold text-white mb-2">
                 {t('login.welcomeBack')}

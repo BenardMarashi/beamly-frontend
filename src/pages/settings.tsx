@@ -31,7 +31,6 @@ import {
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
-
 const SettingsPage: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
@@ -58,14 +57,130 @@ const SettingsPage: React.FC = () => {
   });
   
   useEffect(() => {
+    // Scroll to top
+    window.scrollTo(0, 0);
+    
+    // CLOSE THE MENU - Comprehensive approach
+    const closeMenu = () => {
+      // Method 1: Look for NextUI Sheet/Drawer close button (most likely)
+      const closeButtons = [
+        document.querySelector('[aria-label="Close"]'),
+        document.querySelector('[data-slot="close-button"]'),
+        document.querySelector('.nextui-sheet-close'),
+        document.querySelector('.nextui-drawer-close'),
+        document.querySelector('[role="button"][aria-label*="close"]'),
+        document.querySelector('[role="button"][aria-label*="Close"]'),
+        // Check for any X icon button
+        document.querySelector('button svg[data-icon="x"]')?.parentElement,
+        document.querySelector('button svg[class*="lucide-x"]')?.parentElement,
+        // Check for menu-specific close
+        document.querySelector('#menu-close'),
+        document.querySelector('.menu-close-btn'),
+        document.querySelector('[data-menu-close]'),
+        // NextUI modal/sheet close patterns
+        document.querySelector('[data-dismiss]'),
+        document.querySelector('.absolute.top-2.right-2 button'),
+        document.querySelector('header button[aria-label]')
+      ].filter(Boolean);
+
+      for (const btn of closeButtons) {
+        if (btn) {
+          (btn as HTMLElement).click();
+          return true;
+        }
+      }
+
+      // Method 2: Look for backdrop/overlay (NextUI pattern)
+      const backdrops = [
+        document.querySelector('[data-slot="backdrop"]'),
+        document.querySelector('.nextui-backdrop'),
+        document.querySelector('[aria-label="Close menu"]'),
+        document.querySelector('[data-overlay]'),
+        document.querySelector('.overlay-backdrop'),
+        document.querySelector('[class*="backdrop"]'),
+        document.querySelector('[class*="overlay"]'),
+        // Check for any element with opacity that might be backdrop
+        document.querySelector('.fixed.inset-0')
+      ].filter(Boolean);
+
+      for (const backdrop of backdrops) {
+        if (backdrop && window.getComputedStyle(backdrop).display !== 'none') {
+          (backdrop as HTMLElement).click();
+          return true;
+        }
+      }
+
+      // Method 3: Check for open drawers/sheets and close them
+      const openDrawers = document.querySelectorAll('[data-state="open"]');
+      openDrawers.forEach(drawer => {
+        drawer.setAttribute('data-state', 'closed');
+      });
+
+      // Method 4: Trigger escape key on active element
+      const activeElement = document.activeElement as HTMLElement;
+      if (activeElement) {
+        activeElement.dispatchEvent(new KeyboardEvent('keydown', { 
+          key: 'Escape', 
+          code: 'Escape',
+          keyCode: 27,
+          which: 27,
+          bubbles: true,
+          cancelable: true
+        }));
+      }
+
+      // Method 5: Global escape event
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { 
+        key: 'Escape', 
+        code: 'Escape',
+        keyCode: 27,
+        which: 27,
+        bubbles: true,
+        cancelable: true
+      }));
+
+      // Method 6: Look for menu state in window or document
+      if ((window as any).closeMenu) {
+        (window as any).closeMenu();
+      }
+      if ((document as any).closeMenu) {
+        (document as any).closeMenu();
+      }
+
+      // Method 7: Force close by removing classes
+      document.body.classList.remove('menu-open', 'drawer-open', 'modal-open');
+      document.documentElement.classList.remove('overflow-hidden');
+
+      return false;
+    };
+
+    // Try immediately
+    closeMenu();
+    
+    // Try after short delays for components that mount slowly
+    const timer1 = setTimeout(closeMenu, 50);
+    const timer2 = setTimeout(closeMenu, 150);
+    const timer3 = setTimeout(closeMenu, 300);
+    
     if (!user) {
       navigate('/login');
     }
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
   }, [user, navigate]);
   
   const updateSetting = async (key: string, value: any) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
+    
+    // Apply theme immediately
+    if (key === 'theme') {
+      setTheme(value);
+    }
     
     try {
       const updateData: any = {};
@@ -157,8 +272,16 @@ const SettingsPage: React.FC = () => {
     i18n.changeLanguage(value);
   };
   
-return (
-        <div className="container mx-auto px-4 py-8 pt-20">
+  const handleThemeChange = (keys: any) => {
+    const selectedTheme = Array.from(keys)[0] as string;
+    if (selectedTheme) {
+      setTheme(selectedTheme as 'light' | 'dark');
+      updateSetting('theme', selectedTheme);
+    }
+  };
+  
+  return (
+    <div className="container mx-auto px-4 py-8 pt-20" style={{ position: 'relative', zIndex: 100 }}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -180,7 +303,7 @@ return (
                 </div>
                 <Select
                   selectedKeys={[theme]}
-                  onSelectionChange={(keys) => setTheme(Array.from(keys)[0] as any)}
+                  onSelectionChange={handleThemeChange}
                   className="w-40"
                   variant="bordered"
                   aria-label={t('settings.appearance.toggleTheme')}
@@ -235,6 +358,17 @@ return (
           <CardBody className="p-6">
             <h2 className="text-xl font-semibold text-white mb-4">Notifications</h2>
             <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-white">Email Notifications</p>
+                  <p className="text-gray-400 text-sm">Receive email notifications</p>
+                </div>
+                <Switch
+                  isSelected={settings.emailNotifications}
+                  onValueChange={(value) => updateSetting('emailNotifications', value)}
+                />
+              </div>
+              <Divider className="my-4" />
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-white">Push Notifications</p>
@@ -368,7 +502,7 @@ return (
         </ModalContent>
       </Modal>
     </div>
-);
+  );
 };
 
 export default SettingsPage;
