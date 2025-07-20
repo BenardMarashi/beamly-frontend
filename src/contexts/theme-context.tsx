@@ -1,13 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark'; // Removed 'system' option
 
 type ThemeContextType = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   isDarkMode: boolean;
   toggleTheme: () => void;
-  systemThemeIsDark: boolean;
 };
 
 const ThemeContext = createContext<ThemeContextType>({
@@ -15,7 +14,6 @@ const ThemeContext = createContext<ThemeContextType>({
   setTheme: () => {},
   isDarkMode: true,
   toggleTheme: () => {},
-  systemThemeIsDark: false
 });
 
 interface ThemeProviderProps {
@@ -23,36 +21,32 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ children }) => {
-  // Get initial theme - default to dark without localStorage
-  const [theme, setThemeState] = useState<Theme>('dark');
-  
-  // Derived state
-  const [isDarkMode, setIsDarkMode] = useState(theme === 'dark');
-  
-  // Add system theme detection
-  const [systemThemeIsDark, setSystemThemeIsDark] = useState(() => {
+  // Get initial theme from localStorage or default to dark
+  const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
-      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const savedTheme = localStorage.getItem('theme');
+      // Only accept 'light' or 'dark', default to 'dark' for any other value
+      if (savedTheme === 'light') {
+        return 'light';
+      }
     }
-    return false;
+    return 'dark'; // Always default to dark
   });
   
-  // Listen for system theme changes
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      
-      const handleChange = (e: MediaQueryListEvent) => {
-        setSystemThemeIsDark(e.matches);
-        if (theme === 'system') {
-          setIsDarkMode(e.matches);
-        }
-      };
-      
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
+  // Derived state for isDarkMode
+  const isDarkMode = theme === 'dark';
+  
+  // Define setTheme function
+  const setTheme = (newTheme: Theme) => {
+    // Ensure only 'light' or 'dark' can be set
+    const validTheme = newTheme === 'light' ? 'light' : 'dark';
+    setThemeState(validTheme);
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', validTheme);
     }
-  }, [theme]);
+  };
   
   // Define toggleTheme function
   const toggleTheme = () => {
@@ -60,42 +54,36 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
     setTheme(newTheme);
   };
   
-  // Add support for system theme preference
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    if (newTheme === 'system') {
-      setIsDarkMode(systemThemeIsDark);
-    } else {
-      setIsDarkMode(newTheme === 'dark');
-    }
-  };
-  
-  // Apply theme class to body and documentElement for comprehensive theming
+  // Apply theme class to body and documentElement
   useEffect(() => {
-    const isDark = theme === 'system' ? systemThemeIsDark : theme === 'dark';
-    
     // Remove all theme classes first
     document.documentElement.classList.remove('dark', 'light', 'dark-mode', 'light-mode');
     document.body.classList.remove('dark', 'light', 'dark-mode', 'light-mode');
     
-    if (isDark) {
-      // Add both for compatibility
+    if (theme === 'dark') {
+      // Add dark mode classes
       document.documentElement.classList.add('dark', 'dark-mode');
-      document.body.classList.add('dark-mode');
+      document.body.classList.add('dark', 'dark-mode');
+      document.documentElement.style.colorScheme = 'dark';
+      document.documentElement.setAttribute('data-theme', 'dark');
     } else {
-      // Add both for compatibility  
+      // Add light mode classes
       document.documentElement.classList.add('light', 'light-mode');
-      document.body.classList.add('light-mode');
+      document.body.classList.add('light', 'light-mode');
+      document.documentElement.style.colorScheme = 'light';
+      document.documentElement.setAttribute('data-theme', 'light');
     }
-  }, [theme, systemThemeIsDark]);
+    
+    // Dispatch custom event for components that need to know about theme changes
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
+  }, [theme]);
   
-  // Expose system theme option
+  // Context value
   const contextValue: ThemeContextType = {
+    theme,
+    setTheme,
     isDarkMode,
     toggleTheme,
-    setTheme,
-    theme,
-    systemThemeIsDark
   };
   
   return (
@@ -105,6 +93,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(({ childre
   );
 });
 
-export const useTheme = () => useContext(ThemeContext);
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
+  return context;
+};
 
 ThemeProvider.displayName = 'ThemeProvider';

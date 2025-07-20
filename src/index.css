@@ -1692,9 +1692,16 @@ textarea {
             }
         }
 
-/* In your index.css or globals.css */
-.glass-effect {
-  @apply backdrop-blur-md bg-white/70 dark:bg-gray-800/50 
-         border border-gray-200 dark:border-gray-700
-         shadow-lg dark:shadow-none;
+.hamburger-menu-panel {
+  z-index: 999 !important;
+}
+
+.hamburger-overlay {
+  z-index: 998 !important;
+}
+
+/* Ensure menu is on the right side */
+.fixed.top-0.right-0.bottom-0 {
+  right: 0 !important;
+  left: auto !important;
 }

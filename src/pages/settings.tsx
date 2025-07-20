@@ -56,122 +56,37 @@ const SettingsPage: React.FC = () => {
     confirmPassword: ''
   });
   
-  useEffect(() => {
-    // Scroll to top
-    window.scrollTo(0, 0);
+// In your settings.tsx file, replace the first useEffect with this simpler version:
+
+useEffect(() => {
+  // Scroll to top
+  window.scrollTo(0, 0);
+  
+  // Simple menu close - just remove the class, don't click anything
+  const closeMenu = () => {
+    // Remove menu-open class
+    document.body.classList.remove('menu-open');
     
-    // CLOSE THE MENU - Comprehensive approach
-    const closeMenu = () => {
-      // Method 1: Look for NextUI Sheet/Drawer close button (most likely)
-      const closeButtons = [
-        document.querySelector('[aria-label="Close"]'),
-        document.querySelector('[data-slot="close-button"]'),
-        document.querySelector('.nextui-sheet-close'),
-        document.querySelector('.nextui-drawer-close'),
-        document.querySelector('[role="button"][aria-label*="close"]'),
-        document.querySelector('[role="button"][aria-label*="Close"]'),
-        // Check for any X icon button
-        document.querySelector('button svg[data-icon="x"]')?.parentElement,
-        document.querySelector('button svg[class*="lucide-x"]')?.parentElement,
-        // Check for menu-specific close
-        document.querySelector('#menu-close'),
-        document.querySelector('.menu-close-btn'),
-        document.querySelector('[data-menu-close]'),
-        // NextUI modal/sheet close patterns
-        document.querySelector('[data-dismiss]'),
-        document.querySelector('.absolute.top-2.right-2 button'),
-        document.querySelector('header button[aria-label]')
-      ].filter(Boolean);
-
-      for (const btn of closeButtons) {
-        if (btn) {
-          (btn as HTMLElement).click();
-          return true;
-        }
+    // Hide any open menus by adding a temporary class
+    const menus = document.querySelectorAll('.hamburger-menu-panel');
+    menus.forEach(menu => {
+      if (menu instanceof HTMLElement) {
+        menu.style.display = 'none';
+        // Allow it to be shown again after a delay
+        setTimeout(() => {
+          menu.style.display = '';
+        }, 500);
       }
-
-      // Method 2: Look for backdrop/overlay (NextUI pattern)
-      const backdrops = [
-        document.querySelector('[data-slot="backdrop"]'),
-        document.querySelector('.nextui-backdrop'),
-        document.querySelector('[aria-label="Close menu"]'),
-        document.querySelector('[data-overlay]'),
-        document.querySelector('.overlay-backdrop'),
-        document.querySelector('[class*="backdrop"]'),
-        document.querySelector('[class*="overlay"]'),
-        // Check for any element with opacity that might be backdrop
-        document.querySelector('.fixed.inset-0')
-      ].filter(Boolean);
-
-      for (const backdrop of backdrops) {
-        if (backdrop && window.getComputedStyle(backdrop).display !== 'none') {
-          (backdrop as HTMLElement).click();
-          return true;
-        }
-      }
-
-      // Method 3: Check for open drawers/sheets and close them
-      const openDrawers = document.querySelectorAll('[data-state="open"]');
-      openDrawers.forEach(drawer => {
-        drawer.setAttribute('data-state', 'closed');
-      });
-
-      // Method 4: Trigger escape key on active element
-      const activeElement = document.activeElement as HTMLElement;
-      if (activeElement) {
-        activeElement.dispatchEvent(new KeyboardEvent('keydown', { 
-          key: 'Escape', 
-          code: 'Escape',
-          keyCode: 27,
-          which: 27,
-          bubbles: true,
-          cancelable: true
-        }));
-      }
-
-      // Method 5: Global escape event
-      document.body.dispatchEvent(new KeyboardEvent('keydown', { 
-        key: 'Escape', 
-        code: 'Escape',
-        keyCode: 27,
-        which: 27,
-        bubbles: true,
-        cancelable: true
-      }));
-
-      // Method 6: Look for menu state in window or document
-      if ((window as any).closeMenu) {
-        (window as any).closeMenu();
-      }
-      if ((document as any).closeMenu) {
-        (document as any).closeMenu();
-      }
-
-      // Method 7: Force close by removing classes
-      document.body.classList.remove('menu-open', 'drawer-open', 'modal-open');
-      document.documentElement.classList.remove('overflow-hidden');
-
-      return false;
-    };
-
-    // Try immediately
-    closeMenu();
-    
-    // Try after short delays for components that mount slowly
-    const timer1 = setTimeout(closeMenu, 50);
-    const timer2 = setTimeout(closeMenu, 150);
-    const timer3 = setTimeout(closeMenu, 300);
-    
-    if (!user) {
-      navigate('/login');
-    }
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-    };
-  }, [user, navigate]);
+    });
+  };
+  
+  // Close immediately
+  closeMenu();
+  
+  if (!user) {
+    navigate('/login');
+  }
+}, [user, navigate]);
   
   const updateSetting = async (key: string, value: any) => {
     const newSettings = { ...settings, [key]: value };
@@ -274,9 +189,15 @@ const SettingsPage: React.FC = () => {
   
   const handleThemeChange = (keys: any) => {
     const selectedTheme = Array.from(keys)[0] as string;
-    if (selectedTheme) {
+    if (selectedTheme && (selectedTheme === 'light' || selectedTheme === 'dark')) {
+      // Update theme
       setTheme(selectedTheme as 'light' | 'dark');
+      
+      // Update setting in database
       updateSetting('theme', selectedTheme);
+      
+      // Show success toast
+      toast.success(`Theme changed to ${selectedTheme}`);
     }
   };
   
