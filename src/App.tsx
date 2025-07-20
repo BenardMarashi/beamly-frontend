@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocat
 import { NextUIProvider } from '@nextui-org/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
-import { Toaster } from 'react-hot-toast';
+import { ThemeProvider } from './contexts/theme-context';
+import { Toaster, toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Spinner } from '@nextui-org/react';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -13,7 +14,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 
-// Layouts
+// Layouts - Keep your current layout system
 import { MainLayout } from './layouts/main-layout';
 import { DashboardLayout } from './layouts/dashboard-layout';
 
@@ -25,7 +26,6 @@ import { MessagesPage } from './pages/messages';
 import { ConversationsListPage } from './pages/conversations-list';
 import { PostProjectPage } from './pages/post-project';
 import { FreelancerProfilePage } from './pages/freelancer-profile';
-
 
 // Lazy load less frequently used pages
 const EditProfilePage = lazy(() => import('./pages/profile/edit'));
@@ -96,7 +96,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   return <>{children}</>;
 };
 
-// Route configuration with layouts
+// Route configuration with your existing layout system
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
@@ -105,121 +105,123 @@ const AppRoutes = () => {
   }
 
   return (
-    <Routes>
-      {/* Public routes with MainLayout */}
-      <Route element={<MainLayout />}>
-        <Route path="/" element={user ? <Navigate to="/dashboard" /> : <HomePage />} />
-        <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
-        <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <SignupPage />} />
-        <Route path="/browse-jobs" element={<BrowseJobsPage />} />
-        <Route path="/browse-freelancers" element={<BrowseFreelancersPage />} />
-        <Route path="/freelancer/:id" element={<FreelancerProfilePage />} />
-        <Route path="/job/:id" element={<JobDetailsPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/help" element={<HelpPage />} />
-        <Route path="/looking-for-work" element={<Navigate to="/browse-jobs" replace />} />
-        <Route path="/profile/edit" element={<Navigate to="/edit-profile" replace />} />
-        <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
-        <Route path="/job/manage" element={<ProtectedRoute><ManageJobsPage /></ProtectedRoute>} />
-        <Route path="/chat" element={<Navigate to="/messages" replace />} />
-      </Route>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        {/* Public routes with MainLayout */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={user ? <Navigate to="/dashboard" /> : <HomePage />} />
+          <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
+          <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <SignupPage />} />
+          <Route path="/browse-jobs" element={<BrowseJobsPage />} />
+          <Route path="/browse-freelancers" element={<BrowseFreelancersPage />} />
+          <Route path="/freelancer/:id" element={<FreelancerProfilePage />} />
+          <Route path="/job/:id" element={<JobDetailsPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/looking-for-work" element={<Navigate to="/browse-jobs" replace />} />
+          <Route path="/profile/edit" element={<Navigate to="/edit-profile" replace />} />
+          <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+          <Route path="/job/manage" element={<ProtectedRoute><ManageJobsPage /></ProtectedRoute>} />
+          <Route path="/chat" element={<Navigate to="/messages" replace />} />
+        </Route>
 
-      {/* Protected routes with DashboardLayout */}
-      <Route element={<DashboardLayout />}>
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/profile/:userId" element={
-          <ProtectedRoute>
-            <FreelancerProfilePage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/edit-profile" element={
-          <ProtectedRoute>
-            <EditProfilePage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/messages" element={
-          <ProtectedRoute requiresProfile={true}>
-            <ConversationsListPage />
-          </ProtectedRoute>
-        } />
+        {/* Protected routes with DashboardLayout - but without its own navigation */}
+        <Route element={<MainLayout />}>
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/profile/:userId" element={
+            <ProtectedRoute>
+              <FreelancerProfilePage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/edit-profile" element={
+            <ProtectedRoute>
+              <EditProfilePage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/messages" element={
+            <ProtectedRoute requiresProfile={true}>
+              <ConversationsListPage />
+            </ProtectedRoute>
+          } />
 
-        <Route path="/messages/:conversationId" element={
-          <ProtectedRoute requiresProfile={true}>
-            {window.innerWidth < 768 ? <MessagesPage /> : <ConversationsListPage />}
-          </ProtectedRoute>
-        } />
-        
-        {/* Job Routes */}
-        <Route path="/post-job" element={
-          <ProtectedRoute requiresProfile={true} allowedUserTypes={['client', 'both']}>
-            <PostJobPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/my-jobs" element={
-          <ProtectedRoute requiresProfile={true}>
-            <BrowseJobsPage />
-          </ProtectedRoute>
-        } />
-        
-        {/* Project Routes */}
-        <Route path="/post-project" element={
-          <ProtectedRoute requiresProfile={true} allowedUserTypes={['freelancer', 'both']}>
-            <PostProjectPage />
-          </ProtectedRoute>
-        } />
-        
-        {/* Proposals */}
-        <Route path="/proposals" element={
-          <ProtectedRoute requiresProfile={true}>
-            <ProposalsPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/job/:jobId/proposals" element={
-          <ProtectedRoute requiresProfile={true} allowedUserTypes={['client', 'both']}>
-            <ProposalsPage />
-          </ProtectedRoute>
-        } />
-        
-        {/* Payments */}
-        <Route path="/payments" element={
-          <ProtectedRoute requiresProfile={true}>
-            <PaymentsPage />
-          </ProtectedRoute>
-        } />
-        
-        {/* Other Protected Routes */}
-        <Route path="/notifications" element={
-          <ProtectedRoute>
-            <NotificationsPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <SettingsPage />
-          </ProtectedRoute>
-        } />
-      </Route>
+          <Route path="/messages/:conversationId" element={
+            <ProtectedRoute requiresProfile={true}>
+              {window.innerWidth < 768 ? <MessagesPage /> : <ConversationsListPage />}
+            </ProtectedRoute>
+          } />
+          
+          {/* Job Routes */}
+          <Route path="/post-job" element={
+            <ProtectedRoute requiresProfile={true} allowedUserTypes={['client', 'both']}>
+              <PostJobPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/my-jobs" element={
+            <ProtectedRoute requiresProfile={true}>
+              <BrowseJobsPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Project Routes */}
+          <Route path="/post-project" element={
+            <ProtectedRoute requiresProfile={true} allowedUserTypes={['freelancer', 'both']}>
+              <PostProjectPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Proposals */}
+          <Route path="/proposals" element={
+            <ProtectedRoute requiresProfile={true}>
+              <ProposalsPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/job/:jobId/proposals" element={
+            <ProtectedRoute requiresProfile={true} allowedUserTypes={['client', 'both']}>
+              <ProposalsPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Payments */}
+          <Route path="/payments" element={
+            <ProtectedRoute requiresProfile={true}>
+              <PaymentsPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Other Protected Routes */}
+          <Route path="/notifications" element={
+            <ProtectedRoute>
+              <NotificationsPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          } />
+        </Route>
 
-      {/* 404 Route */}
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+        {/* 404 Route */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Suspense>
   );
 };
 
 // Main App Component
 function App() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   useEffect(() => {
     // Check for saved theme preference
@@ -275,51 +277,53 @@ function App() {
     <ErrorBoundary>
       <I18nextProvider i18n={i18n}>
         <NextUIProvider>
-          <Router>
-            <AuthProvider>
-              <NotificationProvider>
-                <div className="min-h-screen bg-background text-foreground">
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <AppRoutes />
-                      </motion.div>
-                    </AnimatePresence>
-                  </Suspense>
-                  
-                  {/* Toast Notifications */}
-                  <Toaster
-                    position="top-right"
-                    toastOptions={{
-                      duration: 4000,
-                      style: {
-                        background: theme === 'dark' ? '#18181b' : '#ffffff',
-                        color: theme === 'dark' ? '#ffffff' : '#000000',
-                        border: `1px solid ${theme === 'dark' ? '#27272a' : '#e4e4e7'}`,
-                      },
-                      success: {
-                        iconTheme: {
-                          primary: '#10b981',
-                          secondary: '#ffffff',
+          <ThemeProvider>
+            <Router>
+              <AuthProvider>
+                <NotificationProvider>
+                  <div className="min-h-screen bg-background text-foreground">
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <AppRoutes />
+                        </motion.div>
+                      </AnimatePresence>
+                    </Suspense>
+                    
+                    {/* Toast Notifications */}
+                    <Toaster
+                      position="top-right"
+                      toastOptions={{
+                        duration: 4000,
+                        style: {
+                          background: theme === 'dark' ? '#18181b' : '#ffffff',
+                          color: theme === 'dark' ? '#ffffff' : '#000000',
+                          border: `1px solid ${theme === 'dark' ? '#27272a' : '#e4e4e7'}`,
                         },
-                      },
-                      error: {
-                        iconTheme: {
-                          primary: '#ef4444',
-                          secondary: '#ffffff',
+                        success: {
+                          iconTheme: {
+                            primary: '#10b981',
+                            secondary: '#ffffff',
+                          },
                         },
-                      },
-                    }}
-                  />
-                </div>
-              </NotificationProvider>
-            </AuthProvider>
-          </Router>
+                        error: {
+                          iconTheme: {
+                            primary: '#ef4444',
+                            secondary: '#ffffff',
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </NotificationProvider>
+              </AuthProvider>
+            </Router>
+          </ThemeProvider>
         </NextUIProvider>
       </I18nextProvider>
     </ErrorBoundary>

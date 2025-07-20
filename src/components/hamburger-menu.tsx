@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useTheme } from '../contexts/theme-context';
@@ -27,24 +28,45 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
   const { isDarkMode } = useTheme();
   const { user, userData } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const previousLocation = useRef(location.pathname);
   
-  // Prevent body scroll when menu is open
+  // Close menu when location changes
+  useEffect(() => {
+    if (previousLocation.current !== location.pathname) {
+      previousLocation.current = location.pathname;
+      if (isOpen) {
+        onClose();
+      }
+    }
+  }, [location.pathname, isOpen, onClose]);
+
+  // Handle body scroll and cleanup
   useEffect(() => {
     if (isOpen) {
+      // Add classes and styles when opening
       document.body.style.overflow = 'hidden';
       document.body.classList.add('menu-open');
     } else {
-      document.body.style.overflow = 'unset';
+      // IMPORTANT: Clean up everything when closing
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
       document.body.classList.remove('menu-open');
     }
     
+    // Cleanup on unmount
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
       document.body.classList.remove('menu-open');
     };
   }, [isOpen]);
 
-  // Handle click outside to close menu
+  // Handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -62,8 +84,10 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
   }, [isOpen, onClose]);
   
   const handleNavigation = (path: string) => {
-    navigate(path);
-    onClose();
+    onClose(); // Close menu first
+    setTimeout(() => {
+      navigate(path); // Then navigate
+    }, 100); // Small delay to ensure animation completes
   };
 
   const handleLogout = async () => {
@@ -86,7 +110,6 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
   // Menu items based on authentication state
   const getMenuItems = () => {
     if (!isLoggedIn || !user) {
-      // Non-authenticated menu items
       return [
         { name: "Home", path: "/", icon: "lucide:home" },
         { name: "Browse Freelancers", path: "/browse-freelancers", icon: "lucide:users" },
@@ -95,7 +118,6 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
       ];
     }
 
-    // Authenticated menu items - show all items on all pages
     const menuItems = [
       { name: "Home", path: "/", icon: "lucide:home" },
       { name: "Browse Freelancers", path: "/browse-freelancers", icon: "lucide:users" },
@@ -107,7 +129,6 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
       { name: "Settings", path: "/settings", icon: "lucide:settings" }
     ];
 
-    // Add user type specific items
     if (isFreelancer) {
       menuItems.push(
         { name: "Post Project", path: "/post-project", icon: "lucide:folder-plus" },
@@ -126,151 +147,133 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
   };
 
   const menuItems = getMenuItems();
-  
-  // Animation variants
-  const menuVariants: Variants = {
-    closed: {
-      x: "100%",
-      transition: {
-        type: "tween" as const,
-        duration: 0.3,
-        ease: "easeInOut"
-      }
-    },
-    open: {
-      x: 0,
-      transition: {
-        type: "tween" as const,
-        duration: 0.3,
-        ease: "easeInOut"
-      }
-    }
-  };
 
-  const overlayVariants: Variants = {
-    closed: { 
-      opacity: 0,
-      transition: { duration: 0.2 }
-    },
-    open: { 
-      opacity: 0.5,
-      transition: { duration: 0.2 }
-    }
-  };
+  // Don't render anything if not open
+  if (!isOpen) return null;
 
-return (
-  <AnimatePresence>
-    {isOpen && (
-      <>
-        {/* Overlay */}
-        <motion.div
-          variants={overlayVariants}
-          initial="closed"
-          animate="open"
-          exit="closed"
-          className="fixed inset-0 bg-black z-[9998] hamburger-overlay"
-          onClick={onClose}
-        />
-        
-        {/* Menu Panel */}
-        <motion.div
-          className={`fixed inset-y-0 right-0 w-full sm:w-80 z-[9999] hamburger-menu-panel ${
-            isDarkMode ? 'glass-effect' : 'bg-white'
-          } ${isDarkMode ? 'text-white' : 'text-gray-900'} shadow-xl`}
-          variants={menuVariants}
-          initial="closed"
-          animate="open"
-          exit="closed"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold">Menu</h2>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <Icon icon="lucide:x" className="w-6 h-6" />
-            </button>
-          </div>
-          
-          {/* User Profile Section */}
-          {isLoggedIn && user && (
-            <div 
-              className="p-6 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-              onClick={() => handleNavigation('/edit-profile')}
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <h3 className="font-semibold">{userData?.displayName || 'User'}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                    {userType}
-                  </p>
+  return (
+    <AnimatePresence mode="wait">
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }} // Faster fade
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm cursor-pointer"
+            style={{ zIndex: 9998 }} // Much higher z-index
+            onClick={onClose}
+            aria-hidden="true"
+          />
+
+                    
+          {/* Menu Panel */}
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ 
+              type: 'tween', // Change from spring to tween
+              duration: 0.2, // 200ms animation
+              ease: 'easeOut'
+            }}
+            className="glass-effect shadow-xl"
+            style={{ 
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 'auto',
+              width: '320px',
+              maxWidth: '80vw',
+              zIndex: 9999 // Much higher z-index
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold">Menu</h2>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <Icon icon="lucide:x" className="w-6 h-6" />
+              </button>
+            </div>
+            
+            {/* User Profile Section */}
+            {isLoggedIn && user && (
+              <div 
+                className="p-6 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                onClick={() => handleNavigation('/edit-profile')}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{userData?.displayName || 'User'}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                      {userType}
+                    </p>
+                  </div>
+                  <Icon icon="lucide:chevron-right" className="w-5 h-5 text-gray-400" />
                 </div>
-                <Icon icon="lucide:chevron-right" className="w-5 h-5 text-gray-400" />
               </div>
-            </div>
-          )}
-          
-          {/* Main Content Area - Remove flex-1 to prevent stretching */}
-          <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+            )}
+            
             {/* Navigation Items */}
-            <nav className="p-6 space-y-1">
-              {menuItems.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => handleNavigation(item.path)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
-                >
-                  <Icon icon={item.icon} className="w-5 h-5" />
-                  <span>{item.name}</span>
-                </button>
-              ))}
-              
-              {/* Sign Out Section - Now part of the menu items list */}
-              {isLoggedIn && (
-                <>
-                  {/* Divider */}
-                  <div className="my-4 pt-4 border-t border-gray-200 dark:border-gray-700" />
-                  
-                  {/* Sign Out Button */}
-                  <Button
-                    color="danger"
-                    variant="flat"
-                    className="w-full"
-                    onPress={handleLogout}
-                    startContent={<Icon icon="lucide:log-out" />}
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+              <nav className="p-6 space-y-1">
+                {menuItems.map((item) => (
+                  <button
+                    key={item.path}
+                    onClick={() => handleNavigation(item.path)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
                   >
-                    Sign Out
-                  </Button>
-                </>
-              )}
-            </nav>
-          </div>
-          
-          {/* Sign In/Up buttons for non-authenticated users - Keep at bottom */}
-          {!isLoggedIn && (
-            <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-200 dark:border-gray-700 space-y-3">
-              <Button
-                color="primary"
-                className="w-full"
-                onClick={() => handleNavigation('/login')}
-              >
-                Sign In
-              </Button>
-              <Button
-                variant="bordered"
-                className="w-full"
-                onClick={() => handleNavigation('/signup')}
-              >
-                Sign Up
-              </Button>
+                    <Icon icon={item.icon} className="w-5 h-5" />
+                    <span>{item.name}</span>
+                  </button>
+                ))}
+                
+                {/* Sign Out */}
+                {isLoggedIn && (
+                  <>
+                    <div className="my-4 pt-4 border-t border-gray-200 dark:border-gray-700" />
+                    <Button
+                      color="danger"
+                      variant="flat"
+                      className="w-full"
+                      onPress={handleLogout}
+                      startContent={<Icon icon="lucide:log-out" />}
+                    >
+                      Sign Out
+                    </Button>
+                  </>
+                )}
+              </nav>
             </div>
-          )}
-        </motion.div>
-      </>
-    )}
-  </AnimatePresence>
-);
+            
+            {/* Sign In/Up buttons */}
+            {!isLoggedIn && (
+              <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                <Button
+                  color="primary"
+                  className="w-full"
+                  onClick={() => handleNavigation('/login')}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  variant="bordered"
+                  className="w-full"
+                  onClick={() => handleNavigation('/signup')}
+                >
+                  Sign Up
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 });
 
 HamburgerMenu.displayName = 'HamburgerMenu';
