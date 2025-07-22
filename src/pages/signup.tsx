@@ -18,12 +18,15 @@ export const SignupPage: React.FC = () => {
     fullName: "",
     email: "",
     password: "",
-    confirmPassword: "",
     accountType: "freelancer",
+    // Add freelancer/company fields to state
+    skills: "",
+    experience: "",
+    companyName: "",
+    industry: "",
     agreeToTerms: false
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const loading = signupLoading || googleLoading;
   
@@ -37,15 +40,23 @@ export const SignupPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
-    if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
-      toast.error('Please fill in all fields');
+    // Common fields validation
+    if (!formData.fullName || !formData.email || !formData.password) {
+      toast.error('Please fill in all required fields');
       return;
     }
     
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
+    // Role-specific validation
+    if (formData.accountType === "freelancer") {
+      if (!formData.skills || !formData.experience) {
+        toast.error('Please fill in skills and experience');
+        return;
+      }
+    } else if (formData.accountType === "client") {
+      if (!formData.companyName || !formData.industry) {
+        toast.error('Please fill in company name and industry');
+        return;
+      }
     }
     
     if (formData.password.length < 6) {
@@ -58,30 +69,33 @@ export const SignupPage: React.FC = () => {
       return;
     }
     
-    // Map account type - ensure proper type
-    let userType: 'freelancer' | 'client' | 'both';
-    
-    if (formData.accountType === 'freelancer') {
-      userType = 'freelancer';
-    } else if (formData.accountType === 'client') {
-      userType = 'client';
-    } else {
-      userType = 'both';
-    }
-    
-    // Fix: Convert 'both' to 'client' for the signUp function
-    // The signUp function only accepts 'freelancer' | 'client'
-    const signUpUserType: 'freelancer' | 'client' = 
-      userType === 'both' ? 'client' : userType;
+    // Determine user type
+    const userType = formData.accountType === "freelancer" ? "freelancer" : "client";
     
     const result = await signUp(
       formData.email,
       formData.password,
       formData.fullName,
-      signUpUserType  // Use the converted type here
+      userType
     );
     
     if (result) {
+      // Store additional profile data for the create-profile page
+      const profileData = {
+        userType,
+        ...(formData.accountType === "freelancer" 
+          ? { 
+              skills: formData.skills.split(',').map(s => s.trim()).filter(s => s),
+              experience: parseInt(formData.experience) || 0
+            }
+          : { 
+              companyName: formData.companyName,
+              industry: formData.industry
+            }
+        )
+      };
+      
+      localStorage.setItem('pendingProfileData', JSON.stringify(profileData));
       navigate('/create-profile');
     }
   };
@@ -152,7 +166,6 @@ export const SignupPage: React.FC = () => {
             </Tabs>
 
             <form className="space-y-6" onSubmit={handleSubmit}>
-
               <div>
                 <label htmlFor="fullName" className="block text-sm font-medium text-gray-200 mb-1 font-outfit">
                   Full Name
@@ -208,7 +221,7 @@ export const SignupPage: React.FC = () => {
                   variant="bordered"
                 />
                 <p className="mt-1 text-xs text-gray-400 font-outfit">
-                  Password must be at least 6 characters with numbers and special characters
+                  Password must be at least 6 characters
                 </p>
               </div>
 
@@ -221,6 +234,8 @@ export const SignupPage: React.FC = () => {
                     <Input
                       id="skills"
                       placeholder="e.g. Web Design, Logo Design"
+                      value={formData.skills}
+                      onValueChange={(value) => setFormData({ ...formData, skills: value })}
                       startContent={<Icon icon="lucide:code" className="text-gray-400" />}
                       className="bg-white/10 border-white/20"
                       variant="bordered"
@@ -234,6 +249,8 @@ export const SignupPage: React.FC = () => {
                       id="experience"
                       type="number"
                       placeholder="Years of experience"
+                      value={formData.experience}
+                      onValueChange={(value) => setFormData({ ...formData, experience: value })}
                       startContent={<Icon icon="lucide:briefcase" className="text-gray-400" />}
                       className="bg-white/10 border-white/20"
                       variant="bordered"
@@ -251,6 +268,8 @@ export const SignupPage: React.FC = () => {
                     <Input
                       id="company"
                       placeholder="Your company name"
+                      value={formData.companyName}
+                      onValueChange={(value) => setFormData({ ...formData, companyName: value })}
                       startContent={<Icon icon="lucide:building" className="text-gray-400" />}
                       className="bg-white/10 border-white/20"
                       variant="bordered"
@@ -263,6 +282,8 @@ export const SignupPage: React.FC = () => {
                     <Input
                       id="industry"
                       placeholder="e.g. Technology, Healthcare"
+                      value={formData.industry}
+                      onValueChange={(value) => setFormData({ ...formData, industry: value })}
                       startContent={<Icon icon="lucide:layers" className="text-gray-400" />}
                       className="bg-white/10 border-white/20"
                       variant="bordered"
@@ -317,7 +338,7 @@ export const SignupPage: React.FC = () => {
                   color="default"
                   startContent={<Icon icon="lucide:arrow-left" />}
                   className="mt-4 text-white"
-                  onPress={() => window.history.back()}
+                  onPress={() => navigate(-1)}
                 >
                   Go Back
                 </Button>

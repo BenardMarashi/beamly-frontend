@@ -25,12 +25,38 @@ service firebase.storage {
     }
     
     function isValidSize() {
-      // Max 10MB for documents, 5MB for images
-      return (isImage() && request.resource.size < 5 * 1024 * 1024) ||
-             (isDocument() && request.resource.size < 10 * 1024 * 1024);
+      // Max 10MB for all files (documents and images)
+      return request.resource.size < 10 * 1024 * 1024;
     }
     
-    // User profile images
+    // ===== PROPOSALS ATTACHMENTS - ADD THIS SECTION =====
+    match /proposals/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && isValidSize();
+      allow delete: if isOwner(userId);
+    }
+    
+    match /proposals/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && isValidSize();
+      allow delete: if isOwner(userId);
+    }
+    // ===== END PROPOSALS SECTION =====
+    
+    // ===== PROFILE PHOTOS =====
+    match /profile-photos/{userId}/{fileName} {
+      allow read: if true; // Public profile images
+      allow write: if isOwner(userId) && isImage() && isValidSize();
+      allow delete: if isOwner(userId);
+    }
+    
+    match /profile-photos/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isImage() && isValidSize();
+      allow delete: if isOwner(userId);
+    }
+    
+    // User profile images (alternative path)
     match /users/{userId}/profile/{fileName} {
       allow read: if true; // Public profile images
       allow write: if isOwner(userId) && isImage() && isValidSize();
@@ -45,14 +71,14 @@ service firebase.storage {
     }
     
     // Job attachments
-    match /job/{jobId}/attachments/{fileName} {
+    match /jobs/{jobId}/attachments/{fileName} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && isValidSize();
       allow delete: if isAuthenticated();
     }
     
-    // Proposal attachments
-    match /proposals/{proposalId}/attachments/{fileName} {
+    // Proposal attachments (alternative path)
+    match /proposal-attachments/{proposalId}/{fileName} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && isValidSize();
       allow delete: if isAuthenticated();
@@ -79,10 +105,16 @@ service firebase.storage {
       allow delete: if isAuthenticated();
     }
     
-    // Project images - Temporary public access for CORS fix
-    match /projects/{userId}/{fileName} {
+    // Project images
+    match /projects/{userId}/{projectId}/{fileName} {
       allow read: if true; // Public project images
-      allow write: if request.auth != null && isImage() && isValidSize(); // Any authenticated user can write
+      allow write: if isOwner(userId) && isImage() && isValidSize();
+      allow delete: if isOwner(userId);
+    }
+    
+    match /projects/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isImage() && isValidSize();
       allow delete: if isOwner(userId);
     }
     

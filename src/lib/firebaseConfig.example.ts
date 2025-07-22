@@ -16,7 +16,3 @@
     
     // Stripe configuration
     export const STRIPE_PUBLIC_KEY = "pk_test_your_stripe_public_key";
-    
-    // Paddle configuration
-    export const PADDLE_CLIENT_TOKEN = "your_paddle_client_token";
-    export const PADDLE_ENVIRONMENT = "sandbox"; // or "production"

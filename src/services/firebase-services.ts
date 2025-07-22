@@ -779,44 +779,110 @@ export const JobService = {
   }
 };
 
-// Proposal Services
+// In firebase-services.ts, update the ProposalService.createProposal method:
+
 export const ProposalService = {
   // Create proposal
   async createProposal(proposalData: Partial<ProposalData>) {
     try {
+      // Validate required fields
+      if (!proposalData.freelancerId || !proposalData.clientId || !proposalData.jobId) {
+        console.error('Missing required fields:', {
+          freelancerId: proposalData.freelancerId,
+          clientId: proposalData.clientId,
+          jobId: proposalData.jobId
+        });
+        // Return error object instead of throwing
+        return { 
+          success: false, 
+          error: 'Missing required fields for proposal creation' 
+        };
+      }
+      
       const proposalRef = doc(collection(db, 'proposals'));
-      await setDoc(proposalRef, {
+      
+      // Create the document with required fields first
+      const proposalDoc = {
+        // Required fields for Firestore rules
+        freelancerId: proposalData.freelancerId,
+        clientId: proposalData.clientId,
+        jobId: proposalData.jobId,
+        status: 'pending',
+        
+        // Then spread other fields
         ...proposalData,
         id: proposalRef.id,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        status: 'pending'
+        updatedAt: serverTimestamp()
+      };
+      
+      console.log('Creating proposal document:', {
+        ...proposalDoc,
+        createdAt: '[serverTimestamp]',
+        updatedAt: '[serverTimestamp]'
       });
+      
+      await setDoc(proposalRef, proposalDoc);
+      console.log('Proposal created successfully with ID:', proposalRef.id);
       
       // Update job proposal count
       if (proposalData.jobId) {
-        const jobRef = doc(db, 'jobs', proposalData.jobId);
-        await updateDoc(jobRef, {
-          proposalCount: increment(1)
-        });
+        try {
+          const jobRef = doc(db, 'jobs', proposalData.jobId);
+          await updateDoc(jobRef, {
+            proposalCount: increment(1)
+          });
+          console.log('Job proposal count updated');
+        } catch (updateError) {
+          console.warn('Failed to update job proposal count:', updateError);
+          // Don't fail the whole operation
+        }
       }
       
       // Create notification for client
       if (proposalData.clientId) {
-        await NotificationService.createNotification({
-          userId: proposalData.clientId,
-          title: 'New Proposal',
-          body: `${proposalData.freelancerName} submitted a proposal for "${proposalData.jobTitle}"`,
-          type: 'proposal',
-          relatedId: proposalRef.id,
-          actionUrl: `/job/${proposalData.jobId}/proposals`
-        });
+        try {
+          await NotificationService.createNotification({
+            userId: proposalData.clientId,
+            title: 'New Proposal',
+            body: `${proposalData.freelancerName} submitted a proposal for "${proposalData.jobTitle}"`,
+            type: 'proposal',
+            relatedId: proposalRef.id,
+            actionUrl: `/job/${proposalData.jobId}/proposals`
+          });
+          console.log('Notification created');
+        } catch (notificationError) {
+          console.warn('Failed to create notification:', notificationError);
+          // Don't fail the whole operation
+        }
       }
       
+      // Always return success object
       return { success: true, proposalId: proposalRef.id };
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('Error creating proposal:', error);
-      return { success: false, error };
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Always return error object
+      let errorMessage = 'Failed to create proposal';
+      
+      if (error.code === 'permission-denied') {
+        errorMessage = 'You do not have permission to create proposals. Please ensure you are logged in as a freelancer.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return { 
+        success: false, 
+        error: errorMessage,
+        code: error.code,
+        details: error
+      };
     }
   },
 

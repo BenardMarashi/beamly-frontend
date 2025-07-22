@@ -16,15 +16,15 @@ export const VerificationSection: React.FC<VerificationSectionProps> = ({ userDa
   const { t } = useTranslation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [documentType, setDocumentType] = useState<'passport' | 'driver_license' | 'national_id'>('passport');
+  const [documentType, setDocumentType] = useState<'national_id' | 'passport' | 'driver_license'>('passport');
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentPreview, setDocumentPreview] = useState<string>('');
   const [verification, setVerification] = useState<any>(null);
 
   const documentTypes = [
+    { value: 'national_id', label: t('verification.nationalId') },
     { value: 'passport', label: t('verification.passport') },
-    { value: 'driver_license', label: t('verification.driverLicense') },
-    { value: 'national_id', label: t('verification.nationalId') }
+    { value: 'driver_license', label: t('verification.driverLicense') }
   ];
 
   useEffect(() => {
