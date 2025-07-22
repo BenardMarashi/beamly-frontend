@@ -1,6 +1,5 @@
 import React from "react";
-import { Link } from "@heroui/react";
-// FIXED: Removed unused Icon import
+import { Link } from "react-router-dom"; // Changed from @heroui/react
 import { useTranslation } from "react-i18next";
 
 interface FooterProps {
@@ -11,32 +10,44 @@ export const Footer: React.FC<FooterProps> = ({ isDarkMode = true }) => {
   const { t } = useTranslation();
 
   return (
-    <footer className={`py-6 px-4 ${isDarkMode ? 'bg-gray-900/50' : 'bg-gray-100'} backdrop-blur-md`}>
-      <div className="container mx-auto">
+    <footer className="glass-effect mt-auto">
+      <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-400 text-sm">
-            © 2025 Beamly. {t('footer.allRightsReserved', 'All rights reserved.')}
-          </p>
-          <div className="flex gap-6">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-lg">Beamly</span>
+            </div>
+            <p className="text-sm">
+              © 2025 {t('footer.allRightsReserved', 'All rights reserved.')}
+            </p>
+          </div>
+          
+          <nav className="flex flex-wrap gap-6 items-center">
             <Link
-              href="/privacy"
-              className="text-gray-400 hover:text-primary transition-colors text-sm"
+              to="/privacy"
+              className="text-sm hover:underline transition-all duration-300"
             >
               {t('footer.legal.privacy', 'Privacy Policy')}
             </Link>
             <Link
-              href="/terms"
-              className="text-gray-400 hover:text-primary transition-colors text-sm"
+              to="/terms"
+              className="text-sm hover:underline transition-all duration-300"
             >
               {t('footer.legal.terms', 'Terms of Service')}
             </Link>
             <Link
-              href="/contact"
-              className="text-gray-400 hover:text-primary transition-colors text-sm"
+              to="/contact"
+              className="text-sm hover:underline transition-all duration-300"
             >
               {t('footer.support.contact', 'Contact')}
             </Link>
-          </div>
+            <Link
+              to="/about"
+              className="text-sm hover:underline transition-all duration-300"
+            >
+              {t('footer.about', 'About')}
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>

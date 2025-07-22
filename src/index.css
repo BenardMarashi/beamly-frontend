@@ -9,6 +9,8 @@
   --beamly-primary: #0F43EE;
   --beamly-secondary: #FCE90D;
   --beamly-third: #011241;
+  --transition-duration: 0.3s;
+  --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -24,12 +26,6 @@ html, body {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* Enhanced root theming */
-:root {
-  --transition-duration: 0.3s;
-  --transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Light mode theming */
@@ -58,7 +54,7 @@ html.dark {
               color var(--transition-duration) var(--transition-easing);
 }
 
-/* Enhanced Glass Effects with smooth transitions */
+/* Glass Effects */
 .glass-effect {
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
@@ -282,7 +278,7 @@ html.dark .yellow-glass {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Enhanced text visibility and theming */
+/* Text visibility and theming */
 /* Light mode text adjustments */
 body.light-mode .text-white,
 html.light .text-white {
@@ -332,239 +328,19 @@ html.light .yellow-glass .text-gray-400 {
   color: #6b7280 !important;
 }
 
-/* Enhanced Mobile Responsive Design */
-@media (max-width: 640px) {
-  /* Remove horizontal overflow */
-  html, body {
-    overflow-x: hidden;
-    width: 100%;
-  }
-  
-  /* Mobile navigation and header */
-  header {
-    width: 100% !important;
-    left: 0 !important;
-    right: 0 !important;
-    position: sticky !important;
-    top: 0;
-    z-index: 1000;
-  }
-  
-  /* Enhanced mobile glass effects */
-  .glass-effect {
-    border-radius: 0;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    margin: 0;
-  }
-  
-  .glass-card,
-  .yellow-glass {
-    border-radius: 12px;
-    margin: 0.5rem 0;
-    padding: 1rem;
-  }
-  
-  /* Mobile typography optimization */
-  h1 {
-    font-size: 1.875rem !important;
-    line-height: 2.25rem !important;
-    margin-bottom: 1rem;
-  }
-  
-  h2 {
-    font-size: 1.5rem !important;
-    line-height: 2rem !important;
-    margin-bottom: 0.75rem;
-  }
-  
-  h3 {
-    font-size: 1.25rem !important;
-    line-height: 1.75rem !important;
-    margin-bottom: 0.5rem;
-  }
-  
-  p {
-    font-size: 0.9rem;
-    line-height: 1.5rem;
-  }
-  
-  /* Section spacing */
-  .section-container {
-    padding: 1.5rem 0;
-  }
-  
-  /* Touch-optimized buttons */
-  button, .btn {
-    min-height: 48px !important;
-    min-width: 48px;
-    font-size: 1rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
-    transition: all var(--transition-duration) var(--transition-easing);
-  }
-  
-  /* Mobile card layouts with proper theming */
-  .mobile-card {
-    border-radius: 16px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    transition: all var(--transition-duration) var(--transition-easing);
-  }
-  
-  /* Light mode mobile cards */
-  body.light-mode .mobile-card,
-  html.light .mobile-card {
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(15, 67, 238, 0.08);
-    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
-  }
-  
-  /* Dark mode mobile cards */
-  body.dark-mode .mobile-card,
-  html.dark .mobile-card {
-    background: rgba(15, 67, 238, 0.08);
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
-  }
-  
-  /* Container width optimization */
-  .container {
-    width: 100%;
-    max-width: 100%;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    margin: 0 auto;
-  }
-  
-  /* Mobile form improvements */
-  input, textarea, select {
-    font-size: 16px !important; /* Prevents zoom on iOS */
-    border-radius: 12px;
-    padding: 0.875rem;
-  }
-  
-  /* Mobile navigation improvements */
-  .mobile-nav {
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
-}
-
-/* Tablet and Small Desktop Optimizations */
-@media (max-width: 768px) {
-  .glass-effect,
-  .glass-card,
-  .yellow-glass {
-    border-radius: 14px;
-    margin: 0.75rem 0;
-  }
-  
-  /* Touch-friendly interface elements */
-  button, .btn {
-    min-height: 46px;
-    min-width: 46px;
-    padding: 0.7rem 1.25rem;
-  }
-  
-  /* Tablet navigation improvements */
-  .mobile-nav-item {
-    padding: 18px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    transition: all var(--transition-duration) var(--transition-easing);
-  }
-  
-  .mobile-nav-item:last-child {
-    border-bottom: none;
-  }
-  
-  .mobile-nav-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-  }
-  
-  /* Tablet typography */
-  h1 {
-    font-size: 2rem !important;
-  }
-  
-  h2 {
-    font-size: 1.625rem !important;
-  }
-  
-  /* Enhanced spacing for tablets */
-  .section-container {
-    padding: 2rem 0;
-  }
-  
-  .container {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-}
-
-/* Mobile-specific freelancer cards */
-.mobile-freelancer-card {
-  background: rgba(15, 67, 238, 0.08);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-  transition: all 0.3s ease;
-}
-
-.mobile-freelancer-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Mobile profile sections */
-.mobile-profile-section {
-  background: rgba(15, 67, 238, 0.08);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 20px;
-}
-
-/* Utility classes */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-/* Enhanced Dark Mode Text Visibility */
+/* Dark mode typography and visibility */
 body.dark-mode .glass-effect .text-gray-600,
 body.dark-mode .glass-effect .text-gray-500,
 body.dark-mode .glass-effect .text-gray-400,
 body.dark-mode .glass-effect .text-gray-300,
-html.dark .glass-effect .text-gray-600,
-html.dark .glass-effect .text-gray-500,
-html.dark .glass-effect .text-gray-400,
-html.dark .glass-effect .text-gray-300 {
-  color: #e5e7eb !important;
-}
-
 body.dark-mode .glass-card .text-gray-600,
 body.dark-mode .glass-card .text-gray-500,
 body.dark-mode .glass-card .text-gray-400,
 body.dark-mode .glass-card .text-gray-300,
+html.dark .glass-effect .text-gray-600,
+html.dark .glass-effect .text-gray-500,
+html.dark .glass-effect .text-gray-400,
+html.dark .glass-effect .text-gray-300,
 html.dark .glass-card .text-gray-600,
 html.dark .glass-card .text-gray-500,
 html.dark .glass-card .text-gray-400,
@@ -572,7 +348,6 @@ html.dark .glass-card .text-gray-300 {
   color: #e5e7eb !important;
 }
 
-/* Dark mode typography hierarchy */
 body.dark-mode h1,
 body.dark-mode h2,
 body.dark-mode h3,
@@ -599,7 +374,6 @@ html.dark div {
   color: #f3f4f6;
 }
 
-/* Dark mode link styling */
 body.dark-mode a,
 html.dark a {
   color: #fbbf24;
@@ -611,108 +385,7 @@ html.dark a:hover {
   color: #fcd34d;
 }
 
-
-/* Social media icons styling */
-.social-icon {
-  width: 48px;
-  height: 48px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  transition: all 0.3s ease;
-}
-
-.social-icon:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-/* Rating stars */
-.star-rating {
-  color: var(--beamly-secondary);
-  font-size: 14px;
-}
-
-/* Portfolio grid for mobile */
-.portfolio-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-@media (min-width: 640px) {
-  .portfolio-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* Skills tags */
-.skill-tag {
-  background: rgba(15, 67, 238, 0.15);
-  color: #ffffff;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  display: inline-block;
-  margin: 4px 8px 4px 0;
-  border: 1px solid rgba(15, 67, 238, 0.3);
-}
-
-/* Form styling improvements */
-.form-input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 14px 16px;
-  color: #ffffff;
-  font-size: 16px;
-  width: 100%;
-  transition: all 0.3s ease;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--beamly-secondary);
-  box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.1);
-}
-
-.form-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* Light mode form adjustments */
-body.light-mode .form-input {
-  background: #ffffff;
-  border: 1px solid rgba(15, 67, 238, 0.2);
-  color: #1a202c;
-}
-
-body.light-mode .form-input::placeholder {
-  color: #9ca3af;
-}
-
-body.light-mode .form-input:focus {
-  border-color: var(--beamly-primary);
-  box-shadow: 0 0 0 3px rgba(15, 67, 238, 0.1);
-}
-
-/* Light mode inputs */
-body.light-mode [data-slot="input-wrapper"],
-body.light-mode [data-slot="innerWrapper"], 
-body.light-mode [data-slot="inputWrapper"] {
-  background-color: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.15) !important;
-}
-
-/* Enhanced Button and Form Styling */
-
-/* Primary Buttons - Brand yellow with dark text - ONLY for specific buttons */
+/* Button Styling */
 button[type="submit"]:not(.secondary):not(.outlined),
 .btn-primary,
 .btn-yellow,
@@ -738,7 +411,6 @@ button[data-color="secondary"]:hover,
   box-shadow: 0 4px 12px rgba(252, 233, 13, 0.4) !important;
 }
 
-/* Secondary Buttons */
 .btn-secondary,
 button.secondary,
 .nextui-button[data-variant="bordered"] {
@@ -756,28 +428,41 @@ button.secondary:hover {
   transform: translateY(-1px) !important;
 }
 
-/* Form Elements - Exclude from button styling */
-select,
-input,
-textarea,
-[data-slot="trigger"],
-[data-slot="selector"],
-[data-slot="listbox"],
-[data-slot="popoverContent"],
-[data-slot="input"],
-[data-slot="inputWrapper"] {
-  background-color: initial !important;
-  color: initial !important;
-}
-
-/* Enhanced Form Input Styling */
+/* Form Elements */
 .form-input,
 input[type="text"],
 input[type="email"],
 input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="number"],
 textarea {
-  transition: all var(--transition-duration) var(--transition-easing);
-  font-weight: 400;
+  width: 100% !important;
+  padding: 12px 16px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+  color: white !important;
+  font-size: 16px !important;
+  font-family: 'Outfit', sans-serif !important;
+  transition: all 0.3s ease !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+input:focus,
+textarea:focus {
+  outline: none !important;
+  border-color: #FCE90D !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.2) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
 }
 
 /* Light mode form styling */
@@ -785,84 +470,642 @@ body.light-mode .form-input,
 body.light-mode input[type="text"],
 body.light-mode input[type="email"],
 body.light-mode input[type="password"],
+body.light-mode input[type="search"],
+body.light-mode input[type="tel"],
+body.light-mode input[type="url"],
+body.light-mode input[type="number"],
 body.light-mode textarea,
 html.light .form-input,
 html.light input[type="text"],
 html.light input[type="email"],
 html.light input[type="password"],
+html.light input[type="search"],
+html.light input[type="tel"],
+html.light input[type="url"],
+html.light input[type="number"],
 html.light textarea {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(15, 67, 238, 0.15) !important;
+  background: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
   color: #1a202c !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-body.light-mode .form-input:focus,
 body.light-mode input:focus,
 body.light-mode textarea:focus,
-html.light .form-input:focus,
 html.light input:focus,
 html.light textarea:focus {
   border-color: #0F43EE !important;
   box-shadow: 0 0 0 3px rgba(15, 67, 238, 0.1) !important;
-  outline: none;
 }
 
-/* Dark mode form styling */
-body.dark-mode .form-input,
-body.dark-mode input[type="text"],
-body.dark-mode input[type="email"],
-body.dark-mode input[type="password"],
-body.dark-mode textarea,
-html.dark .form-input,
-html.dark input[type="text"],
-html.dark input[type="email"],
-html.dark input[type="password"],
-html.dark textarea {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+body.light-mode input::placeholder,
+body.light-mode textarea::placeholder,
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: rgba(0, 0, 0, 0.5) !important;
 }
 
-body.dark-mode .form-input:focus,
-body.dark-mode input:focus,
-body.dark-mode textarea:focus,
-html.dark .form-input:focus,
-html.dark input:focus,
-html.dark textarea:focus {
+/* NextUI Component Fixes */
+[data-slot="base"],
+[data-slot="input-wrapper"],
+[data-slot="innerWrapper"],
+[data-slot="inputWrapper"],
+[data-slot="main-wrapper"],
+[data-slot="helper-wrapper"],
+.nextui-input-wrapper,
+.nextui-input-content,
+.nextui-input-input-wrapper {
+  all: unset !important;
+  display: contents !important;
+}
+
+/* NextUI Input styling */
+[data-slot="input-wrapper"] {
+  position: relative !important;
+  width: 100% !important;
+}
+
+[data-slot="input-wrapper"] input,
+[data-slot="input-wrapper"] textarea {
+  width: 100% !important;
+  padding: 12px 16px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+  color: white !important;
+  font-size: 16px !important;
+  font-family: 'Outfit', sans-serif !important;
+  transition: all 0.3s ease !important;
+}
+
+[data-slot="input-wrapper"] input:focus,
+[data-slot="input-wrapper"] textarea:focus {
+  outline: none !important;
   border-color: #FCE90D !important;
+  background: rgba(255, 255, 255, 0.1) !important;
   box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.2) !important;
-  outline: none;
 }
 
-/* Enhanced Accessibility and Performance */
-/* Reduced motion for users who prefer it */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+body.light-mode [data-slot="input-wrapper"] input,
+body.light-mode [data-slot="input-wrapper"] textarea {
+  background: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  color: #1a202c !important;
+}
+
+/* NextUI Select/Dropdown styling */
+[data-slot="trigger"] {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  min-height: 48px !important;
+  padding: 0.75rem 1rem !important;
+  transition: all 0.2s ease !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  cursor: pointer !important;
+}
+
+[data-slot="trigger"]:hover {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-slot="trigger"]:focus-within {
+  border-color: rgba(252, 233, 13, 0.5) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.15) !important;
+}
+
+body.light-mode [data-slot="trigger"] {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Dropdown/Select popup content styling */
+[data-slot="popover"],
+[data-slot="content"],
+[data-slot="listbox"],
+[data-slot="listboxWrapper"] {
+  background: rgba(15, 67, 238, 0.08) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Light mode dropdown content */
+body.light-mode [data-slot="popover"],
+body.light-mode [data-slot="content"],
+body.light-mode [data-slot="listbox"],
+body.light-mode [data-slot="listboxWrapper"],
+html.light [data-slot="popover"],
+html.light [data-slot="content"],
+html.light [data-slot="listbox"],
+html.light [data-slot="listboxWrapper"] {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Dropdown items */
+[data-slot="option"],
+[role="option"] {
+  color: white !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-slot="option"]:hover,
+[role="option"]:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.light-mode [data-slot="option"],
+body.light-mode [role="option"],
+html.light [data-slot="option"],
+html.light [role="option"] {
+  color: #1a202c !important;
+}
+
+body.light-mode [data-slot="option"]:hover,
+body.light-mode [role="option"]:hover,
+html.light [data-slot="option"]:hover,
+html.light [role="option"]:hover {
+  background: rgba(15, 67, 238, 0.1) !important;
+}
+
+[data-slot="label"] {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+body.light-mode [data-slot="label"],
+html.light [data-slot="label"] {
+  color: #1a202c !important;
+}
+
+/* Form description text */
+[data-slot="description"],
+.input-description {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 0.75rem !important;
+}
+
+body.light-mode [data-slot="description"],
+body.light-mode .input-description,
+html.light [data-slot="description"],
+html.light .input-description {
+  color: #6b7280 !important;
+}
+
+/* Remove pseudo elements */
+input::before,
+input::after,
+[data-slot*="input"]::before,
+[data-slot*="input"]::after {
+  display: none !important;
+}
+
+/* Input helper and error text */
+[data-slot="helper-wrapper"],
+[data-slot="error-message"],
+.input-helper-text,
+.text-danger {
+  font-size: 0.75rem !important;
+  margin-top: 0.25rem !important;
+}
+
+[data-slot="error-message"],
+.text-danger {
+  color: #ef4444 !important;
+}
+
+/* Ensure proper text color for all form elements */
+body.dark-mode [data-slot="value"],
+body.dark-mode [data-slot="input"] input,
+body.dark-mode .nextui-select-value,
+html.dark [data-slot="value"],
+html.dark [data-slot="input"] input,
+html.dark .nextui-select-value {
+  color: white !important;
+}
+
+body.light-mode [data-slot="value"],
+body.light-mode [data-slot="input"] input,
+body.light-mode .nextui-select-value,
+html.light [data-slot="value"],
+html.light [data-slot="input"] input,
+html.light .nextui-select-value {
+  color: #1a202c !important;
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 640px) {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
   }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .glass-effect,
+  
+  header {
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    position: sticky !important;
+    top: 0;
+    z-index: 1000;
+  }
+  
+  .glass-effect {
+    border-radius: 0;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    margin: 0;
+  }
+  
   .glass-card,
   .yellow-glass {
-    border-width: 2px;
+    border-radius: 12px;
+    margin: 0.5rem 0;
+    padding: 1rem;
+  }
+  
+  h1 {
+    font-size: 1.875rem !important;
+    line-height: 2.25rem !important;
+    margin-bottom: 1rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem !important;
+    line-height: 2rem !important;
+    margin-bottom: 0.75rem;
+  }
+  
+  h3 {
+    font-size: 1.25rem !important;
+    line-height: 1.75rem !important;
+    margin-bottom: 0.5rem;
+  }
+  
+  p {
+    font-size: 0.9rem;
+    line-height: 1.5rem;
+  }
+  
+  .section-container {
+    padding: 1.5rem 0;
   }
   
   button, .btn {
-    border-width: 2px;
+    min-height: 48px !important;
+    min-width: 48px;
+    font-size: 1rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    transition: all var(--transition-duration) var(--transition-easing);
+  }
+  
+  .mobile-card {
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all var(--transition-duration) var(--transition-easing);
+  }
+  
+  body.light-mode .mobile-card,
+  html.light .mobile-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(15, 67, 238, 0.08);
+    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
+  }
+  
+  body.dark-mode .mobile-card,
+  html.dark .mobile-card {
+    background: rgba(15, 67, 238, 0.08);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
+  }
+  
+  .container {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin: 0 auto;
+  }
+  
+  input, textarea, select {
+    font-size: 16px !important;
+    border-radius: 12px;
+    padding: 0.875rem;
+  }
+  
+  .mobile-nav {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  
+  .form-actions button {
+    width: 100% !important;
+    min-height: 48px !important;
+  }
+  
+  .form-field {
+    margin-bottom: 1.25rem;
+  }
+  
+  .glass-effect .p-8 {
+    padding: 1.5rem !important;
   }
 }
 
-/* Utility Classes for Enhanced Theming */
+@media (max-width: 768px) {
+  .glass-effect,
+  .glass-card,
+  .yellow-glass {
+    border-radius: 14px;
+    margin: 0.75rem 0;
+  }
+  
+  button, .btn {
+    min-height: 46px;
+    min-width: 46px;
+    padding: 0.7rem 1.25rem;
+  }
+  
+  .mobile-nav-item {
+    padding: 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all var(--transition-duration) var(--transition-easing);
+  }
+  
+  .mobile-nav-item:last-child {
+    border-bottom: none;
+  }
+  
+  .mobile-nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  h1 {
+    font-size: 2rem !important;
+  }
+  
+  h2 {
+    font-size: 1.625rem !important;
+  }
+  
+  .section-container {
+    padding: 2rem 0;
+  }
+  
+  .container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* Hamburger Menu */
+body.menu-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none !important;
+}
+
+.hamburger-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+  z-index: 998 !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+.hamburger-menu-panel {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 999 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.hamburger-menu-panel.menu-open {
+  transform: translateX(0) !important;
+}
+
+@media (max-width: 640px) {
+  .hamburger-menu-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+}
+
+@media (min-width: 641px) {
+  .hamburger-menu-panel {
+    width: 320px !important;
+    max-width: 320px !important;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Categories Grid */
+.categories-grid {
+  display: grid !important;
+  gap: 1rem !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+@media (max-width: 640px) {
+  .categories-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+  
+  .category-button {
+    padding: 0.75rem !important;
+    font-size: 0.875rem !important;
+    min-height: 44px !important;
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .categories-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .categories-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+/* Additional Components */
+.mobile-freelancer-card {
+  background: rgba(15, 67, 238, 0.08);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.mobile-freelancer-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.mobile-profile-section {
+  background: rgba(15, 67, 238, 0.08);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+/* NextUI Card Component Styling */
+.nextui-card,
+[data-slot="base"].card {
+  background: rgba(15, 67, 238, 0.08) !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.light-mode .nextui-card,
+body.light-mode [data-slot="base"].card,
+html.light .nextui-card,
+html.light [data-slot="base"].card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(15, 67, 238, 0.08) !important;
+}
+
+.chip,
+.skill-chip,
+.nextui-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  height: auto !important;
+  padding: 0.375rem 0.875rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+/* Chip styling for dark mode */
+body.dark-mode .chip,
+body.dark-mode .skill-chip,
+body.dark-mode .nextui-chip,
+html.dark .chip,
+html.dark .skill-chip,
+html.dark .nextui-chip {
+  background: rgba(15, 67, 238, 0.2) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+body.dark-mode .chip.bg-primary\/20,
+body.dark-mode .nextui-chip[data-color="primary"],
+html.dark .chip.bg-primary\/20,
+html.dark .nextui-chip[data-color="primary"] {
+  background: rgba(15, 67, 238, 0.25) !important;
+  border-color: rgba(15, 67, 238, 0.5) !important;
+}
+
+body.dark-mode .chip.bg-secondary\/20,
+body.dark-mode .nextui-chip[data-color="secondary"],
+html.dark .chip.bg-secondary\/20,
+html.dark .nextui-chip[data-color="secondary"] {
+  background: rgba(252, 233, 13, 0.2) !important;
+  color: #FCE90D !important;
+  border-color: rgba(252, 233, 13, 0.4) !important;
+}
+
+.skill-tag {
+  background: rgba(15, 67, 238, 0.15);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+  margin: 4px 8px 4px 0;
+  border: 1px solid rgba(15, 67, 238, 0.3);
+}
+
+.social-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.social-icon:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.star-rating {
+  color: var(--beamly-secondary);
+  font-size: 14px;
+}
+
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .portfolio-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+/* Utility Classes */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .theme-transition {
   transition: all var(--transition-duration) var(--transition-easing);
 }
@@ -877,18 +1120,6 @@ html.dark .glass-hover:hover {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
 }
 
-/* Improved focus states for accessibility */
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
-a:focus-visible {
-  outline: 2px solid #FCE90D;
-  outline-offset: 2px;
-  border-radius: 8px;
-}
-
-/* Loading states */
 .loading {
   opacity: 0.6;
   pointer-events: none;
@@ -914,7 +1145,41 @@ a:focus-visible {
   100% { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-/* Enhanced scrollbar styling */
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .glass-effect,
+  .glass-card,
+  .yellow-glass {
+    border-width: 2px;
+  }
+  
+  button, .btn {
+    border-width: 2px;
+  }
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid #FCE90D;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -938,16 +1203,32 @@ html.dark ::-webkit-scrollbar-thumb {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(252, 233, 13, 0.5);
 }
-/* Fix Hamburger Menu Overlay - Add this to your index.css */
 
-/* Prevent body scroll when menu is open */
-body.menu-open {
-  overflow: hidden !important;
+/* Z-index management */
+header.fixed {
   position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
   width: 100% !important;
+  z-index: 9999 !important;
 }
 
-/* Hamburger menu overlay styles */
+main.pt-16 {
+  padding-top: 64px !important;
+}
+
+body {
+  transform: none !important;
+}
+
+.min-h-screen,
+.overflow-hidden,
+.bg-mesh,
+.relative {
+  transform: none !important;
+}
+
 .fixed.inset-0 {
   position: fixed !important;
   top: 0 !important;
@@ -956,616 +1237,76 @@ body.menu-open {
   bottom: 0 !important;
 }
 
-/* Hamburger menu panel */
 .fixed.inset-y-0.right-0 {
   position: fixed !important;
   top: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
   height: 100vh !important;
-  height: 100dvh !important; /* Dynamic viewport height for mobile */
+  height: 100dvh !important;
   z-index: 9999 !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
 }
 
-/* Ensure menu stays above everything */
+.fixed.top-0.right-0.bottom-0 {
+  right: 0 !important;
+  left: auto !important;
+}
+
 [role="dialog"] {
   z-index: 9999 !important;
-}
-
-/* Smooth single-step animation */
-[role="dialog"] {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   will-change: transform;
+  width: 100% !important;
+  height: 100% !important;
+  overflow-y: auto !important;
 }
 
-/* Fix for iOS Safari */
 @supports (-webkit-touch-callout: none) {
   .fixed.inset-y-0.right-0 {
     height: -webkit-fill-available !important;
   }
 }
 
-/* Fix NextUI double input rendering */
-
-
-/* Remove double borders on inputs */
-/* Fix NextUI Input Overlays and Double Rendering */
-/* Reset all NextUI input backgrounds */
-.nextui-input,
-.nextui-input-wrapper,
-[data-slot="base"],
-[data-slot="input-wrapper"],
-[data-slot="innerWrapper"],
-[data-slot="inputWrapper"],
-[data-slot="input"],
-[data-slot="helper-wrapper"],
-[data-slot="main-wrapper"] {
-  background: none !important;
-  background-color: transparent !important;
-}
-
-/* Focus states */
-[data-slot="input-wrapper"]:focus-within {
-  border-color: #FCE90D !important;
-  box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.2) !important;
-}
-
-body.light-mode [data-slot="input-wrapper"]:focus-within,
-html.light [data-slot="input-wrapper"]:focus-within {
-  border-color: #0F43EE !important;
-  box-shadow: 0 0 0 3px rgba(15, 67, 238, 0.1) !important;
-}
-
-/* Ensure text is visible */
-[data-slot="input"] input {
-  color: inherit !important;
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  width: 100% !important;
-  height: 100% !important;
-  padding: 0 !important;
-}
-
-/* Remove any pseudo-elements that might create overlays */
-[data-slot="input-wrapper"]::before,
-[data-slot="input-wrapper"]::after,
-[data-slot="innerWrapper"]::before,
-[data-slot="innerWrapper"]::after {
-  display: none !important;
-}
-
-/* Fix double rendering by hiding nested wrappers */
-[data-slot="input-wrapper"] [data-slot="input-wrapper"],
-[data-slot="innerWrapper"] [data-slot="innerWrapper"],
-[data-slot="base"] [data-slot="base"] {
-  all: unset !important;
-  display: contents !important;
-}
-
-/* Ensure proper layout */
-[data-slot="main-wrapper"] {
-  width: 100% !important;
-  position: relative !important;
-}
-
-/* Remove any glass effects from inputs that might cause overlays */
-.nextui-input-wrapper.glass-effect,
-[data-slot="input-wrapper"].glass-effect {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* Fix input field double rendering */
-.nextui-input-helper-wrapper {
-  width: 100%;
-}
-
-.nextui-input-wrapper {
-  background: transparent !important;
-}
-
-/* Mobile-specific hamburger menu fixes */
-@media (max-width: 768px) {
-  /* Ensure full height on mobile */
-  .fixed.inset-y-0.right-0 {
-    width: 100vw !important;
-    max-width: 100vw !important;
-  }
-  
-  /* Prevent content shift */
-  body.menu-open main {
-    position: fixed !important;
-    width: 100% !important;
-  }
-}
-
-/* Tablet-specific hamburger menu */
-@media (min-width: 769px) {
-  .fixed.inset-y-0.right-0 {
-    width: 320px !important;
-    max-width: 320px !important;
-  }
-}
-/* Add these hamburger menu fixes to your index.css */
-
-/* Fix Hamburger Menu for Mobile and Desktop */
-body.menu-open {
-  overflow: hidden !important;
+body.menu-open main {
   position: fixed !important;
   width: 100% !important;
-  height: 100% !important;
-  touch-action: none !important;
 }
 
-/* Hamburger overlay - full screen dark background */
-.hamburger-overlay {
+.nextui-modal {
+  z-index: 10000 !important;
+}
+
+.nextui-popover {
+  z-index: 10001 !important;
+}
+
+[data-slot="popover"],
+[data-slot="listbox"] {
+  z-index: 10002 !important;
+}
+
+/* Specific component fixes */
+.sign-out-button {
   position: fixed !important;
-  inset: 0 !important;
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  z-index: 9998 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-}
-
-/* Hamburger menu panel */
-.hamburger-menu-panel {
-  position: fixed !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  z-index: 9999 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  overscroll-behavior: contain !important;
-  -webkit-overflow-scrolling: touch !important;
-  transform: translateX(100%);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.hamburger-menu-panel.menu-open {
-  transform: translateX(0) !important;
-}
-
-/* Mobile full width */
-@media (max-width: 640px) {
-  .hamburger-menu-panel {
-    width: 100vw !important;
-    max-width: 100vw !important;
-  }
-}
-
-/* Tablet/Desktop fixed width */
-@media (min-width: 641px) {
-  .hamburger-menu-panel {
-    width: 320px !important;
-    max-width: 320px !important;
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
-  }
-}
-
-/* Categories Grid Styling */
-.categories-grid {
-  display: grid !important;
-  gap: 1rem !important;
-  width: 100% !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* Mobile - 2 columns */
-@media (max-width: 640px) {
-  .categories-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 0.75rem !important;
-  }
-  
-  .category-button {
-    padding: 0.75rem !important;
-    font-size: 0.875rem !important;
-    min-height: 44px !important;
-    width: 100% !important;
-  }
-}
-
-/* Tablet - 3 columns */
-@media (min-width: 641px) and (max-width: 1024px) {
-  .categories-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
-  }
-}
-
-/* Desktop - 4 columns */
-@media (min-width: 1025px) {
-  .categories-grid {
-    grid-template-columns: repeat(4, 1fr) !important;
-  }
-}
-
-/* Fix NextUI input double rendering */
-.nextui-input-wrapper .nextui-input-wrapper,
-[data-slot="input-wrapper"] [data-slot="input-wrapper"],
-[data-slot="innerWrapper"] [data-slot="innerWrapper"] {
-  all: unset !important;
-  display: contents !important;
-}
-
-/* Ensure proper input styling */
-.nextui-input-main-wrapper {
-  width: 100% !important;
-}
-
-.nextui-input-wrapper {
-  background: transparent !important;
-  width: 100% !important;
-}
-
-* [data-slot="input-wrapper"],
-* [data-slot="innerWrapper"],
-input,
-.nextui-input-wrapper {
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  filter: none !important;
-}
-
-/* Clean NextUI Input Fix - Remove ALL overlays and double rendering */
-/* This targets ALL nested elements to prevent any overlays */
-[data-slot="base"],
-[data-slot="input-wrapper"],
-[data-slot="innerWrapper"],
-[data-slot="inputWrapper"],
-[data-slot="main-wrapper"],
-[data-slot="helper-wrapper"],
-.nextui-input-wrapper,
-.nextui-input-content,
-.nextui-input-input-wrapper {
-  all: unset !important;
-  display: contents !important;
-}
-
-/* Style ONLY the actual input element */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="search"],
-input[type="tel"],
-input[type="url"],
-textarea,
-.nextui-input {
-  width: 100% !important;
-  padding: 12px 16px !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-radius: 12px !important;
+  bottom: 2rem !important;
+  right: 2rem !important;
+  z-index: 100 !important;
+  background: #ef4444 !important;
   color: white !important;
-  font-size: 16px !important;
-  font-family: 'Outfit', sans-serif !important;
-  transition: all 0.3s ease !important;
-  -webkit-appearance: none !important;
-  appearance: none !important;
-}
-
-/* Remove any before/after pseudo elements */
-input::before,
-input::after,
-[data-slot*="input"]::before,
-[data-slot*="input"]::after {
-  display: none !important;
-}
-
-/* Focus states */
-input:focus,
-textarea:focus {
-  outline: none !important;
-  border-color: #FCE90D !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.2) !important;
-}
-
-/* Placeholder styling */
-input::placeholder,
-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.5) !important;
-  opacity: 1 !important;
-}
-
-/* Light mode adjustments */
-body.light-mode input,
-body.light-mode textarea,
-html.light input,
-html.light textarea {
-  background: white !important;
-  border: 1px solid rgba(0, 0, 0, 0.2) !important;
-  color: #1a202c !important;
-}
-
-body.light-mode input::placeholder,
-body.light-mode textarea::placeholder,
-html.light input::placeholder,
-html.light textarea::placeholder {
-  color: rgba(0, 0, 0, 0.5) !important;
-}
-
-/* Search input with icon spacing */
-input[type="search"] {
-  padding-left: 40px !important;
-}
-
-/* Ensure parent containers don't add styling */
-form > div,
-.form-group,
-.input-group,
-.input-wrapper {
-  background: transparent !important;
-  border: none !important;
-}
-/* Proper NextUI Input Styling - No Overlays */
-/* Target the input wrapper for proper layout */
-[data-slot="input-wrapper"] {
-  position: relative !important;
-  width: 100% !important;
-  /* NO background here to avoid overlay */
-}
-
-/* Style the actual input inside */
-[data-slot="input-wrapper"] input,
-[data-slot="input-wrapper"] textarea {
-  width: 100% !important;
-  padding: 12px 16px !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  border-radius: 12px !important;
-  color: white !important;
-  font-size: 16px !important;
-  font-family: 'Outfit', sans-serif !important;
-  transition: all 0.3s ease !important;
-}
-
-/* Focus states */
-[data-slot="input-wrapper"] input:focus,
-[data-slot="input-wrapper"] textarea:focus {
-  outline: none !important;
-  border-color: #FCE90D !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.2) !important;
-}
-
-/* Light mode */
-body.light-mode [data-slot="input-wrapper"] input,
-body.light-mode [data-slot="input-wrapper"] textarea {
-  background: white !important;
-  border: 1px solid rgba(0, 0, 0, 0.2) !important;
-  color: #1a202c !important;
-}
-
-/* Icons and labels positioning */
-[data-slot="input-wrapper"] [data-slot="inner-wrapper"] {
-  display: flex !important;
-  align-items: center !important;
-  width: 100% !important;
-  position: relative !important;
-}
-
-/* Ensure inner elements don't create overlays */
-[data-slot="base"],
-[data-slot="main-wrapper"],
-[data-slot="inner-wrapper"] {
-  background: transparent !important;
-}
-
-/* Fix Hamburger Menu Display */
-.fixed.inset-y-0.right-0 {
-  position: fixed !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  z-index: 9999 !important;
-  overflow-y: auto !important;
-  transform-origin: right center !important;
-}
-
-/* Ensure the menu content is visible */
-.hamburger-menu-content,
-[role="dialog"] {
-  width: 100% !important;
-  height: 100% !important;
-  overflow-y: auto !important;
-}
-
-/* Mobile specific */
-@media (max-width: 640px) {
-  .fixed.inset-y-0.right-0 {
-    width: 100vw !important;
-  }
-}
-
-/* Desktop specific */
-@media (min-width: 641px) {
-  .fixed.inset-y-0.right-0 {
-    width: 320px !important;
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
-  }
-}/* Add these form styles to your existing src/index.css file */
-
-/* Fix NextUI Input/Select/Textarea Styling */
-[data-slot="input-wrapper"],
-[data-slot="innerWrapper"] {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  transition: all 0.2s ease !important;
-  border-radius: 12px !important;
-  overflow: hidden !important;
-}
-
-[data-slot="input-wrapper"]:hover,
-[data-slot="innerWrapper"]:hover {
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-
-[data-slot="input-wrapper"]:focus-within,
-[data-slot="innerWrapper"]:focus-within {
-  border-color: rgba(252, 233, 13, 0.5) !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.15) !important;
-}
-
-/* Input field text styling */
-[data-slot="input-wrapper"] input,
-[data-slot="input-wrapper"] textarea,
-[data-slot="input"] {
-  background: transparent !important;
-  border: none !important;
-  color: white !important;
-  font-size: 1rem !important;
-  padding: 0.75rem 1rem !important;
-  outline: none !important;
-}
-
-[data-slot="input-wrapper"] input::placeholder,
-[data-slot="input-wrapper"] textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4) !important;
-}
-
-/* Select/Dropdown Styling */
-[data-slot="trigger"] {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  min-height: 3rem !important;
-  padding: 0.75rem 1rem !important;
-  transition: all 0.2s ease !important;
-  border-radius: 12px !important;
-}
-
-[data-slot="trigger"]:hover {
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-
-[data-slot="trigger"]:focus-within {
-  border-color: rgba(252, 233, 13, 0.5) !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.15) !important;
-}
-
-/* Label styling */
-[data-slot="label"] {
-  color: rgba(255, 255, 255, 0.9) !important;
-  font-size: 0.875rem !important;
-  font-weight: 500 !important;
-  margin-bottom: 0.5rem !important;
-}
-
-/* Fix form cards */
-.form-card,
-form .glass-effect,
-form .glass-card {
-  background: rgba(255, 255, 255, 0.03) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  padding: 1.5rem !important;
-}
-
-@media (min-width: 768px) {
-  .form-card,
-  form .glass-effect,
-  form .glass-card {
-    padding: 2rem !important;
-  }
-}
-
-/* Fix button alignment in forms */
-form .flex.gap-2,
-form .flex.gap-4 {
-  flex-wrap: wrap;
-}
-
-@media (max-width: 640px) {
-  form button {
-    width: 100% !important;
-  }
-}
-
-/* Light mode fixes */
-body.light-mode [data-slot="input-wrapper"],
-body.light-mode [data-slot="innerWrapper"],
-body.light-mode [data-slot="trigger"] {
-  background: white !important;
-  border-color: rgba(0, 0, 0, 0.2) !important;
-}
-
-body.light-mode [data-slot="input-wrapper"] input,
-body.light-mode [data-slot="input-wrapper"] textarea,
-body.light-mode [data-slot="input"] {
-  color: #1a202c !important;
-}
-
-/* Add these additional fixes to your src/index.css */
-
-/* Ensure menu closes properly */
-.hamburger-overlay {
-  position: fixed !important;
-  inset: 0 !important;
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  backdrop-filter: blur(4px) !important;
-  z-index: 50 !important;
-  cursor: pointer !important;
-  pointer-events: auto !important;
-}
-
-.hamburger-menu-panel {
-  position: fixed !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  z-index: 51 !important;
-  pointer-events: auto !important;
-}
-
-/* Fix form field alignment on all pages */
-.form-field label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-/* Better input field styling */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="url"],
-input[type="number"],
-textarea {
-  width: 100% !important;
-  font-size: 16px !important; /* Prevents zoom on mobile */
-}
-
-/* Fix NextUI Input heights and alignment */
-.nextui-input-wrapper,
-[data-slot="input-wrapper"] {
-  min-height: 48px !important; /* Touch-friendly height */
-  display: flex !important;
-  align-items: center !important;
-}
-
-/* Fix Select/Dropdown alignment */
-.nextui-select-trigger,
-[data-slot="trigger"] {
-  min-height: 48px !important;
-  display: flex !important;
-  align-items: center !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 0.5rem !important;
+  font-weight: 600 !important;
   cursor: pointer !important;
 }
 
-/* Login/Auth form specific styling */
+.settings-page [data-slot="input-wrapper"],
+.messages-page [data-slot="input-wrapper"] {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
 .auth-form .nextui-input-wrapper {
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -1582,126 +1323,241 @@ textarea {
   box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.15) !important;
 }
 
-/* Responsive fixes for mobile */
+/* Consistent Input Wrapper Styling for All Forms */
+[data-slot="input-wrapper"],
+[data-slot="innerWrapper"],
+.nextui-input-wrapper {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-slot="input-wrapper"]:hover,
+[data-slot="innerWrapper"]:hover,
+.nextui-input-wrapper:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-slot="input-wrapper"]:focus-within,
+[data-slot="innerWrapper"]:focus-within,
+.nextui-input-wrapper:focus-within {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(252, 233, 13, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(252, 233, 13, 0.15) !important;
+}
+
+body.light-mode [data-slot="input-wrapper"],
+body.light-mode [data-slot="innerWrapper"],
+body.light-mode .nextui-input-wrapper,
+html.light [data-slot="input-wrapper"],
+html.light [data-slot="innerWrapper"],
+html.light .nextui-input-wrapper {
+  background: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
+}
+
+body.light-mode [data-slot="input-wrapper"]:hover,
+body.light-mode [data-slot="innerWrapper"]:hover,
+body.light-mode .nextui-input-wrapper:hover,
+html.light [data-slot="input-wrapper"]:hover,
+html.light [data-slot="innerWrapper"]:hover,
+html.light .nextui-input-wrapper:hover {
+  background: rgba(249, 250, 251, 1) !important;
+  border-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+body.light-mode [data-slot="input-wrapper"]:focus-within,
+body.light-mode [data-slot="innerWrapper"]:focus-within,
+body.light-mode .nextui-input-wrapper:focus-within,
+html.light [data-slot="input-wrapper"]:focus-within,
+html.light [data-slot="innerWrapper"]:focus-within,
+html.light .nextui-input-wrapper:focus-within {
+  background: white !important;
+  border-color: #0F43EE !important;
+  box-shadow: 0 0 0 3px rgba(15, 67, 238, 0.1) !important;
+}
+
+/* Search input */
+input[type="search"] {
+  padding-left: 40px !important;
+}
+
+/* Form layout */
+form > div,
+.form-group,
+.input-group,
+.input-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
+form .flex.gap-2,
+form .flex.gap-4 {
+  flex-wrap: wrap;
+}
+
+.form-card,
+form .glass-effect,
+form .glass-card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 1.5rem !important;
+}
+
+@media (min-width: 768px) {
+  .form-card,
+  form .glass-effect,
+  form .glass-card {
+    padding: 2rem !important;
+  }
+}
+
+/* Post Project Page Specific Styling */
+.form-section {
+  background: rgba(15, 67, 238, 0.08) !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body.light-mode .form-section {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(15, 67, 238, 0.08) !important;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.form-grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 @media (max-width: 640px) {
-  /* Full width buttons on mobile */
-  .form-actions button {
-    width: 100% !important;
-    min-height: 48px !important;
-  }
-  
-  /* Better spacing on mobile */
-  .form-field {
-    margin-bottom: 1.25rem;
-  }
-  
-  /* Card padding on mobile */
-  .glass-effect .p-8 {
-    padding: 1.5rem !important;
+  .form-grid-2 {
+    grid-template-columns: 1fr;
   }
 }
 
-/* Fix settings page specific issues */
-.settings-page [data-slot="input-wrapper"],
-.messages-page [data-slot="input-wrapper"] {
-  position: relative !important;
-  z-index: 1 !important;
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
 }
 
-/* Ensure Sign Out button is visible */
-.sign-out-button {
-  position: fixed !important;
-  bottom: 2rem !important;
-  right: 2rem !important;
-  z-index: 100 !important;
-  background: #ef4444 !important;
+/* Forgot Password Page Background Fix */
+.bg-mesh {
+  background-color: #010b29 !important;
+  background-image: 
+    radial-gradient(at 40% 20%, rgba(15, 67, 238, 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(252, 233, 13, 0.05) 0px, transparent 50%),
+    radial-gradient(at 10% 70%, rgba(15, 67, 238, 0.06) 0px, transparent 50%) !important;
+  min-height: 100vh;
+}
+
+body.light-mode .bg-mesh {
+  background-color: #ffffff !important;
+  background-image: 
+    radial-gradient(at 40% 20%, rgba(15, 67, 238, 0.02) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, rgba(252, 233, 13, 0.02) 0px, transparent 50%),
+    radial-gradient(at 10% 70%, rgba(15, 67, 238, 0.02) 0px, transparent 50%) !important;
+}
+
+/* Toast Notifications Styling */
+.Toastify__toast {
+  background: rgba(15, 67, 238, 0.1) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   color: white !important;
-  padding: 0.75rem 1.5rem !important;
-  border-radius: 0.5rem !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
+  font-family: 'Outfit', sans-serif !important;
 }
 
-/* Better Chip/Tag styling */
-.skill-chip,
-.nextui-chip {
-  display: inline-flex !important;
-  align-items: center !important;
-  height: auto !important;
-  padding: 0.375rem 0.875rem !important;
-  font-size: 0.875rem !important;
+body.dark-mode .Toastify__toast,
+html.dark .Toastify__toast {
+  background: rgba(15, 67, 238, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
 }
 
-/* Fix z-index stacking issues */
-.nextui-modal {
-  z-index: 10000 !important;
+body.light-mode .Toastify__toast,
+html.light .Toastify__toast {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(15, 67, 238, 0.1) !important;
+  color: #1a202c !important;
 }
 
-.nextui-popover {
-  z-index: 10001 !important;
+.Toastify__toast--success {
+  background: rgba(34, 197, 94, 0.15) !important;
 }
 
-/* Ensure dropdowns appear above menu */
-[data-slot="popover"],
-[data-slot="listbox"] {
-  z-index: 10002 !important;
+.Toastify__toast--error {
+  background: rgba(239, 68, 68, 0.15) !important;
 }
 
-        header.fixed {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            width: 100% !important;
-            z-index: 9999 !important; /* Very high z-index to ensure it's always on top */
-        }
-        
-        /* Ensure main content has proper padding */
-        main.pt-16 {
-            padding-top: 64px !important; /* 16 * 0.25rem = 4rem = 64px */
-        }
-        
-        /* Additional fixes for the glass effect header */
-        .glass-effect {
-            backdrop-filter: blur(15px) !important;
-            -webkit-backdrop-filter: blur(15px) !important;
-            background: rgba(15, 67, 238, 0.08) !important;
-        }
-        
-        /* Ensure body doesn't have any transform that could break fixed positioning */
-        body {
-            transform: none !important;
-        }
-        
-        /* Ensure no parent containers have transform properties */
-        .min-h-screen,
-        .overflow-hidden,
-        .bg-mesh,
-        .relative {
-            transform: none !important;
-        }
-        
-        /* Mobile specific fixes */
-        @media (max-width: 768px) {
-            header.fixed {
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                width: 100vw !important;
-            }
-        }
-
-.hamburger-menu-panel {
-  z-index: 999 !important;
+.Toastify__close-button {
+  color: currentColor !important;
+  opacity: 0.7;
 }
 
-.hamburger-overlay {
-  z-index: 998 !important;
+.Toastify__close-button:hover {
+  opacity: 1;
 }
 
-/* Ensure menu is on the right side */
-.fixed.top-0.right-0.bottom-0 {
-  right: 0 !important;
-  left: auto !important;
+/* React Hot Toast Styling (if using react-hot-toast) */
+[data-sonner-toast],
+.toast {
+  background: rgba(15, 67, 238, 0.1) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  font-family: 'Outfit', sans-serif !important;
+}
+
+body.dark-mode [data-sonner-toast],
+body.dark-mode .toast {
+  background: rgba(15, 67, 238, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+body.light-mode [data-sonner-toast],
+body.light-mode .toast {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(15, 67, 238, 0.1) !important;
+  color: #1a202c !important;
+}
+
+/* React Easy Crop Styling */
+.reactEasyCrop_Container {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.reactEasyCrop_Image,
+.reactEasyCrop_Video {
+  will-change: transform;
+}
+
+.reactEasyCrop_CropArea {
+  border: 2px solid #FCE90D !important;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5) !important;
+}
+
+.reactEasyCrop_CropAreaRound {
+  border-radius: 50%;
+}
+
+body.menu-open footer {
+  display: none !important;
 }

@@ -297,26 +297,36 @@ function App() {
                     
                     {/* Toast Notifications */}
                     <Toaster
-                      position="top-right"
+                      position="top-left"
                       toastOptions={{
-                        duration: 4000,
+                        duration: 1000,
                         style: {
-                          background: theme === 'dark' ? '#18181b' : '#ffffff',
-                          color: theme === 'dark' ? '#ffffff' : '#000000',
-                          border: `1px solid ${theme === 'dark' ? '#27272a' : '#e4e4e7'}`,
+                          marginTop: '80px', // Below header
+                          background: 'transparent', // Let CSS handle the styling
+                          color: 'inherit',
+                          boxShadow: 'none',
+                          padding: '0',
+                          border: 'none',
                         },
+                        // Success toast
                         success: {
+                          duration: 1000,
                           iconTheme: {
                             primary: '#10b981',
                             secondary: '#ffffff',
                           },
                         },
+                        // Error toast
                         error: {
+                          duration: 1000,
                           iconTheme: {
                             primary: '#ef4444',
                             secondary: '#ffffff',
                           },
                         },
+                      }}
+                      containerStyle={{
+                        gap: '8px', // Reduced gap between toasts
                       }}
                     />
                   </div>

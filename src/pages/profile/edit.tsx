@@ -20,6 +20,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { VerificationSection } from '../../components/profile/VerificationSection';
+import { ImageCropper } from '../../components/ImageCropper';
 
 export const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,21 +28,25 @@ export const EditProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
+  // Image cropper states
+  const [showCropper, setShowCropper] = useState(false);
+  const [tempImageUrl, setTempImageUrl] = useState<string>('');
+  
   type ExperienceLevel = 'entry' | 'intermediate' | 'expert';
   
-    const [profileData, setProfileData] = useState({
-      displayName: userData?.displayName || '',
-      bio: userData?.bio || '',
-      skills: userData?.skills || [],
-      hourlyRate: userData?.hourlyRate || 0,
-      languages: userData?.languages || ['English'],
-      experienceLevel: (userData?.experienceLevel || 'intermediate') as ExperienceLevel,
-      experience: userData?.experience || '',
-      companyName: userData?.companyName || '',
-      industry: userData?.industry || '',
-      isAvailable: userData?.isAvailable ?? true,
-      photoURL: userData?.photoURL || ''
-    });
+  const [profileData, setProfileData] = useState({
+    displayName: userData?.displayName || '',
+    bio: userData?.bio || '',
+    skills: userData?.skills || [],
+    hourlyRate: userData?.hourlyRate || 0,
+    languages: userData?.languages || ['English'],
+    experienceLevel: (userData?.experienceLevel || 'intermediate') as ExperienceLevel,
+    experience: userData?.experience || '',
+    companyName: userData?.companyName || '',
+    industry: userData?.industry || '',
+    isAvailable: userData?.isAvailable ?? true,
+    photoURL: userData?.photoURL || ''
+  });
   
   const [skillInput, setSkillInput] = useState('');
   const [languageInput, setLanguageInput] = useState('');
@@ -74,7 +79,7 @@ export const EditProfilePage: React.FC = () => {
     }
   }, [user, navigate]);
   
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     
@@ -90,24 +95,54 @@ export const EditProfilePage: React.FC = () => {
       return;
     }
     
+    // Create temporary URL for cropping
+    const imageUrl = URL.createObjectURL(file);
+    setTempImageUrl(imageUrl);
+    setShowCropper(true);
+  };
+  
+  const handleCroppedImage = async (croppedBlob: Blob) => {
+    if (!user) return;
+    
     setUploadingPhoto(true);
     
     try {
-      const storageRef = ref(storage, `profile-photos/${user.uid}`);
+      // Create a File from the Blob
+      const file = new File([croppedBlob], 'profile-photo.jpg', { type: 'image/jpeg' });
+      
+      // Create the storage reference
+      const timestamp = Date.now();
+      const fileName = `profile_${timestamp}.jpg`;
+      const storageRef = ref(storage, `profile-photos/${user.uid}/${fileName}`);
+      
+      // Upload the file
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
       
+      // Update local state
       setProfileData({ ...profileData, photoURL: downloadURL });
       
       // Update in Firestore immediately
       await updateDoc(doc(db, 'users', user.uid), {
-        photoURL: downloadURL
+        photoURL: downloadURL,
+        updatedAt: serverTimestamp()
       });
       
       toast.success('Photo uploaded successfully!');
-    } catch (error) {
+      
+      // Clean up
+      URL.revokeObjectURL(tempImageUrl);
+      setTempImageUrl('');
+    } catch (error: any) {
       console.error('Error uploading photo:', error);
-      toast.error('Failed to upload photo');
+      
+      if (error.code === 'storage/unauthorized') {
+        toast.error('Permission denied. Please check Firebase Storage rules.');
+      } else if (error.code === 'storage/canceled') {
+        toast.error('Upload was cancelled');
+      } else {
+        toast.error('Failed to upload photo. Please try again.');
+      }
     } finally {
       setUploadingPhoto(false);
     }
@@ -247,9 +282,10 @@ export const EditProfilePage: React.FC = () => {
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={handlePhotoUpload}
+                    onChange={handlePhotoSelect}
                     className="hidden"
                     id="photo-upload"
+                    disabled={uploadingPhoto}
                   />
                   <label htmlFor="photo-upload">
                     <Button
@@ -258,6 +294,7 @@ export const EditProfilePage: React.FC = () => {
                       variant="flat"
                       isLoading={uploadingPhoto}
                       disabled={uploadingPhoto}
+                      startContent={!uploadingPhoto && <Icon icon="lucide:camera" />}
                     >
                       {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
                     </Button>
@@ -372,6 +409,7 @@ export const EditProfilePage: React.FC = () => {
                         </SelectItem>
                       ))}
                     </Select>
+                    
                     {/* Experience Description */}
                     <Textarea
                       label="Experience Summary"
@@ -473,7 +511,7 @@ export const EditProfilePage: React.FC = () => {
             </Card>
           )}
           
-          {/* Verification Section - Pass userData prop */}
+          {/* Verification Section */}
           {userData && <VerificationSection userData={userData} />}
           
           {/* Action Buttons */}
@@ -499,6 +537,18 @@ export const EditProfilePage: React.FC = () => {
           </div>
         </div>
       </motion.div>
+      
+      {/* Image Cropper Modal */}
+      <ImageCropper
+        isOpen={showCropper}
+        onClose={() => {
+          setShowCropper(false);
+          URL.revokeObjectURL(tempImageUrl);
+          setTempImageUrl('');
+        }}
+        imageSrc={tempImageUrl}
+        onCropComplete={handleCroppedImage}
+      />
     </div>
   );
 };

@@ -366,14 +366,6 @@ export const PostProjectPage: React.FC = () => {
       >
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Post a Project</h1>
-          <Button
-            variant="flat"
-            size="sm"
-            onClick={handleSaveDraft}
-            startContent={<Icon icon="solar:diskette-bold-duotone" />}
-          >
-            Save Draft
-          </Button>
         </div>
         
         <form onSubmit={handleSubmit}>
@@ -653,61 +645,6 @@ export const PostProjectPage: React.FC = () => {
               </CardBody>
             </Card>
             
-            {/* Project Links */}
-            <Card className="form-section">
-              <CardBody className="space-y-4">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <Icon icon="solar:link-bold-duotone" className="text-primary" />
-                  Project Links
-                </h2>
-                
-                <div className="form-field">
-                  <Input
-                    label="Live URL"
-                    placeholder="https://example.com"
-                    value={formData.liveUrl}
-                    onChange={(e) => setFormData({ ...formData, liveUrl: e.target.value })}
-                    startContent={<Icon icon="solar:link-bold-duotone" />}
-                    type="url"
-                    classNames={{
-                      input: "text-white",
-                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
-                    }}
-                  />
-                </div>
-                
-                <div className="form-field">
-                  <Input
-                    label="GitHub URL"
-                    placeholder="https://github.com/username/repo"
-                    value={formData.githubUrl}
-                    onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
-                    startContent={<Icon icon="mdi:github" />}
-                    type="url"
-                    classNames={{
-                      input: "text-white",
-                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
-                    }}
-                  />
-                </div>
-                
-                <div className="form-field">
-                  <Input
-                    label="Demo URL"
-                    placeholder="https://demo.example.com"
-                    value={formData.demoUrl}
-                    onChange={(e) => setFormData({ ...formData, demoUrl: e.target.value })}
-                    startContent={<Icon icon="solar:play-circle-bold-duotone" />}
-                    type="url"
-                    classNames={{
-                      input: "text-white",
-                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
-                    }}
-                  />
-                </div>
-              </CardBody>
-            </Card>
-            
             {/* Project Images */}
             <Card className="form-section">
               <CardBody className="space-y-4">
@@ -825,15 +762,6 @@ export const PostProjectPage: React.FC = () => {
               </Button>
               
               <div className="flex gap-2">
-                <Button
-                  variant="flat"
-                  onClick={handleSaveDraft}
-                  isDisabled={loading || uploadingImages}
-                  startContent={<Icon icon="solar:diskette-bold-duotone" />}
-                  className="border-white/20 text-white hover:bg-white/5"
-                >
-                  Save Draft
-                </Button>
                 <Button
                   type="submit"
                   color="primary"

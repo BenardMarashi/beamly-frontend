@@ -26,16 +26,28 @@ export const ForgotPasswordPage: React.FC = () => {
     try {
       await sendPasswordResetEmail(auth, email);
       setEmailSent(true);
-      toast.success('Password reset email sent!');
+      toast.success('Password reset email sent!', {
+        duration: 1000,
+        position: 'top-left',
+      });
     } catch (error: any) {
       console.error('Error sending password reset email:', error);
       
       if (error.code === 'auth/user-not-found') {
-        toast.error('No account found with this email address');
+        toast.error('No account found with this email address', {
+          duration: 1000,
+          position: 'top-left',
+        });
       } else if (error.code === 'auth/invalid-email') {
-        toast.error('Invalid email address');
+        toast.error('Invalid email address', {
+          duration: 1000,
+          position: 'top-left',
+        });
       } else {
-        toast.error('Failed to send password reset email');
+        toast.error('Failed to send password reset email', {
+          duration: 1000,
+          position: 'top-left',
+        });
       }
     } finally {
       setLoading(false);
@@ -43,7 +55,7 @@ export const ForgotPasswordPage: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-mesh flex items-center justify-center px-4">
+    <div className="min-h-screen bg-mesh flex items-center justify-center px-4 py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -51,9 +63,14 @@ export const ForgotPasswordPage: React.FC = () => {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Forgot Password?</h1>
-          <p className="text-gray-400">
-            No worries! We'll send you reset instructions.
+          <div className="mb-6">
+            <div className="w-20 h-20 bg-beamly-secondary/20 rounded-full flex items-center justify-center mx-auto">
+              <Icon icon="solar:lock-keyhole-minimalistic-bold-duotone" className="text-beamly-secondary" width={40} />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold mb-3">Reset Your Password</h1>
+          <p className="text-gray-400 text-lg">
+            Enter your email and we'll send you instructions to reset your password
           </p>
         </div>
         
@@ -62,26 +79,31 @@ export const ForgotPasswordPage: React.FC = () => {
             {!emailSent ? (
               <>
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
+                  <div className="form-field">
                     <Input
                       type="email"
                       label="Email Address"
-                      placeholder="Enter your email"
+                      placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       variant="bordered"
-                      className="text-white"
-                      startContent={<Icon icon="lucide:mail" className="text-gray-400" />}
+                      size="lg"
+                      startContent={<Icon icon="solar:letter-bold-duotone" className="text-gray-400" />}
                       isRequired
+                      classNames={{
+                        input: "text-white",
+                        inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                      }}
                     />
                   </div>
                   
                   <Button
                     type="submit"
-                    color="primary"
+                    color="secondary"
                     size="lg"
                     fullWidth
                     isLoading={loading}
+                    className="bg-beamly-secondary text-beamly-primary font-semibold"
                   >
                     Send Reset Instructions
                   </Button>
@@ -90,9 +112,9 @@ export const ForgotPasswordPage: React.FC = () => {
                 <div className="mt-6 text-center">
                   <Link 
                     to="/login" 
-                    className="text-primary hover:underline text-sm flex items-center justify-center gap-2"
+                    className="text-beamly-secondary hover:underline text-sm flex items-center justify-center gap-2 transition-all"
                   >
-                    <Icon icon="lucide:arrow-left" />
+                    <Icon icon="solar:arrow-left-line-duotone" />
                     Back to Login
                   </Link>
                 </div>
@@ -105,38 +127,41 @@ export const ForgotPasswordPage: React.FC = () => {
                 className="text-center"
               >
                 <div className="mb-6">
-                  <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Icon icon="lucide:mail-check" className="text-primary" width={40} />
+                  <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Icon icon="solar:check-circle-bold-duotone" className="text-green-500" width={40} />
                   </div>
-                  <h2 className="text-xl font-semibold text-white mb-2">Check Your Email</h2>
-                  <p className="text-gray-400">
+                  <h2 className="text-xl font-semibold mb-3">Check Your Inbox!</h2>
+                  <p className="text-gray-400 mb-2">
                     We've sent password reset instructions to:
                   </p>
-                  <p className="text-white font-medium mt-2">{email}</p>
+                  <p className="font-medium text-lg bg-white/5 rounded-lg px-4 py-2 inline-block">
+                    {email}
+                  </p>
                 </div>
                 
                 <div className="space-y-4">
                   <Button
-                    color="primary"
+                    color="secondary"
                     size="lg"
                     fullWidth
                     onClick={() => navigate('/login')}
+                    className="bg-beamly-secondary text-beamly-primary font-semibold"
                   >
-                    Back to Login
+                    Return to Login
                   </Button>
                   
-                  <p className="text-gray-400 text-sm">
-                    Didn't receive the email?{' '}
+                  <div className="text-gray-400 text-sm">
+                    <p className="mb-2">Didn't receive the email?</p>
                     <button
                       onClick={() => {
                         setEmailSent(false);
-                        handleSubmit(new Event('submit') as any);
+                        setEmail('');
                       }}
-                      className="text-primary hover:underline"
+                      className="text-beamly-secondary hover:underline font-medium"
                     >
-                      Click to resend
+                      Try Again
                     </button>
-                  </p>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -146,8 +171,8 @@ export const ForgotPasswordPage: React.FC = () => {
         <div className="mt-8 text-center">
           <p className="text-gray-500 text-sm">
             Remember your password?{' '}
-            <Link to="/login" className="text-primary hover:underline">
-              Sign in
+            <Link to="/login" className="text-beamly-secondary hover:underline font-medium">
+              Sign in instead
             </Link>
           </p>
         </div>

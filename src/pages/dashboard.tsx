@@ -205,14 +205,6 @@ const DashboardPage: React.FC = () => {
               Here's what's happening with your account today.
             </p>
           </div>
-          <Button
-            color="secondary"
-            className="text-beamly-third"
-            onPress={() => navigate('/post-job')}
-            startContent={<Icon icon="lucide:plus" />}
-          >
-            Post New Job
-          </Button>
         </div>
         
         {/* Stats Grid */}
@@ -402,16 +394,6 @@ const DashboardPage: React.FC = () => {
                   className="h-auto py-4 flex-col gap-2"
                 >
                   <span>Analytics</span>
-                </Button>
-                
-                <Button
-                  variant="flat"
-                  color="warning"
-                  startContent={<Icon icon="lucide:user" />}
-                  onPress={() => navigate('/edit-profile')}
-                  className="h-auto py-4 flex-col gap-2"
-                >
-                  <span>Edit Profile</span>
                 </Button>
               </div>
             </CardBody>
