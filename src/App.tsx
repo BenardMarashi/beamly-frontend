@@ -19,6 +19,7 @@ import { MainLayout } from './layouts/main-layout';
 import { DashboardLayout } from './layouts/dashboard-layout';
 
 // Regular imports for frequently used pages
+import { LandingPage } from './pages/landing';
 import { HomePage } from './pages/home';
 import LoginPage from './pages/login';
 import { SignupPage } from './pages/signup';
@@ -109,9 +110,9 @@ const AppRoutes = () => {
       <Routes>
         {/* Public routes with MainLayout */}
         <Route element={<MainLayout />}>
-          <Route path="/" element={user ? <Navigate to="/dashboard" /> : <HomePage />} />
-          <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <LoginPage />} />
-          <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <SignupPage />} />
+          <Route path="/" element={user ? <Navigate to="/home" /> : <LandingPage />} />
+          <Route path="/login" element={user ? <Navigate to="/home" /> : <LoginPage />} />
+          <Route path="/signup" element={user ? <Navigate to="/home" /> : <SignupPage />} />
           <Route path="/browse-jobs" element={<BrowseJobsPage />} />
           <Route path="/browse-freelancers" element={<BrowseFreelancersPage />} />
           <Route path="/freelancer/:id" element={<FreelancerProfilePage />} />
@@ -124,6 +125,7 @@ const AppRoutes = () => {
           <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
           <Route path="/job/manage" element={<ProtectedRoute><ManageJobsPage /></ProtectedRoute>} />
           <Route path="/chat" element={<Navigate to="/messages" replace />} />
+          <Route path="/home" element={<ProtectedRoute ><HomePage /></ProtectedRoute>} />
         </Route>
 
         {/* Protected routes with DashboardLayout - but without its own navigation */}

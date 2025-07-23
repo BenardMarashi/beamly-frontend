@@ -124,7 +124,6 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
       { name: "Looking for Work", path: "/looking-for-work", icon: "lucide:briefcase" },
       { name: "How it Works", path: "/how-it-works", icon: "lucide:help-circle" },
       { name: "Dashboard", path: "/dashboard", icon: "lucide:layout-dashboard" },
-      { name: "Find Work", path: "/browse-jobs", icon: "lucide:search" },
       { name: "Messages", path: "/messages", icon: "lucide:message-circle" },
       { name: "Settings", path: "/settings", icon: "lucide:settings" }
     ];
