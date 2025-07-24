@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { Card, CardBody, Input, Button, RadioGroup, Radio, Checkbox, Tabs, Tab } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { Link, useNavigate } from "react-router-dom";
-import { BeamlyLogo } from "../components/beamly-logo";
 import { useAuth } from "../contexts/AuthContext";
 import { useSignUp, useSignIn } from '../hooks/use-auth';
 import { toast } from 'react-hot-toast';
@@ -120,9 +119,6 @@ export const SignupPage: React.FC = () => {
           className="max-w-md w-full mx-auto"
         >
           <div className="text-center mb-8">
-            <Link to="/" className="inline-block">
-              <BeamlyLogo />
-            </Link>
             <h2 className="mt-6 text-3xl font-bold text-white font-outfit">
               Join <span className="text-white">Beamly</span> today
             </h2>

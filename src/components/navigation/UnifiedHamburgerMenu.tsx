@@ -90,7 +90,7 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
     if (userData?.userType === 'freelancer' || userData?.userType === 'both') {
       items.push(
         { path: '/post-project', label: 'Post Project', icon: 'solar:folder-plus-bold' },
-        { path: '/projects/manage', label: 'My Projects', icon: 'solar:folder-bold' }
+        { path: '/portfolio', label: 'Portfolio', icon: 'solar:folder-bold' }
       );
     }
 

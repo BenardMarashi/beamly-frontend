@@ -169,7 +169,13 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
               <Button
                 variant="light"
                 className="text-white"
-                onPress={() => navigate(`/freelancer/${freelancerId}/projects`)}
+                onPress={() => {
+                  if (isOwnProfile) {
+                    navigate('/portfolio');
+                  } else {
+                    navigate(`/freelancer/${freelancerId}/portfolio`);
+                  }
+                }}
               >
                 View All Projects
               </Button>

@@ -56,37 +56,35 @@ const SettingsPage: React.FC = () => {
     confirmPassword: ''
   });
   
-// In your settings.tsx file, replace the first useEffect with this simpler version:
-
-useEffect(() => {
-  // Scroll to top
-  window.scrollTo(0, 0);
-  
-  // Simple menu close - just remove the class, don't click anything
-  const closeMenu = () => {
-    // Remove menu-open class
-    document.body.classList.remove('menu-open');
+  useEffect(() => {
+    // Scroll to top
+    window.scrollTo(0, 0);
     
-    // Hide any open menus by adding a temporary class
-    const menus = document.querySelectorAll('.hamburger-menu-panel');
-    menus.forEach(menu => {
-      if (menu instanceof HTMLElement) {
-        menu.style.display = 'none';
-        // Allow it to be shown again after a delay
-        setTimeout(() => {
-          menu.style.display = '';
-        }, 500);
-      }
-    });
-  };
-  
-  // Close immediately
-  closeMenu();
-  
-  if (!user) {
-    navigate('/login');
-  }
-}, [user, navigate]);
+    // Simple menu close - just remove the class, don't click anything
+    const closeMenu = () => {
+      // Remove menu-open class
+      document.body.classList.remove('menu-open');
+      
+      // Hide any open menus by adding a temporary class
+      const menus = document.querySelectorAll('.hamburger-menu-panel');
+      menus.forEach(menu => {
+        if (menu instanceof HTMLElement) {
+          menu.style.display = 'none';
+          // Allow it to be shown again after a delay
+          setTimeout(() => {
+            menu.style.display = '';
+          }, 500);
+        }
+      });
+    };
+    
+    // Close immediately
+    closeMenu();
+    
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
   
   const updateSetting = async (key: string, value: any) => {
     const newSettings = { ...settings, [key]: value };
@@ -111,10 +109,10 @@ useEffect(() => {
       }
       
       await updateDoc(doc(db, 'users', user!.uid), updateData);
-      toast.success('Settings updated');
+      toast.success(t('common.success')); // Use translation for success message
     } catch (error) {
       console.error('Error updating settings:', error);
-      toast.error('Failed to update settings');
+      toast.error(t('common.error')); // Use translation for error message
     }
   };
   
@@ -182,9 +180,34 @@ useEffect(() => {
     }
   };
   
-  const handleLanguageChange = (value: string) => {
-    updateSetting('language', value);
-    i18n.changeLanguage(value);
+  const handleLanguageChange = async (value: string) => {
+    try {
+      // Change language first
+      await i18n.changeLanguage(value);
+      
+      // Save to localStorage
+      localStorage.setItem('i18nextLng', value);
+      
+      // Update state
+      setSettings(prev => ({ ...prev, language: value }));
+      
+      // Save to database
+      if (user) {
+        await updateDoc(doc(db, 'users', user.uid), {
+          'settings.language': value
+        });
+      }
+      
+      // Show success message in the new language
+      toast.success(t('common.success'));
+      
+      // Update HTML lang attribute
+      document.documentElement.lang = value;
+      
+    } catch (error) {
+      console.error('Error changing language:', error);
+      toast.error(t('common.error'));
+    }
   };
   
   const handleThemeChange = (keys: any) => {
@@ -197,7 +220,7 @@ useEffect(() => {
       updateSetting('theme', selectedTheme);
       
       // Show success toast
-      toast.success(`Theme changed to ${selectedTheme}`);
+      toast.success(t('common.success'));
     }
   };
   
@@ -208,18 +231,18 @@ useEffect(() => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h1 className="text-3xl font-bold text-white mb-8">{t('settings.title')}</h1>
+        <h1 className="text-3xl font-bold text-white mb-8">{t('nav.settings') || 'Settings'}</h1>
         
         {/* Appearance Settings */}
         <Card className="glass-effect mb-6">
           <CardBody className="p-6">
             <h2 className="text-xl font-semibold text-white mb-4">
-              {t('settings.appearance.title')}
+              {t('settings.appearance.title') || 'Appearance'}
             </h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-white">{t('settings.appearance.theme')}</p>
+                  <p className="text-white">{t('settings.appearance.theme') || 'Theme'}</p>
                   <p className="text-gray-400 text-sm">Choose your preferred theme</p>
                 </div>
                 <Select
@@ -227,7 +250,7 @@ useEffect(() => {
                   onSelectionChange={handleThemeChange}
                   className="w-40"
                   variant="bordered"
-                  aria-label={t('settings.appearance.toggleTheme')}
+                  aria-label={t('settings.appearance.toggleTheme') || 'Toggle theme'}
                   classNames={{
                     trigger: "bg-gray-900/50 border-gray-600 text-white",
                     value: "text-white",
@@ -236,25 +259,30 @@ useEffect(() => {
                   }}
                 >
                   <SelectItem key="light" value="light">
-                    {t('settings.appearance.light')}
+                    {t('settings.appearance.light') || 'Light'}
                   </SelectItem>
                   <SelectItem key="dark" value="dark">
-                    {t('settings.appearance.dark')}
+                    {t('settings.appearance.dark') || 'Dark'}
                   </SelectItem>
                 </Select>
               </div>
               
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-white">{t('settings.language.title')}</p>
-                  <p className="text-gray-400 text-sm">{t('settings.language.select')}</p>
+                  <p className="text-white">{t('settings.language.title') || 'Language'}</p>
+                  <p className="text-gray-400 text-sm">{t('settings.language.select') || 'Select Language'}</p>
                 </div>
                 <Select
                   selectedKeys={[settings.language]}
-                  onSelectionChange={(keys) => handleLanguageChange(Array.from(keys)[0] as string)}
+                  onSelectionChange={(keys) => {
+                    const selected = Array.from(keys)[0] as string;
+                    if (selected) {
+                      handleLanguageChange(selected);
+                    }
+                  }}
                   className="w-40"
                   variant="bordered"
-                  aria-label={t('settings.language.select')}
+                  aria-label={t('settings.language.select') || 'Select Language'}
                   classNames={{
                     trigger: "bg-gray-900/50 border-gray-600 text-white",
                     value: "text-white",
@@ -263,10 +291,10 @@ useEffect(() => {
                   }}
                 >
                   <SelectItem key="en" value="en">
-                    {t('settings.language.english')}
+                    English
                   </SelectItem>
                   <SelectItem key="sq" value="sq">
-                    {t('settings.language.albanian')}
+                    Shqip
                   </SelectItem>
                 </Select>
               </div>
@@ -274,10 +302,22 @@ useEffect(() => {
           </CardBody>
         </Card>
         
+        {/* Debug Info (remove in production) */}
+        {process.env.NODE_ENV === 'development' && (
+          <Card className="glass-effect mb-6 border-2 border-yellow-500">
+            <CardBody className="p-4">
+              <h3 className="text-yellow-500 font-bold mb-2">Debug Info:</h3>
+              <p className="text-gray-300 text-sm">Current Language: {i18n.language}</p>
+              <p className="text-gray-300 text-sm">LocalStorage Language: {localStorage.getItem('i18nextLng')}</p>
+              <p className="text-gray-300 text-sm">Available Languages: {Object.keys(i18n.options.resources || {}).join(', ')}</p>
+            </CardBody>
+          </Card>
+        )}
+        
         {/* Notification Settings */}
         <Card className="glass-effect mb-6">
           <CardBody className="p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Notifications</h2>
+            <h2 className="text-xl font-semibold text-white mb-4">{t('nav.notifications') || 'Notifications'}</h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <div>
@@ -319,7 +359,7 @@ useEffect(() => {
         <Card className="glass-effect mb-6">
           <CardBody className="p-6">
             <h2 className="text-xl font-semibold text-white mb-4">
-              {t('settings.account.title')}
+              {t('settings.account.title') || 'Account'}
             </h2>
             <div className="space-y-4">
               <Button
@@ -339,10 +379,10 @@ useEffect(() => {
         <Card className="border border-danger/50 bg-danger/10">
           <CardBody className="p-6">
             <h2 className="text-xl font-semibold text-white mb-2">
-              {t('settings.account.dangerZone')}
+              {t('settings.account.dangerZone') || 'Danger Zone'}
             </h2>
             <p className="text-gray-400 text-sm mb-4">
-              {t('settings.account.dangerZoneDescription')}
+              {t('settings.account.dangerZoneDescription') || 'These actions are irreversible. Please proceed with caution.'}
             </p>
             <Button
               color="danger"
@@ -350,7 +390,7 @@ useEffect(() => {
               startContent={<Icon icon="lucide:trash-2" />}
               onPress={onDeleteOpen}
             >
-              {t('settings.account.deleteAccount')}
+              Delete Account
             </Button>
           </CardBody>
         </Card>
@@ -385,7 +425,7 @@ useEffect(() => {
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={onPasswordClose} disabled={loading}>
-              Cancel
+              {t('common.cancel') || 'Cancel'}
             </Button>
             <Button 
               color="primary" 
@@ -410,7 +450,7 @@ useEffect(() => {
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={onDeleteClose} disabled={loading}>
-              Cancel
+              {t('common.cancel') || 'Cancel'}
             </Button>
             <Button 
               color="danger" 

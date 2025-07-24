@@ -1,7 +1,7 @@
 // src/pages/messages.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardBody, Button, Input, Avatar, Spinner, Badge } from '@nextui-org/react';
+import { Button, Input, Avatar, Spinner, Badge } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../contexts/AuthContext';
 import { ConversationService } from '../services/firebase-services';
@@ -43,6 +43,37 @@ export const MessagesPage: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
+
+  // Force full screen on mount
+  useEffect(() => {
+    // Hide the navbar on mobile
+    const navbar = document.querySelector('header');
+    if (navbar) {
+      navbar.style.display = 'none';
+    }
+    
+    // Remove any padding from root
+    const root = document.getElementById('root');
+    if (root) {
+      root.style.padding = '0';
+      root.style.margin = '0';
+      root.style.maxWidth = '100vw';
+      root.style.width = '100vw';
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (navbar) {
+        navbar.style.display = '';
+      }
+      if (root) {
+        root.style.padding = '';
+        root.style.margin = '';
+        root.style.maxWidth = '';
+        root.style.width = '';
+      }
+    };
+  }, []);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -182,49 +213,7 @@ export const MessagesPage: React.FC = () => {
     
     try {
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      const now = new Date();
-      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-      
-      // Less than a minute
-      if (diffInSeconds < 60) return 'Just now';
-      
-      // Less than an hour
-      if (diffInSeconds < 3600) {
-        const minutes = Math.floor(diffInSeconds / 60);
-        return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-      }
-      
-      // Today
-      if (date.toDateString() === now.toDateString()) {
-        return date.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit',
-          hour12: true 
-        });
-      }
-      
-      // Yesterday
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      if (date.toDateString() === yesterday.toDateString()) {
-        return 'Yesterday ' + date.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          minute: '2-digit',
-          hour12: true 
-        });
-      }
-      
-      // Within a week
-      if (diffInSeconds < 604800) {
-        return formatDistanceToNow(date, { addSuffix: true });
-      }
-      
-      // Older than a week
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-      });
+      return formatDistanceToNow(date, { addSuffix: true });
     } catch (error) {
       console.error('Error formatting date:', error);
       return '';
@@ -233,7 +222,7 @@ export const MessagesPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[600px]">
+      <div className="fixed inset-0 flex items-center justify-center bg-[#010b29]">
         <Spinner size="lg" />
       </div>
     );
@@ -241,147 +230,139 @@ export const MessagesPage: React.FC = () => {
 
   if (!conversation || !otherUser) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Card className="glass-effect border-none">
-          <CardBody className="text-center py-12">
-            <Icon icon="lucide:message-circle-x" className="text-6xl text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-400 mb-4">Conversation not found</p>
-            <Button 
-              color="secondary"
-              onPress={() => navigate('/messages')}
-            >
-              Back to Messages
-            </Button>
-          </CardBody>
-        </Card>
+      <div className="fixed inset-0 flex items-center justify-center bg-[#010b29]">
+        <div className="text-center p-4">
+          <Icon icon="lucide:message-circle-x" className="text-6xl text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-400 mb-4">Conversation not found</p>
+          <Button 
+            onPress={() => navigate('/messages')}
+            className="bg-white/10 text-white hover:bg-white/20"
+          >
+            Back to Messages
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Card className="glass-effect border-none h-[600px] flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-white/10 flex items-center gap-4">
-          <Button
-            isIconOnly
-            variant="light"
-            onPress={() => navigate('/messages')}
-            className="text-white"
-          >
-            <Icon icon="lucide:arrow-left" className="text-xl" />
-          </Button>
-          
-          <Badge
-            content=""
-            color="success"
-            placement="bottom-right"
-            isInvisible={!otherUser.isOnline}
-            classNames={{
-              badge: "w-3 h-3 border-2 border-gray-900"
-            }}
-          >
-            <Avatar
-              src={otherUser.photoURL || `https://ui-avatars.com/api/?name=${otherUser.displayName}&background=FCE90D&color=011241`}
-              name={otherUser.displayName}
-              className="cursor-pointer"
-              onClick={() => navigate(`/freelancer/${otherUser.id}`)}
-            />
-          </Badge>
-          
-          <div className="flex-1">
-            <h3 className="font-semibold text-white">{otherUser.displayName}</h3>
-            <p className="text-sm text-gray-400 capitalize">
-              {otherUser.userType === 'freelancer' ? 'Freelancer' : 
-               otherUser.userType === 'client' ? 'Client' : 'User'}
-              {otherUser.isOnline && ' • Online'}
-            </p>
-          </div>
+    <div className="fixed inset-0 flex flex-col bg-[#010b29]">
+      {/* Header */}
+      <div className="flex-shrink-0 p-4 border-b border-white/10 flex items-center gap-4 bg-[#010b29]">
+        <Button
+          isIconOnly
+          variant="light"
+          onPress={() => navigate('/messages')}
+          className="text-white"
+        >
+          <Icon icon="lucide:arrow-left" className="text-xl" />
+        </Button>
+        
+        <Badge
+          content=""
+          color="success"
+          placement="bottom-right"
+          isInvisible={!otherUser.isOnline}
+          classNames={{
+            badge: "w-3 h-3 border-2 border-[#010b29]"
+          }}
+        >
+          <Avatar
+            src={otherUser.photoURL || `https://ui-avatars.com/api/?name=${otherUser.displayName}&background=FCE90D&color=011241`}
+            name={otherUser.displayName}
+            className="cursor-pointer"
+            onClick={() => navigate(`/freelancer/${otherUser.id}`)}
+          />
+        </Badge>
+        
+        <div className="flex-1">
+          <h3 className="font-semibold text-white">{otherUser.displayName}</h3>
+          <p className="text-sm text-gray-400 capitalize">
+            {otherUser.userType === 'freelancer' ? 'Freelancer' : 
+             otherUser.userType === 'client' ? 'Client' : 'User'}
+            {otherUser.isOnline && ' • Online'}
+          </p>
         </div>
+      </div>
 
-        {/* Messages Area */}
-        <CardBody className="flex-1 overflow-y-auto p-4">
-          {messages.length === 0 ? (
-            <div className="text-center py-12">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {messages.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
               <Icon icon="lucide:message-circle" className="text-6xl text-gray-500 mx-auto mb-4" />
               <p className="text-gray-400">No messages yet. Start the conversation!</p>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((message, index) => {
-                const isOwn = message.senderId === user?.uid;
-                const showTime = index === 0 || 
-                  (index > 0 && 
-                   formatMessageTime(messages[index - 1].createdAt) !== formatMessageTime(message.createdAt));
-                
-                return (
-                  <div key={message.id}>
-                    {showTime && (
-                      <div className="text-center my-4">
-                        <span className="text-xs text-gray-500 bg-white/5 px-3 py-1 rounded-full">
-                          {formatMessageTime(message.createdAt)}
-                        </span>
-                      </div>
-                    )}
-                    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2`}>
-                      <div
-                        className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                          isOwn
-                            ? 'bg-beamly-secondary text-beamly-third'
-                            : 'bg-white/10 text-white'
-                        }`}
-                      >
-                        <p className="break-words text-sm">{message.text}</p>
-                        {isOwn && (
-                          <div className="flex items-center justify-end gap-1 mt-1">
-                            <Icon 
-                              icon={message.status === 'read' ? "lucide:check-check" : "lucide:check"} 
-                              className={`text-xs ${message.status === 'read' ? 'text-blue-400' : 'opacity-70'}`}
-                            />
-                          </div>
-                        )}
-                      </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((message, index) => {
+              const isOwn = message.senderId === user?.uid;
+              const previousMessage = index > 0 ? messages[index - 1] : null;
+              const showTime = !previousMessage || 
+                formatMessageTime(previousMessage.createdAt) !== formatMessageTime(message.createdAt);
+              
+              return (
+                <div key={message.id}>
+                  {showTime && (
+                    <div className="text-center my-4">
+                      <span className="text-xs text-gray-500 bg-white/5 px-3 py-1 rounded-full">
+                        {formatMessageTime(message.createdAt)}
+                      </span>
+                    </div>
+                  )}
+                  <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2`}>
+                    <div
+                      className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                        isOwn
+                          ? 'bg-white/10 text-white'
+                          : 'bg-white/10 text-white'
+                      }`}
+                    >
+                      <p className="break-words text-sm">{message.text}</p>
+                      {isOwn && (
+                        <div className="flex items-center justify-end gap-1 mt-1">
+                          <Icon 
+                            icon={message.status === 'read' ? "lucide:check-check" : "lucide:check"} 
+                            className={`text-xs ${message.status === 'read' ? 'text-white' : 'text-white/60'}`}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </CardBody>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
 
-        {/* Input Area */}
-        <div className="p-4 border-t border-white/10">
-          <form onSubmit={handleSendMessage} className="flex gap-2">
-            <Input
-              ref={messageInputRef}
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              disabled={sending}
-              classNames={{
-                input: "text-white",
-                inputWrapper: "bg-white/5 border-white/20 hover:border-white/30"
-              }}
-              endContent={
-                newMessage.trim() && (
-                  <Button
-                    type="submit"
-                    size="sm"
-                    color="secondary"
-                    isIconOnly
-                    disabled={!newMessage.trim() || sending}
-                    isLoading={sending}
-                    className="min-w-unit-8 h-unit-8"
-                  >
-                    <Icon icon="lucide:send" className="text-base" />
-                  </Button>
-                )
-              }
-            />
-          </form>
-        </div>
-      </Card>
+      {/* Input Area */}
+      <div className="flex-shrink-0 p-4 border-t border-white/10 bg-[#010b29]">
+        <form onSubmit={handleSendMessage} className="flex gap-2">
+          <Input
+            ref={messageInputRef}
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type a message..."
+            disabled={sending}
+            classNames={{
+              input: "text-white",
+              inputWrapper: "bg-white/5 border-white/20 hover:border-white/30"
+            }}
+          />
+          <Button
+            type="submit"
+            isIconOnly
+            isLoading={sending}
+            disabled={!newMessage.trim() || sending}
+            className="bg-white/10 text-white hover:bg-white/20"
+          >
+            <Icon icon="lucide:send" />
+          </Button>
+        </form>
+      </div>
     </div>
   );
 };
