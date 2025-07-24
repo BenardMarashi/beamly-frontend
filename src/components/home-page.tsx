@@ -20,10 +20,10 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
   const userName = "Alexander"; // This would come from user context in a real app
   
   const categories = [
-    { name: t('categories.items.graphicDesign'), icon: "lucide:palette", page: "design-jobs" },
-    { name: t('categories.items.webDevelopment'), icon: "lucide:code", page: "development-jobs" },
-    { name: t('categories.items.writingTranslation'), icon: "lucide:pen-tool", page: "writing-jobs" },
-    { name: t('categories.items.digitalMarketing'), icon: "lucide:megaphone", page: "marketing-jobs" }
+    { name: t('categories.items.graphicDesign'), icon: "lucide:palette", page: "browse-freelancers?category=design" },
+    { name: t('categories.items.webDevelopment'), icon: "lucide:code", page: "browse-freelancers?category=development" },
+    { name: t('categories.items.writingTranslation'), icon: "lucide:pen-tool", page: "browse-freelancers?category=writing" },
+    { name: t('categories.items.digitalMarketing'), icon: "lucide:megaphone", page: "browse-freelancers?category=marketing" }
   ];
   
   const featuredJobs = [
@@ -65,6 +65,13 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
       projectsCompleted: 98
     }
   ];
+  
+  const handleHomeSearch = () => {
+    if (searchQuery.trim()) {
+      // Navigate to browse freelancers with search query
+      setCurrentPage(`browse-freelancers?search=${encodeURIComponent(searchQuery)}`);
+    }
+  };
   
   // Show landing page for non-logged in users
   const isLoggedIn = false; // This should come from auth context
@@ -109,7 +116,11 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
             </h1>
           </div>
           <div className="ml-auto">
-            <Badge content="3" color="secondary" shape="circle">
+            <Badge 
+              color="secondary" 
+              content="3"
+              shape="circle"
+            >
               <Button isIconOnly variant="light" className={isDarkMode ? "text-white" : "text-gray-800"}>
                 <Icon icon="lucide:bell" width={24} />
               </Button>
@@ -126,12 +137,23 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
             radius="lg"
             className={isDarkMode ? "bg-white/10 border-white/20" : "bg-white border-gray-200"}
             startContent={<Icon icon="lucide:search" className="text-gray-400" />}
+            onKeyPress={(e) => e.key === 'Enter' && handleHomeSearch()}
             endContent={
-              searchQuery && (
-                <Button isIconOnly size="sm" variant="light" className="text-gray-400" onPress={() => setSearchQuery("")}>
-                  <Icon icon="lucide:x" width={16} />
+              <div className="flex items-center gap-2">
+                {searchQuery && (
+                  <Button isIconOnly size="sm" variant="light" className="text-gray-400" onPress={() => setSearchQuery("")}>
+                    <Icon icon="lucide:x" width={16} />
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  color="secondary"
+                  className="font-medium text-beamly-third"
+                  onPress={handleHomeSearch}
+                >
+                  Search
                 </Button>
-              )
+              </div>
             }
           />
         </div>
@@ -173,7 +195,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
             variant="light"
             className="text-beamly-secondary p-0 text-sm"
             endContent={<Icon icon="lucide:chevron-right" />}
-            onPress={() => setCurrentPage("all-jobs")}
+            onPress={() => setCurrentPage("looking-for-work")}
           >
             {t('home.explore')}
           </Button>
@@ -191,7 +213,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
               <Card 
                 className={`glass-card border-none card-hover ${!isDarkMode && 'border border-gray-200'}`}
                 isPressable
-                onPress={() => setCurrentPage("job-details")}
+                onPress={() => setCurrentPage(`job/${job.id}`)}
               >
                 <CardBody className="p-0 overflow-hidden">
                   <div className="relative">
@@ -231,7 +253,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
             variant="light"
             className="text-beamly-secondary p-0 text-sm"
             endContent={<Icon icon="lucide:chevron-right" />}
-            onPress={() => setCurrentPage("freelancers")}
+            onPress={() => setCurrentPage("browse-freelancers")}
           >
             {t('common.seeMore')}
           </Button>
@@ -248,7 +270,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
               <Card 
                 className={`${index % 2 === 0 ? 'glass-card' : 'yellow-glass'} border-none card-hover`}
                 isPressable
-                onPress={() => setCurrentPage("freelancer-profile")}
+                onPress={() => setCurrentPage(`freelancer/${freelancer.id}`)}
               >
                 <CardBody className="p-3">
                   <div className="flex items-center gap-3">
@@ -273,7 +295,7 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
                         size="sm" 
                         color="secondary"
                         className="mt-1 text-xs font-medium text-beamly-third"
-                        onPress={() => setCurrentPage("freelancer-profile")}
+                        onPress={() => setCurrentPage(`freelancer/${freelancer.id}`)}
                       >
                         {t('common.view')}
                       </Button>
@@ -308,7 +330,9 @@ export const HomePage: React.FC<HomePageProps> = ({ setCurrentPage, isDarkMode =
               <h3 className={`text-base md:text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 {t('home.activeProjects')}
               </h3>
-              <Badge color="secondary">2</Badge>
+              <Badge color="secondary" size="lg">
+                2
+              </Badge>
             </div>
             
             <div className="space-y-4">
