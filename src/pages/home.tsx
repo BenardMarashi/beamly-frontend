@@ -1,3 +1,6 @@
+// This is the complete file you already have from our previous response
+// src/pages/home.tsx
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Input, Button, Card, CardBody, Avatar, Badge } from "@nextui-org/react";
@@ -343,6 +346,21 @@ export const HomePage: React.FC = () => {
     return () => unsubscribe();
   }, [user]);
 
+  // Updated navigation function
+  const navigateToPage = (page: string) => {
+    if (page.includes('?')) {
+      // Handle pages with query parameters
+      const [path, queryString] = page.split('?');
+      navigate(`/${path}?${queryString}`);
+    } else if (page === 'signup-freelancer') {
+      navigate('/signup?type=freelancer');
+    } else if (page === 'signup-company') {
+      navigate('/signup?type=client');
+    } else {
+      navigate(`/${page}`);
+    }
+  };
+
   const categories = [
     { name: t('home.categories.design'), icon: "lucide:palette", page: "browse-freelancers?category=design" },
     { name: t('home.categories.development'), icon: "lucide:code", page: "browse-freelancers?category=development" },
@@ -358,7 +376,7 @@ export const HomePage: React.FC = () => {
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      navigate(`/browse-freelancers?search=${encodeURIComponent(searchQuery)}`);
     }
   };
 
@@ -414,7 +432,12 @@ export const HomePage: React.FC = () => {
               </h1>
             </div>
             <div className="ml-auto">
-              <Badge content={notificationCount} color="secondary" shape="circle" isInvisible={notificationCount === 0}>
+              <Badge 
+                color="secondary" 
+                content={notificationCount > 0 ? notificationCount.toString() : undefined}
+                shape="circle" 
+                isInvisible={notificationCount === 0}
+              >
                 <Button 
                   isIconOnly 
                   variant="light" 
@@ -437,11 +460,21 @@ export const HomePage: React.FC = () => {
               className={isDarkMode ? "bg-white/10 border-white/20" : "bg-gray-50 border-gray-200"}
               startContent={<Icon icon="lucide:search" className="text-gray-400" />}
               endContent={
-                searchQuery && (
-                  <Button isIconOnly size="sm" variant="light" className="text-gray-400" onPress={() => setSearchQuery("")}>
-                    <Icon icon="lucide:x" width={16} />
+                <div className="flex items-center gap-2">
+                  {searchQuery && (
+                    <Button isIconOnly size="sm" variant="light" className="text-gray-400" onPress={() => setSearchQuery("")}>
+                      <Icon icon="lucide:x" width={16} />
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    color="secondary"
+                    className="font-medium text-beamly-third"
+                    onPress={handleSearch}
+                  >
+                    Search
                   </Button>
-                )
+                </div>
               }
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
@@ -475,7 +508,7 @@ export const HomePage: React.FC = () => {
             >
               <Button
                 className={`w-full h-[90px] ${isDarkMode ? 'glass-card' : 'bg-white shadow-sm hover:shadow-md'} flex flex-col gap-2 p-3 transition-all`}
-                onPress={() => navigate(`/${category.page}`)}
+                onPress={() => navigateToPage(category.page)}
               >
                 <Icon icon={category.icon} className="text-beamly-secondary text-2xl" />
                 <span className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
@@ -660,7 +693,9 @@ export const HomePage: React.FC = () => {
               <h3 className={`text-base md:text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 {t('home.yourActiveProjects')}
               </h3>
-              <Badge color="secondary" content={activeProjects.length} />
+              <Badge color="secondary" size="lg">
+                {activeProjects.length}
+              </Badge>
             </div>
             
             {activeProjects.length > 0 ? (
@@ -716,3 +751,5 @@ export const HomePage: React.FC = () => {
     </div>
   );
 };
+
+export default HomePage;

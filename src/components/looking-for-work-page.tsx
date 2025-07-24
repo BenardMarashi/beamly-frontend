@@ -1,62 +1,64 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
-  Input, 
-  Button, 
   Card, 
   CardBody, 
-  Chip, 
+  Button, 
+  Input, 
   Select, 
   SelectItem,
+  Chip,
   Pagination,
-  Skeleton
+  Skeleton,
+  Avatar
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { collection, query, where, orderBy, limit, getDocs, startAfter, DocumentSnapshot, QueryConstraint } from "firebase/firestore";
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  getDocs, 
+  DocumentSnapshot,
+  startAfter,
+  QueryConstraint
+} from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { useAuth } from "../contexts/AuthContext";
 import { PageHeader } from "./page-header";
-import { JobCard } from "./job-card";
-
-
-interface LookingForWorkPageProps {
-  setCurrentPage?: (page: string) => void;
-  isDarkMode?: boolean;
-}
 
 interface Job {
   id: string;
   title: string;
-  description: string;
-  budgetMin: number;
-  budgetMax: number;
-  budgetType: 'fixed' | 'hourly';
-  category: string;
-  skills: string[];
-  clientId: string;
-  clientName: string;
+  company: string;
+  clientName?: string;
   clientPhotoURL?: string;
-  createdAt: any;
-  proposalCount: number;
-  location?: string;
+  description: string;
+  budget?: string;
+  budgetMin?: number;
+  budgetMax?: number;
+  budgetRange?: string;
+  fixedPrice?: number;
+  category?: string;
+  skills?: string[];
   duration?: string;
-  experienceLevel?: string;
+  postedAt?: any;
+  createdAt?: any;
+  location?: string;
+  type?: string;
+  status?: string;
+  proposalsCount?: number;
 }
 
-export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({ 
-  setCurrentPage: _setCurrentPage,
-  isDarkMode: _isDarkMode = true 
-}) => {
-  // Note: setCurrentPage and isDarkMode are passed from parent but we're using React Router navigation
-  // These props are kept for backward compatibility but not used internally
-  
-  const { user } = useAuth();
+export const LookingForWorkPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedBudget, setSelectedBudget] = useState("all");
   const [selectedDuration, setSelectedDuration] = useState("all");
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPageNum] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const lastDocRef = useRef<DocumentSnapshot | null>(null);
@@ -100,12 +102,12 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
   useEffect(() => {
     setCurrentPageNum(1);
     lastDocRef.current = null;
-  }, [selectedCategory, selectedBudget, selectedDuration]);
+  }, [selectedCategory, selectedBudget, selectedDuration, searchQuery]);
 
   useEffect(() => {
     const shouldReset = currentPage === 1;
     fetchJobs(shouldReset);
-  }, [selectedCategory, selectedBudget, selectedDuration, currentPage]);
+  }, [selectedCategory, selectedBudget, selectedDuration, currentPage, searchQuery]);
 
   const fetchJobs = async (reset = false) => {
     setLoading(true);
@@ -116,70 +118,71 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
     }
     
     try {
-      let constraints: QueryConstraint[] = [
+      const constraints: QueryConstraint[] = [
         where("status", "==", "open"),
-        orderBy("createdAt", "desc"),
-        limit(jobsPerPage)
+        orderBy("createdAt", "desc")
       ];
 
       // Add category filter
       if (selectedCategory !== "all") {
-        constraints = [where("category", "==", selectedCategory), ...constraints];
+        constraints.push(where("category", "==", selectedCategory));
       }
 
       // Add budget filter
       if (selectedBudget !== "all") {
         const [min, max] = selectedBudget.split("-").map(v => v === "5000+" ? 5000 : parseInt(v));
         if (max) {
-          constraints.push(where("budgetMin", ">=", min));
-          constraints.push(where("budgetMax", "<=", max));
+          constraints.push(where("budgetMax", ">=", min));
+          constraints.push(where("budgetMin", "<=", max));
         } else {
           constraints.push(where("budgetMin", ">=", min));
         }
       }
 
-      // Handle pagination
-      if (currentPage > 1 && lastDocRef.current) {
+      // Add duration filter
+      if (selectedDuration !== "all") {
+        constraints.push(where("duration", "==", selectedDuration));
+      }
+
+      // Add pagination
+      if (!reset && lastDocRef.current) {
         constraints.push(startAfter(lastDocRef.current));
       }
+
+      constraints.push(limit(jobsPerPage));
 
       const q = query(collection(db, "jobs"), ...constraints);
       const querySnapshot = await getDocs(q);
       
-      const jobsData = await Promise.all(
-        querySnapshot.docs.map(async doc => {
-          const jobData = { id: doc.id, ...doc.data() } as Job;
-          
-          // Fetch client profile data to get profile picture
-          if (jobData.clientId) {
-            try {
-              const clientDoc = await getDocs(query(
-                collection(db, 'users'), 
-                where('uid', '==', jobData.clientId)
-              ));
-              
-              if (!clientDoc.empty) {
-                const clientData = clientDoc.docs[0].data();
-                jobData.clientPhotoURL = clientData.photoURL || clientData.profilePicture;
-                jobData.clientName = clientData.displayName || jobData.clientName;
-              }
-            } catch (error) {
-              console.error('Error fetching client data:', error);
-            }
-          }
-          
-          return jobData;
-        })
-      );
+      let jobsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Job));
 
-      setJobs(jobsData);
-      
-      // Set last document for pagination
+      // Apply search filter in memory if searchQuery exists
+      if (searchQuery.trim()) {
+        const searchLower = searchQuery.toLowerCase();
+        jobsData = jobsData.filter(job => 
+          job.title?.toLowerCase().includes(searchLower) ||
+          job.description?.toLowerCase().includes(searchLower) ||
+          job.skills?.some(skill => skill.toLowerCase().includes(searchLower)) ||
+          job.category?.toLowerCase().includes(searchLower) ||
+          job.company?.toLowerCase().includes(searchLower) ||
+          job.clientName?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      if (reset) {
+        setJobs(jobsData);
+      } else {
+        setJobs(prev => [...prev, ...jobsData]);
+      }
+
       if (querySnapshot.docs.length > 0) {
         lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
       }
 
-      // Estimate total pages (simplified)
+      // Estimate total pages
       if (querySnapshot.docs.length < jobsPerPage) {
         setTotalPages(currentPage);
       } else {
@@ -187,6 +190,7 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
       }
     } catch (error) {
       console.error("Error fetching jobs:", error);
+      setJobs([]);
     } finally {
       setLoading(false);
     }
@@ -194,9 +198,39 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement search functionality
     setCurrentPageNum(1);
     fetchJobs(true);
+  };
+
+  const handleSkillClick = (skill: string) => {
+    setSearchQuery(skill);
+    setCurrentPageNum(1);
+  };
+
+  const formatBudget = (job: Job) => {
+    if (job.budget) return job.budget;
+    if (job.budgetRange) return job.budgetRange;
+    if (job.fixedPrice) return `$${job.fixedPrice}`;
+    if (job.budgetMin && job.budgetMax) return `$${job.budgetMin} - $${job.budgetMax}`;
+    if (job.budgetMin) return `$${job.budgetMin}+`;
+    return "Negotiable";
+  };
+
+  const getTimeAgo = (timestamp: any) => {
+    if (!timestamp) return "Recently";
+    
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const now = new Date();
+      const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+      
+      if (diffInHours < 1) return "Just now";
+      if (diffInHours < 24) return `${diffInHours}h ago`;
+      if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+      return `${Math.floor(diffInHours / 168)}w ago`;
+    } catch (error) {
+      return "Recently";
+    }
   };
 
   return (
@@ -212,9 +246,9 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
           <form onSubmit={handleSearch}>
             <div className="flex flex-col md:flex-row gap-4 mb-4">
               <Input
-                placeholder="Search for jobs..."
+                placeholder="Search for jobs by title, skills, or keywords..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onValueChange={setSearchQuery}
                 className="flex-1"
                 startContent={<Icon icon="lucide:search" />}
                 classNames={{
@@ -237,15 +271,14 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
                 selectedKeys={[selectedCategory]}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 classNames={{
-                  trigger: "bg-gray-900/50 border-gray-600 text-white",
+                  trigger: "bg-white/5",
                   value: "text-white",
-                  listbox: "bg-gray-900",
-                  popoverContent: "bg-gray-900",
+                  label: "text-gray-400"
                 }}
               >
-                {categories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    {cat.label}
+                {categories.map((category) => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label}
                   </SelectItem>
                 ))}
               </Select>
@@ -255,15 +288,14 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
                 selectedKeys={[selectedBudget]}
                 onChange={(e) => setSelectedBudget(e.target.value)}
                 classNames={{
-                  trigger: "bg-gray-900/50 border-gray-600 text-white",
+                  trigger: "bg-white/5",
                   value: "text-white",
-                  listbox: "bg-gray-900",
-                  popoverContent: "bg-gray-900",
+                  label: "text-gray-400"
                 }}
               >
-                {budgetRanges.map((range) => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
+                {budgetRanges.map((budget) => (
+                  <SelectItem key={budget.value} value={budget.value}>
+                    {budget.label}
                   </SelectItem>
                 ))}
               </Select>
@@ -273,112 +305,176 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = ({
                 selectedKeys={[selectedDuration]}
                 onChange={(e) => setSelectedDuration(e.target.value)}
                 classNames={{
-                  trigger: "bg-gray-900/50 border-gray-600 text-white",
+                  trigger: "bg-white/5",
                   value: "text-white",
-                  listbox: "bg-gray-900",
-                  popoverContent: "bg-gray-900",
+                  label: "text-gray-400"
                 }}
               >
-                {durations.map((dur) => (
-                  <SelectItem key={dur.value} value={dur.value}>
-                    {dur.label}
+                {durations.map((duration) => (
+                  <SelectItem key={duration.value} value={duration.value}>
+                    {duration.label}
                   </SelectItem>
                 ))}
               </Select>
             </div>
           </form>
-
-          {/* Popular Skills */}
-          <div className="mt-4">
-            <p className="text-sm text-gray-400 mb-2">Popular skills:</p>
-            <div className="flex flex-wrap gap-2">
-              {popularSkills.map((skill) => (
-                <Chip
-                  key={skill}
-                  variant="bordered"
-                  className="cursor-pointer hover:bg-white/10"
-                  onClick={() => setSearchQuery(skill)}
-                >
-                  {skill}
-                </Chip>
-              ))}
-            </div>
-          </div>
         </CardBody>
       </Card>
 
-      {/* Results Summary */}
-      {!loading && (
-        <div className="flex justify-between items-center mb-6">
-          <p className="text-gray-400">
-            Found {jobs.length} jobs matching your criteria
-          </p>
+      {/* Popular Skills */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold mb-4">Popular Skills</h3>
+        <div className="flex flex-wrap gap-2">
+          {popularSkills.map((skill) => (
+            <Chip
+              key={skill}
+              variant="flat"
+              className="bg-white/10 hover:bg-white/20 cursor-pointer transition-colors"
+              onClick={() => handleSkillClick(skill)}
+            >
+              {skill}
+            </Chip>
+          ))}
         </div>
-      )}
+      </div>
 
-      {/* Job Listings */}
-      {loading ? (
+      {/* Jobs Grid */}
+      {loading && jobs.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="glass-effect">
               <CardBody className="p-6">
-                <Skeleton className="rounded-lg mb-4">
-                  <div className="h-6 w-3/4 rounded-lg bg-default-300"></div>
-                </Skeleton>
-                <Skeleton className="rounded-lg mb-2">
-                  <div className="h-4 w-full rounded-lg bg-default-300"></div>
-                </Skeleton>
-                <Skeleton className="rounded-lg">
-                  <div className="h-4 w-5/6 rounded-lg bg-default-300"></div>
-                </Skeleton>
+                <Skeleton className="h-6 w-3/4 mb-4" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-5/6 mb-4" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-8 w-20" />
+                </div>
               </CardBody>
             </Card>
           ))}
         </div>
+      ) : jobs.length === 0 ? (
+        <Card className="glass-effect">
+          <CardBody className="text-center py-12">
+            <Icon icon="lucide:briefcase-off" className="text-4xl text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No jobs found</h3>
+            <p className="text-gray-400">Try adjusting your search or filters</p>
+          </CardBody>
+        </Card>
       ) : (
         <>
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => (
-              <JobCard key={job.id} job={job} />
+              <motion.div
+                key={job.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: 1.02 }}
+                className="cursor-pointer"
+                onClick={() => navigate(`/job/${job.id}`)}
+              >
+                <Card className="glass-effect h-full hover:bg-white/10 transition-colors">
+                  <CardBody className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
+                        <div className="flex items-center gap-2 mb-3">
+                          {job.clientPhotoURL ? (
+                            <Avatar
+                              src={job.clientPhotoURL}
+                              className="w-6 h-6"
+                              name={job.clientName || job.company}
+                            />
+                          ) : (
+                            <Avatar
+                              name={job.clientName || job.company || 'Client'}
+                              className="w-6 h-6"
+                              classNames={{
+                                base: "bg-beamly-secondary/20",
+                                name: "text-beamly-secondary text-xs"
+                              }}
+                            />
+                          )}
+                          <span className="text-sm text-gray-400">
+                            {job.clientName || job.company || 'Client'}
+                          </span>
+                        </div>
+                      </div>
+                      <Chip
+                        size="sm"
+                        variant="flat"
+                        className="bg-beamly-secondary/20 text-beamly-secondary"
+                      >
+                        {formatBudget(job)}
+                      </Chip>
+                    </div>
+                    
+                    <p className="text-gray-300 text-sm mb-4 line-clamp-3">
+                      {job.description}
+                    </p>
+                    
+                    {job.skills && job.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {job.skills.slice(0, 3).map((skill, idx) => (
+                          <Chip
+                            key={idx}
+                            size="sm"
+                            variant="flat"
+                            className="bg-white/10"
+                          >
+                            {skill}
+                          </Chip>
+                        ))}
+                        {job.skills.length > 3 && (
+                          <Chip size="sm" variant="flat" className="bg-white/10">
+                            +{job.skills.length - 3}
+                          </Chip>
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between text-xs text-gray-400">
+                      <div className="flex items-center gap-3">
+                        {job.location && (
+                          <span className="flex items-center gap-1">
+                            <Icon icon="lucide:map-pin" className="w-3 h-3" />
+                            {job.location}
+                          </span>
+                        )}
+                        {job.duration && (
+                          <span className="flex items-center gap-1">
+                            <Icon icon="lucide:clock" className="w-3 h-3" />
+                            {job.duration}
+                          </span>
+                        )}
+                      </div>
+                      <span>{getTimeAgo(job.createdAt || job.postedAt)}</span>
+                    </div>
+                    
+                    {job.proposalsCount !== undefined && (
+                      <div className="mt-3 pt-3 border-t border-white/10">
+                        <span className="text-xs text-gray-400">
+                          {job.proposalsCount} proposals
+                        </span>
+                      </div>
+                    )}
+                  </CardBody>
+                </Card>
+              </motion.div>
             ))}
-          </motion.div>
+          </div>
 
-          {jobs.length === 0 && (
-            <Card className="glass-effect">
-              <CardBody className="text-center py-16">
-                <Icon icon="lucide:briefcase" className="text-6xl text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">No jobs found</h3>
-                <p className="text-gray-400 mb-4">Try adjusting your filters to see more results</p>
-                <Button
-                  color="primary"
-                  variant="flat"
-                  onClick={() => {
-                    setSelectedCategory("all");
-                    setSelectedBudget("all");
-                    setSelectedDuration("all");
-                    setCurrentPageNum(1);
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              </CardBody>
-            </Card>
-          )}
-
-          {/* Pagination */}
-          {jobs.length > 0 && totalPages > 1 && (
+          {totalPages > 1 && (
             <div className="flex justify-center mt-8">
               <Pagination
                 total={totalPages}
                 page={currentPage}
                 onChange={setCurrentPageNum}
                 color="secondary"
-                variant="flat"
+                variant="bordered"
+                showControls
               />
             </div>
           )}

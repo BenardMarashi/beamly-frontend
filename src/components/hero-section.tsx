@@ -15,16 +15,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ setCurrentPage }) => {
   const { isDarkMode } = useTheme();
   
   const popularSearches = [
-    t('hero.categories.webDesign'),
-    t('hero.categories.logoDesign'),
-    t('hero.categories.contentWriting'),
-    t('hero.categories.videoEditing')
+    { text: t('hero.categories.webDesign'), category: 'design', page: 'browse-freelancers' },
+    { text: t('hero.categories.logoDesign'), category: 'design', page: 'browse-freelancers' },
+    { text: t('hero.categories.contentWriting'), category: 'writing', page: 'browse-freelancers' },
+    { text: t('hero.categories.videoEditing'), category: 'video', page: 'browse-freelancers' }
   ];
   
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      setCurrentPage(`search-results?q=${encodeURIComponent(searchQuery)}`);
+      // Navigate to browse freelancers with search query
+      setCurrentPage(`browse-freelancers?search=${encodeURIComponent(searchQuery)}`);
     }
+  };
+
+  const handlePopularSearchClick = (search: { text: string, category: string, page: string }) => {
+    // Navigate to the appropriate page with category and search
+    setCurrentPage(`${search.page}?category=${search.category}&search=${encodeURIComponent(search.text)}`);
   };
   
   return (
@@ -60,62 +66,66 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ setCurrentPage }) => {
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   className={`flex-1 ${isDarkMode ? 'bg-white/10 border-white/20' : 'bg-white border-gray-200'}`}
                   classNames={{
-                    input: "text-base md:text-lg",
-                    inputWrapper: "h-12 md:h-14"
+                    input: isDarkMode ? "text-white placeholder:text-gray-400" : "text-gray-900 placeholder:text-gray-500",
+                    inputWrapper: "shadow-none"
                   }}
                 />
-                <Button
-                  size="lg"
-                  color="secondary"
-                  className="font-medium font-outfit text-beamly-third h-12 md:h-14 px-6 md:px-8"
+                <Button 
+                  color="secondary" 
+                  size="lg" 
+                  className="px-8 font-medium text-beamly-third"
                   onPress={handleSearch}
                 >
-                  {t('hero.search')}
+                  {t('hero.searchButton')}
                 </Button>
               </div>
             </div>
           </div>
           
-          {/* Popular Searches */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-12 md:mb-16">
-            <span className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>
+          {/* Popular Searches - Now Clickable */}
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               {t('hero.popular')}:
             </span>
             {popularSearches.map((search, index) => (
               <Button
                 key={index}
+                variant="light"
                 size="sm"
-                variant="flat"
-                className={`${isDarkMode ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} text-xs md:text-sm`}
-                onPress={() => {
-                  setSearchQuery(search);
-                  handleSearch();
-                }}
+                className={`text-sm hover:underline ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                onPress={() => handlePopularSearchClick(search)}
               >
-                {search}
+                {search.text}
               </Button>
             ))}
           </div>
           
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center mt-12"
+          >
             <Button
               size="lg"
               color="primary"
-              className="font-medium font-outfit px-6 md:px-8"
-              onPress={() => setCurrentPage("browse-freelancers")}
+              className="font-medium text-white px-8"
+              onPress={() => setCurrentPage('signup-freelancer')}
+              startContent={<Icon icon="lucide:user-plus" />}
             >
-              {t('cta.hireFreelancer')}
+              {t('hero.joinAsFreelancer')}
             </Button>
             <Button
               size="lg"
               variant="bordered"
-              className={`font-medium font-outfit ${isDarkMode ? 'border-white/30 text-white' : 'border-gray-300 text-gray-700'} px-6 md:px-8`}
-              onPress={() => setCurrentPage("signup?type=freelancer")}
+              className={`font-medium px-8 ${isDarkMode ? 'border-white/20 text-white' : 'border-gray-300 text-gray-900'}`}
+              onPress={() => setCurrentPage('signup-company')}
+              startContent={<Icon icon="lucide:building" />}
             >
-              {t('cta.becomeFreelancer')}
+              {t('hero.hireFreelancers')}
             </Button>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>
