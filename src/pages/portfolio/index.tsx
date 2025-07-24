@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Project } from '../../types/firestore.types';
 import { toast } from 'react-hot-toast';
 
-export const ManageProjectsPage: React.FC = () => {
+export const PortfolioPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -42,19 +42,19 @@ export const ManageProjectsPage: React.FC = () => {
       setProjects(projectsData);
     } catch (error) {
       console.error('Error fetching projects:', error);
-      toast.error('Failed to load your projects');
+      toast.error('Failed to load your portfolio');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!confirm('Are you sure you want to delete this project from your portfolio?')) return;
 
     try {
       await deleteDoc(doc(db, 'projects', projectId));
       setProjects(projects.filter(p => p.id !== projectId));
-      toast.success('Project deleted successfully');
+      toast.success('Project removed from portfolio');
     } catch (error) {
       console.error('Error deleting project:', error);
       toast.error('Failed to delete project');
@@ -77,98 +77,92 @@ export const ManageProjectsPage: React.FC = () => {
         transition={{ duration: 0.3 }}
       >
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white">My Projects</h1>
+          <h1 className="text-3xl font-bold text-white">My Portfolio</h1>
           <Button
             color="secondary"
             size="lg"
             startContent={<Icon icon="lucide:plus" />}
             onPress={() => navigate('/post-project')}
           >
-            Post New Project
+            Add Project
           </Button>
         </div>
 
         {projects.length === 0 ? (
-          <Card className="glass-effect border-none">
+          <Card className="bg-white/5 backdrop-blur-lg border border-white/10">
             <CardBody className="text-center py-12">
-              <Icon icon="lucide:folder" className="text-6xl text-gray-400 mx-auto mb-4" />
+              <Icon icon="lucide:folder-open" className="w-16 h-16 text-gray-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">No Projects Yet</h3>
               <p className="text-gray-400 mb-6">
-                Start building your portfolio by posting your first project
+                Start building your portfolio by adding your first project
               </p>
               <Button
                 color="secondary"
-                size="lg"
                 startContent={<Icon icon="lucide:plus" />}
                 onPress={() => navigate('/post-project')}
               >
-                Post Your First Project
+                Add Your First Project
               </Button>
             </CardBody>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project, index) => (
+            {projects.map((project) => (
               <motion.div
                 key={project.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                whileHover={{ scale: 1.02 }}
               >
-                <Card className="glass-effect border-none hover:scale-105 transition-transform">
+                <Card className="bg-white/5 backdrop-blur-lg border border-white/10 h-full">
                   <CardBody className="p-0">
-                    {project.thumbnailUrl && (
+                    <div className="relative h-48 bg-gradient-to-br from-blue-600/20 to-purple-600/20">
                       <Image
-                        src={project.thumbnailUrl}
+                        src={project.images?.[0] || '/placeholder-project.jpg'}
                         alt={project.title}
-                        className="w-full h-48 object-cover"
-                        radius="none"
+                        className="w-full h-full object-cover"
                       />
-                    )}
-                    <div className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-white text-lg line-clamp-2">
-                          {project.title}
-                        </h3>
-                        <Chip
-                          size="sm"
-                          color={project.isPublished ? 'success' : 'warning'}
-                          variant="flat"
-                        >
-                          {project.isPublished ? 'Published' : 'Draft'}
+                      <div className="absolute top-2 right-2">
+                        <Chip size="sm" variant="flat" className="bg-black/60 text-white">
+                          {project.category}
                         </Chip>
                       </div>
-                      
-                      <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                    </div>
+                    
+                    <div className="p-6">
+                      <h3 className="text-xl font-semibold text-white mb-2 line-clamp-1">
+                        {project.title}
+                      </h3>
+                      <p className="text-gray-400 text-sm line-clamp-2 mb-4">
                         {project.description}
                       </p>
                       
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {project.skills.slice(0, 3).map((skill) => (
-                          <Chip key={skill} size="sm" variant="flat" color="secondary">
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {project.skills.slice(0, 3).map((skill, index) => (
+                          <Chip 
+                            key={index}
+                            size="sm" 
+                            variant="flat"
+                            className="bg-white/10 text-gray-300"
+                          >
                             {skill}
                           </Chip>
                         ))}
                         {project.skills.length > 3 && (
-                          <Chip size="sm" variant="flat" color="default">
+                          <Chip 
+                            size="sm" 
+                            variant="flat"
+                            className="bg-white/10 text-gray-300"
+                          >
                             +{project.skills.length - 3}
                           </Chip>
                         )}
                       </div>
                       
-                      <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1">
-                            <Icon icon="lucide:eye" />
-                            {project.viewCount}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Icon icon="lucide:heart" />
-                            {project.likeCount}
-                          </span>
-                        </div>
+                      <div className="text-sm text-gray-500 mb-4">
                         <span>
-                          {project.createdAt?.toLocaleDateString?.() || 'Recently'}
+                          Updated {project.updatedAt?.toLocaleDateString?.() || 'Recently'}
                         </span>
                       </div>
                       
@@ -238,4 +232,4 @@ export const ManageProjectsPage: React.FC = () => {
   );
 };
 
-export default ManageProjectsPage;
+export default PortfolioPage;

@@ -131,7 +131,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
     if (isFreelancer) {
       menuItems.push(
         { name: "Post Project", path: "/post-project", icon: "lucide:folder-plus" },
-        { name: "My Projects", path: "/projects/manage", icon: "lucide:folder" }
+        { name: "Portfolio", path: "/portfolio", icon: "lucide:folder" }
       );
     }
 

@@ -45,6 +45,9 @@ const PrivacyPage = lazy(() => import('./pages/privacy'));
 const NotFoundPage = lazy(() => import('./pages/404'));
 const AnalyticsPage = lazy(() => import('./pages/analytics'));
 const ManageJobsPage = lazy(() => import('./pages/jobs/manage'));
+const PortfolioPage = lazy(() => import('./pages/portfolio/index'));
+const ProjectDetailsPage = lazy(() => import('./pages/portfolio/details'));
+const ProjectEditPage = lazy(() => import('./pages/portfolio/edit'));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -71,20 +74,25 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    if (!loading) {
-      if (requiresAuth && !user) {
-        navigate('/login', { state: { from: location.pathname } });
-      } else if (requiresProfile && user && !userData?.profileCompleted) {
-        navigate('/edit-profile', { state: { from: location.pathname } });
-      } else if (allowedUserTypes.length > 0 && userData) {
-        const userType = userData.userType;
-        if (!allowedUserTypes.includes(userType) && userType !== 'both') {
-          navigate('/dashboard');
-        }
+useEffect(() => {
+  // Skip redirects if we're navigating between message pages
+  const isMessageRoute = location.pathname.includes('/messages');
+  const prevPath = location.state?.from || '';
+  const isNavigatingBetweenMessages = isMessageRoute && prevPath.includes('/messages');
+
+  if (!loading && !isNavigatingBetweenMessages) {
+    if (requiresAuth && !user) {
+      navigate('/login', { state: { from: location.pathname } });
+    } else if (requiresProfile && user && !userData?.profileCompleted) {
+      navigate('/edit-profile', { state: { from: location.pathname } });
+    } else if (allowedUserTypes.length > 0 && userData) {
+      const userType = userData.userType;
+      if (!allowedUserTypes.includes(userType) && userType !== 'both') {
+        navigate('/dashboard');
       }
     }
-  }, [user, userData, loading, navigate, location, requiresAuth, requiresProfile, allowedUserTypes]);
+  }
+}, [user, userData, loading, navigate, location, requiresAuth, requiresProfile, allowedUserTypes]);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -124,8 +132,12 @@ const AppRoutes = () => {
           <Route path="/profile/edit" element={<Navigate to="/edit-profile" replace />} />
           <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
           <Route path="/job/manage" element={<ProtectedRoute><ManageJobsPage /></ProtectedRoute>} />
+          <Route path="/portfolio" element={<ProtectedRoute><PortfolioPage /></ProtectedRoute>} />
+          <Route path="/projects/manage" element={<Navigate to="/portfolio" replace />} />
           <Route path="/chat" element={<Navigate to="/messages" replace />} />
           <Route path="/home" element={<ProtectedRoute ><HomePage /></ProtectedRoute>} />
+          <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailsPage /></ProtectedRoute>} />
+          <Route path="/projects/:id/edit" element={<ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
         </Route>
 
         {/* Protected routes with DashboardLayout - but without its own navigation */}
@@ -149,13 +161,13 @@ const AppRoutes = () => {
           } />
           
           <Route path="/messages" element={
-            <ProtectedRoute requiresProfile={true}>
+            <ProtectedRoute>
               <ConversationsListPage />
             </ProtectedRoute>
           } />
 
           <Route path="/messages/:conversationId" element={
-            <ProtectedRoute requiresProfile={true}>
+            <ProtectedRoute>
               {window.innerWidth < 768 ? <MessagesPage /> : <ConversationsListPage />}
             </ProtectedRoute>
           } />

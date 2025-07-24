@@ -36,6 +36,7 @@ export const ConversationsListPage: React.FC = () => {
   const [creatingConversation, setCreatingConversation] = useState(false);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(conversationId || null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [processedConversationIds, setProcessedConversationIds] = useState<Set<string>>(new Set());
 
   // Handle window resize
   useEffect(() => {
@@ -67,12 +68,15 @@ export const ConversationsListPage: React.FC = () => {
     
     setCreatingConversation(true);
     try {
+      // Check if conversation already exists
       const existingConversation = conversations.find(
         conv => conv.otherUser.id === otherUserId
       );
       
       if (existingConversation) {
         handleConversationClick(existingConversation.id);
+        // Clear the URL parameter to prevent re-triggering
+        navigate(location.pathname, { replace: true });
         return;
       }
       
@@ -83,7 +87,11 @@ export const ConversationsListPage: React.FC = () => {
       
       if (result.success && result.conversationId) {
         handleConversationClick(result.conversationId);
-        toast.success(result.isNew ? 'Conversation started!' : 'Opening conversation...');
+        if (result.isNew) {
+          toast.success('Conversation started!');
+        }
+        // Clear the URL parameter to prevent re-triggering
+        navigate(location.pathname, { replace: true });
       } else {
         toast.error('Failed to start conversation');
       }
@@ -108,7 +116,6 @@ export const ConversationsListPage: React.FC = () => {
 
   useEffect(() => {
     if (!user) {
-      navigate('/login');
       return;
     }
 
@@ -120,19 +127,28 @@ export const ConversationsListPage: React.FC = () => {
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const conversationsData: ConversationWithUser[] = [];
+      const seenParticipants = new Set<string>();
 
       for (const docSnapshot of snapshot.docs) {
         const data = docSnapshot.data();
         const otherUserId = data.participants.find((id: string) => id !== user.uid);
         
-        if (otherUserId) {
-          let otherUserData = data.participantDetails?.[otherUserId];
+        // Skip if we've already processed a conversation with this user
+        if (otherUserId && !seenParticipants.has(otherUserId)) {
+          seenParticipants.add(otherUserId);
           
-          if (!otherUserData) {
-            const userDoc = await getDoc(doc(db, 'users', otherUserId));
-            if (userDoc.exists()) {
-              otherUserData = userDoc.data();
-            }
+          // Always fetch fresh user data from users collection
+          const userDoc = await getDoc(doc(db, 'users', otherUserId));
+          let otherUserData = null;
+          
+          if (userDoc.exists()) {
+            const freshUserData = userDoc.data();
+            otherUserData = {
+              displayName: freshUserData.displayName || freshUserData.name || 'User',
+              photoURL: freshUserData.photoURL || freshUserData.photo,
+              userType: freshUserData.userType,
+              isOnline: freshUserData.isOnline
+            };
           }
           
           if (otherUserData) {
@@ -144,7 +160,7 @@ export const ConversationsListPage: React.FC = () => {
               otherUser: {
                 id: otherUserId,
                 displayName: otherUserData.displayName || 'Unknown User',
-                photoURL: otherUserData.photoURL || `https://ui-avatars.com/api/?name=${otherUserData.displayName || 'User'}&background=FCE90D&color=011241`,
+                photoURL: otherUserData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUserData.displayName || 'User')}&background=FCE90D&color=011241`,
                 userType: otherUserData.userType || 'freelancer',
                 isOnline: otherUserData.isOnline || false
               }
@@ -183,24 +199,24 @@ export const ConversationsListPage: React.FC = () => {
     conv.otherUser.displayName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const conversationsList = (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b border-white/10">
-        <h1 className="text-2xl font-bold text-white mb-4">Messages</h1>
-        <p className="text-gray-400 text-sm mb-4">Your conversations with freelancers and clients</p>
-        <Input
-          placeholder="Search conversations..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          startContent={<Icon icon="lucide:search" className="text-gray-400" />}
-          classNames={{
-            input: "text-white",
-            inputWrapper: "bg-white/5 border-white/20 hover:border-white/30"
-          }}
-        />
-      </div>
+const conversationsList = (
+  <div className="h-full flex flex-col">
+    <div className="p-4 pb-14">
+      <h1 className="text-2xl font-bold text-white mb-2">Messages</h1>
+      <p className="text-gray-400 text-sm mb-3">Your conversations with freelancers and clients</p>
+      <Input
+        placeholder="Search conversations..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        startContent={<Icon icon="lucide:search" className="text-gray-400" />}
+        classNames={{
+          input: "text-white",
+          inputWrapper: "bg-white/5 border-white/20 hover:border-white/30"
+        }}
+      />
+    </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="border-t border-white/10 flex-1 overflow-y-auto">
         {filteredConversations.length === 0 ? (
           <div className="text-center py-12 px-4">
             <Icon icon="lucide:message-circle" className="text-6xl text-gray-500 mx-auto mb-4" />
@@ -269,7 +285,7 @@ export const ConversationsListPage: React.FC = () => {
   // Mobile layout - just the conversations list
   if (isMobile) {
     return (
-      <div className="h-screen flex flex-col bg-mesh">
+      <div className="pt-20 h-screen flex flex-col bg-mesh">
         <Card className="glass-effect border-none h-full rounded-none">
           <CardBody className="p-0">
             {conversationsList}
@@ -281,7 +297,7 @@ export const ConversationsListPage: React.FC = () => {
 
   // Desktop layout - split view
   return (
-    <div className="h-[calc(100vh-4rem)] flex gap-4 p-4">
+    <div className="pt-20 h-[calc(100vh-5rem)] flex gap-4 p-4">
       {/* Conversations List - Left Side */}
       <Card className="glass-effect border-none w-96 flex-shrink-0">
         <CardBody className="p-0">

@@ -1,7 +1,7 @@
 // src/components/MessagesView.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input, Avatar, Spinner } from '@nextui-org/react';
+import { Button, Input, Avatar, Spinner, Badge } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../contexts/AuthContext';
 import { ConversationService } from '../services/firebase-services';
@@ -37,17 +37,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
   const [otherUser, setOtherUser] = useState<any>(null);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  // Handle window resize
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const messageInputRef = useRef<HTMLInputElement>(null);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -74,11 +64,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
           await ConversationService.markMessagesAsRead(conversationId, user.uid);
         } else {
           toast.error('Conversation not found');
-          if (isMobile) {
-            navigate('/messages');
-          } else if (onBack) {
-            onBack();
-          }
+          navigate('/messages');
         }
       } catch (error) {
         console.error('Error loading conversation:', error);
@@ -89,7 +75,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
     };
 
     loadConversation();
-  }, [conversationId, user, navigate, isMobile, onBack]);
+  }, [conversationId, user, navigate]);
 
   // Subscribe to messages
   useEffect(() => {
@@ -120,8 +106,15 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
     return () => unsubscribe();
   }, [conversationId, user]);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    
     if (!newMessage.trim() || !otherUser || !conversationId) return;
+
+    const messageText = newMessage.trim();
+    setNewMessage(''); // Clear input immediately for better UX
 
     setSending(true);
     try {
@@ -130,19 +123,22 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
         senderId: user!.uid,
         senderName: userData?.displayName || 'User',
         recipientId: otherUser.id,
-        text: newMessage.trim()
+        text: messageText
       });
 
-      if (result.success) {
-        setNewMessage('');
-      } else {
+      if (!result.success) {
+        // Restore message if send failed
+        setNewMessage(messageText);
         toast.error('Failed to send message');
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      setNewMessage(messageText); // Restore message on error
       toast.error('Failed to send message');
     } finally {
       setSending(false);
+      // Refocus input after sending
+      messageInputRef.current?.focus();
     }
   };
 
@@ -154,22 +150,22 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
   };
 
   const handleBack = () => {
-    if (isMobile) {
-      navigate('/messages');
-    } else if (onBack) {
-      onBack();
-    }
+    navigate('/messages');
   };
 
   const formatTime = (timestamp: any) => {
     if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return formatDistanceToNow(date, { addSuffix: true });
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return formatDistanceToNow(date, { addSuffix: true });
+    } catch (error) {
+      return '';
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="fixed inset-0 flex items-center justify-center bg-[#010b29]">
         <Spinner size="lg" />
       </div>
     );
@@ -177,16 +173,16 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
 
   if (!otherUser) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="fixed inset-0 flex items-center justify-center bg-[#010b29]">
         <div className="text-center">
           <Icon icon="lucide:message-x" className="text-6xl text-gray-500 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-white mb-2">
             Conversation not found
           </h3>
           <Button
-            color="secondary"
             onPress={handleBack}
             startContent={<Icon icon="lucide:arrow-left" />}
+            className="bg-white/10 text-white hover:bg-white/20"
           >
             Back to Messages
           </Button>
@@ -196,9 +192,9 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
   }
 
   return (
-    <div className="h-full flex flex-col bg-mesh">
-      {/* Header */}
-      <div className="p-4 border-b border-white/10 flex items-center gap-3">
+    <div className="fixed inset-0 flex flex-col bg-[#010b29]">
+      {/* Header - flex-shrink-0 to prevent compression */}
+      <div className="flex-shrink-0 p-4 border-b border-white/10 flex items-center gap-3 bg-[#010b29]">
         <Button
           isIconOnly
           variant="light"
@@ -209,57 +205,89 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
         </Button>
         
         <div className="flex items-center gap-3 flex-1">
-          <Avatar
-            src={otherUser.photoURL}
-            name={otherUser.displayName}
-            className="w-10 h-10"
-          />
+          <Badge
+            content=""
+            color="success"
+            placement="bottom-right"
+            isInvisible={!otherUser.isOnline}
+            classNames={{
+              badge: "w-3 h-3 border-2 border-[#010b29]"
+            }}
+          >
+            <Avatar
+              src={otherUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser.displayName)}&background=FCE90D&color=011241`}
+              name={otherUser.displayName}
+              className="w-10 h-10"
+            />
+          </Badge>
           <div>
             <h3 className="font-semibold text-white">{otherUser.displayName}</h3>
-            <p className="text-xs text-gray-400 capitalize">{otherUser.userType}</p>
+            <p className="text-xs text-gray-400 capitalize">
+              {otherUser.userType}
+              {otherUser.isOnline && ' • Online'}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages - flex-1 to take remaining space */}
+      <div className="flex-1 overflow-y-auto p-4">
         {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <Icon icon="lucide:message-circle" className="text-6xl text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-400">No messages yet. Start the conversation!</p>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <Icon icon="lucide:message-circle" className="text-6xl text-gray-500 mx-auto mb-4" />
+              <p className="text-gray-400">No messages yet. Start the conversation!</p>
+            </div>
           </div>
         ) : (
-          messages.map((message) => {
-            const isMe = message.senderId === user!.uid;
-            return (
-              <div
-                key={message.id}
-                className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                    isMe
-                      ? 'bg-white/10 text-white ml-12'
-                      : 'bg-white/10 text-white mr-12'
-                  }`}
-                >
-                  <p className="break-words">{message.text}</p>
-                  <p className="text-xs mt-1 text-white/60">
-                    {formatTime(message.createdAt)}
-                    {isMe && message.status === 'read' && ' • Read'}
-                  </p>
+          <div className="space-y-4">
+            {messages.map((message, index) => {
+              const isMe = message.senderId === user!.uid;
+              const previousMessage = index > 0 ? messages[index - 1] : null;
+              const showTime = !previousMessage || 
+                formatTime(previousMessage.createdAt) !== formatTime(message.createdAt);
+              
+              return (
+                <div key={message.id}>
+                  {showTime && (
+                    <div className="text-center my-4">
+                      <span className="text-xs text-gray-500 bg-white/5 px-3 py-1 rounded-full">
+                        {formatTime(message.createdAt)}
+                      </span>
+                    </div>
+                  )}
+                  <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-2`}>
+                    <div
+                      className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                        isMe
+                          ? 'bg-white/10 text-white'
+                          : 'bg-white/10 text-white'
+                      }`}
+                    >
+                      <p className="break-words">{message.text}</p>
+                      {isMe && (
+                        <div className="flex items-center justify-end gap-1 mt-1">
+                          <Icon 
+                            icon={message.status === 'read' ? "lucide:check-check" : "lucide:check"} 
+                            className={`text-xs ${message.status === 'read' ? 'text-blue-400' : 'text-white/60'}`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="p-4 border-t border-white/10">
-        <div className="flex gap-2">
+      {/* Input - flex-shrink-0 to stay visible when keyboard opens */}
+      <div className="flex-shrink-0 p-4 border-t border-white/10 bg-[#010b29]">
+        <form onSubmit={handleSendMessage} className="flex gap-2">
           <Input
+            ref={messageInputRef}
             placeholder="Type a message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
@@ -271,15 +299,15 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
             }}
           />
           <Button
-            color="secondary"
+            type="submit"
             isIconOnly
-            onPress={handleSendMessage}
             isLoading={sending}
             disabled={!newMessage.trim() || sending}
+            className="bg-white/10 text-white hover:bg-white/20"
           >
             <Icon icon="lucide:send" />
           </Button>
-        </div>
+        </form>
       </div>
     </div>
   );

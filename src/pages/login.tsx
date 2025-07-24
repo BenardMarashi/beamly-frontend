@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Input, Button, Checkbox, Card, CardBody } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { BeamlyLogo } from '../components/beamly-logo';
 import { useSignIn } from '../hooks/use-auth';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -63,9 +62,8 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        {/* Logo */}
+
         <div className="text-center mb-8">
-          <BeamlyLogo className="mx-auto mb-6" />
           <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
           <p className="text-gray-400">Sign in to continue to Beamly</p>
         </div>
