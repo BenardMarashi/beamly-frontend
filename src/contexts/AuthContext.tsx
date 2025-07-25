@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged, User, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
@@ -77,26 +78,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             hourlyRate: data.hourlyRate || 0,
             companyName: data.companyName || '',
             isAvailable: data.isAvailable !== undefined ? data.isAvailable : true,
-            portfolio: data.portfolio || '',
-            experienceLevel: data.experienceLevel || 'intermediate',
-            languages: data.languages || ['English'],
             rating: data.rating || 0,
+            reviewCount: data.reviewCount || 0,
             completedProjects: data.completedProjects || 0,
-            activeJobs: data.activeJobs || 0,
             industry: data.industry || '',
-            createdAt: data.createdAt?.toDate() || new Date(),
-            updatedAt: data.updatedAt?.toDate() || new Date(),
-            lastActive: data.lastActive?.toDate() || new Date(),
-            isVerified: data.isVerified || false,
-            isBlocked: data.isBlocked || false,
+            activeJobs: data.activeJobs || 0,
+            experienceLevel: data.experienceLevel || 'entry',
+            experience: data.experience || '',
+            languages: data.languages || [],
+            savedProfiles: data.savedProfiles || [],
+            viewCount: data.viewCount || 0,
+            
+            // Stripe Connect fields
+            stripeConnectAccountId: data.stripeConnectAccountId,
+            stripeConnectStatus: data.stripeConnectStatus,
+            stripeConnectChargesEnabled: data.stripeConnectChargesEnabled,
+            stripeConnectPayoutsEnabled: data.stripeConnectPayoutsEnabled,
+            stripeConnectDetailsSubmitted: data.stripeConnectDetailsSubmitted,
+            totalEarnings: data.totalEarnings || 0,
+            availableBalance: data.availableBalance || 0,
+            pendingBalance: data.pendingBalance || 0,
+            
+            // Stripe Customer fields
+            stripeCustomerId: data.stripeCustomerId,
+            
+            // Subscription fields
+            isPro: data.isPro || false,
+            subscriptionStatus: data.subscriptionStatus,
+            subscriptionPlan: data.subscriptionPlan,
+            stripeSubscriptionId: data.stripeSubscriptionId,
+            subscriptionStartDate: data.subscriptionStartDate?.toDate(),
+            subscriptionEndDate: data.subscriptionEndDate?.toDate(),
+            
+            // Notification settings
             notifications: data.notifications || {
               email: true,
               push: true,
-              sms: false
+              sms: false,
             },
-            subscription: data.subscription
+            
+            // System fields
+            createdAt: data.createdAt?.toDate(),
+            updatedAt: data.updatedAt?.toDate(),
+            lastActive: data.lastActive?.toDate(),
+            isVerified: data.isVerified || false,
+            isBlocked: data.isBlocked || false,
+            joinedAt: data.joinedAt?.toDate() || data.createdAt?.toDate(),
           });
+        } else {
+          setUserData(null);
         }
+        setLoading(false);
+      }, (error) => {
+        console.error('Error fetching user data:', error);
+        setUserData(null);
         setLoading(false);
       });
     });
@@ -109,19 +144,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const value = {
-    user,
-    userData,
-    loading,
-    isFreelancer: userData?.userType === 'freelancer' || userData?.userType === 'both',
-    isClient: userData?.userType === 'client' || userData?.userType === 'both',
-    canPostJobs: userData?.userType === 'client' || userData?.userType === 'both',
-    canApplyToJobs: userData?.userType === 'freelancer' || userData?.userType === 'both',
-    canPostProjects: userData?.userType === 'freelancer' || userData?.userType === 'both',
-  };
+  const isFreelancer = userData?.userType === 'freelancer' || userData?.userType === 'both';
+  const isClient = userData?.userType === 'client' || userData?.userType === 'both';
+  const canPostJobs = isClient;
+  const canApplyToJobs = isFreelancer;
+  const canPostProjects = isClient;
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user,
+      userData,
+      loading,
+      isFreelancer,
+      isClient,
+      canPostJobs,
+      canApplyToJobs,
+      canPostProjects,
+    }}>
       {children}
     </AuthContext.Provider>
   );

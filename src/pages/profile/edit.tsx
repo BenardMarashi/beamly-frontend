@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   Card, 
   CardBody, 
+  CardHeader,
   Button, 
   Input, 
   Textarea, 
@@ -515,6 +516,24 @@ export const EditProfilePage: React.FC = () => {
           {/* Verification Section */}
           {userData && <VerificationSection userData={userData} />}
           
+          {/* Payment Account Section - Only for Freelancers */}
+          {(userData?.userType === 'freelancer' || userData?.userType === 'both') && (
+            <Card className="glass-effect border-none">
+              <CardHeader>
+                <h3 className="text-xl font-semibold">Payment Account</h3>
+              </CardHeader>
+              <CardBody>
+                <StripeConnectOnboarding 
+                  onComplete={() => {
+                    // Refresh user data after completing onboarding
+                    toast.success('Payment account setup complete!');
+                    // You might want to refetch user data here
+                  }} 
+                />
+              </CardBody>
+            </Card>
+          )}
+          
           {/* Action Buttons */}
           <div className="flex gap-4">
             <Button
@@ -538,23 +557,7 @@ export const EditProfilePage: React.FC = () => {
           </div>
         </div>
       </motion.div>
-      {/* Payment Account Section - Only for Freelancers */}
-        {(userData?.userType === 'freelancer' || userData?.userType === 'both') && (
-          <Card className="glass-effect border-none mt-6">
-            <CardHeader>
-              <h3 className="text-xl font-semibold">Payment Account</h3>
-            </CardHeader>
-            <CardBody>
-              <StripeConnectOnboarding 
-                onComplete={() => {
-                  // Refresh user data after completing onboarding
-                  toast.success('Payment account setup complete!');
-                  // You might want to refetch user data here
-                }} 
-              />
-            </CardBody>
-          </Card>
-        )}
+      
       {/* Image Cropper Modal */}
       <ImageCropper
         isOpen={showCropper}

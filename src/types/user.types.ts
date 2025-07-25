@@ -34,6 +34,27 @@ export interface UserData {
   industry?: string;
   activeJobs?: number;
   
+  // Stripe Connect fields (for freelancers)
+  stripeConnectAccountId?: string;
+  stripeConnectStatus?: 'pending' | 'active' | 'restricted';
+  stripeConnectChargesEnabled?: boolean;
+  stripeConnectPayoutsEnabled?: boolean;
+  stripeConnectDetailsSubmitted?: boolean;
+  totalEarnings?: number;
+  availableBalance?: number;
+  pendingBalance?: number;
+  
+  // Stripe Customer fields (for subscriptions)
+  stripeCustomerId?: string;
+  
+  // Subscription fields
+  isPro?: boolean;
+  subscriptionStatus?: 'active' | 'cancelled' | 'past_due' | 'unpaid';
+  subscriptionPlan?: 'monthly' | 'quarterly' | 'yearly';
+  stripeSubscriptionId?: string;
+  subscriptionStartDate?: Date;
+  subscriptionEndDate?: Date;
+  
   // System fields
   createdAt?: Date;
   updatedAt?: Date;
@@ -47,14 +68,6 @@ export interface UserData {
     email: boolean;
     push: boolean;
     sms: boolean;
-  };
-  
-  // Subscription info
-  subscription?: {
-    plan: 'free' | 'monthly' | 'quarterly' | 'yearly';
-    startDate: Date;
-    endDate: Date;
-    status: 'active' | 'cancelled' | 'expired';
   };
   
   // Additional profile metadata

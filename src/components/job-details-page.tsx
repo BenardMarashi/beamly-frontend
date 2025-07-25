@@ -299,12 +299,6 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
                       <span className="text-white">{job.clientJobsPosted}</span>
                     </div>
                   )}
-                  {job.clientCountry && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400">Location</span>
-                      <span className="text-white">{job.clientCountry}</span>
-                    </div>
-                  )}
                 </div>
               </CardBody>
             </Card>

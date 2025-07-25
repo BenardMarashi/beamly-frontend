@@ -11,7 +11,7 @@ interface StripeConnectOnboardingProps {
 }
 
 export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = ({ onComplete }) => {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [accountStatus, setAccountStatus] = useState<{
     exists: boolean;
@@ -27,14 +27,14 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
 
   useEffect(() => {
     checkAccountStatus();
-  }, [user?.id]);
+  }, [user?.uid]);
 
   const checkAccountStatus = async () => {
-    if (!user?.id) return;
+    if (!user?.uid) return;
     
     setLoading(true);
     try {
-      const result = await StripeService.getConnectAccountStatus(user.id);
+      const result = await StripeService.getConnectAccountStatus(user.uid);
       if (result.success) {
         setAccountStatus({
           exists: true,
@@ -55,15 +55,15 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
   };
 
   const handleStartOnboarding = async () => {
-    if (!user?.id) return;
+    if (!user?.uid) return;
     
     setLoading(true);
     try {
-      let accountId = user.stripeConnectAccountId;
+      let accountId = userData?.stripeConnectAccountId;
       
       // Create account if doesn't exist
       if (!accountId) {
-        const result = await StripeService.createConnectAccount(user.id);
+        const result = await StripeService.createConnectAccount(user.uid);
         if (result.success && result.onboardingUrl) {
           window.location.href = result.onboardingUrl;
           return;
@@ -75,7 +75,7 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
       const refreshUrl = `${window.location.origin}/billing?stripe_connect=refresh`;
       
       const result = await StripeService.createConnectAccountLink(
-        user.id,
+        user.uid,
         returnUrl,
         refreshUrl
       );
