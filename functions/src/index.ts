@@ -3,7 +3,7 @@ import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/fire
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import Stripe from "stripe";
+const Stripe = require('stripe');
 
 admin.initializeApp();
 
@@ -11,9 +11,9 @@ const db = admin.firestore();
 const messaging = admin.messaging();
 const storage = admin.storage();
 
-// Initialize Stripe
+// Initialize Stripe 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-11-20.acacia",
+  apiVersion: "2023-10-16",
 });
 
 // Trigger: Send notification when a new proposal is received
@@ -522,16 +522,9 @@ export const cancelSubscription = onCall(async (request) => {
       cancel_at_period_end: true,
     });
 
-    await db.doc(`users/${userId}`).update({
-      subscriptionStatus: "cancelled",
-      subscriptionEndDate: admin.firestore.Timestamp.fromDate(
-        new Date(subscription.current_period_end * 1000)
-      ),
-    });
-
     return {
       success: true,
-      endDate: new Date(subscription.current_period_end * 1000),
+      endDate: new Date((subscription as any).current_period_end * 1000),
     };
   } catch (error: any) {
     console.error("Error cancelling subscription:", error);
@@ -616,8 +609,8 @@ export const getStripeBalance = onCall(async (request) => {
     });
 
     // Sum available balance across all currencies
-    const available = balance.available.reduce((sum, bal) => sum + bal.amount, 0) / 100;
-    const pending = balance.pending.reduce((sum, bal) => sum + bal.amount, 0) / 100;
+    const available = balance.available.reduce((sum: number, bal: any) => sum + bal.amount, 0) / 100;
+    const pending = balance.pending.reduce((sum: number, bal: any) => sum + bal.amount, 0) / 100;
 
     return {
       success: true,
@@ -635,7 +628,7 @@ export const stripeWebhook = onRequest(async (req, res) => {
   const sig = req.headers["stripe-signature"] as string;
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  let event: Stripe.Event;
+  let event: any;
 
   try {
     event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret!);
@@ -648,19 +641,19 @@ export const stripeWebhook = onRequest(async (req, res) => {
   // Handle the event
   switch (event.type) {
     case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
+      const session = event.data.object;
       
       // Handle subscription creation
-      if (session.mode === "subscription") {
+      if (session.mode === "subscription" && session.subscription) {
         await handleSubscriptionCreated(session);
       }
       break;
     }
 
     case "invoice.payment_succeeded": {
-      const invoice = event.data.object as Stripe.Invoice;
+      const invoice = event.data.object;
       
-      // Handle recurring subscription payment
+      // Handle recurring subscription payment  
       if (invoice.subscription) {
         await handleSubscriptionPayment(invoice);
       }
@@ -668,13 +661,13 @@ export const stripeWebhook = onRequest(async (req, res) => {
     }
 
     case "customer.subscription.deleted": {
-      const subscription = event.data.object as Stripe.Subscription;
+      const subscription = event.data.object;
       await handleSubscriptionCancelled(subscription);
       break;
     }
 
     case "payment_intent.succeeded": {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      const paymentIntent = event.data.object;
       
       // Handle job payment
       if (paymentIntent.metadata.type === "job_payment") {
@@ -684,7 +677,7 @@ export const stripeWebhook = onRequest(async (req, res) => {
     }
 
     case "account.updated": {
-      const account = event.data.object as Stripe.Account;
+      const account = event.data.object;
       await handleConnectAccountUpdated(account);
       break;
     }
@@ -694,9 +687,9 @@ export const stripeWebhook = onRequest(async (req, res) => {
 });
 
 // Helper functions for webhook handlers
-async function handleSubscriptionCreated(session: Stripe.Checkout.Session) {
+async function handleSubscriptionCreated(session: any) {
   const userId = session.metadata?.userId;
-  if (!userId) return;
+  if (!userId || !session.subscription) return;
 
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
   
@@ -729,7 +722,7 @@ async function handleSubscriptionCreated(session: Stripe.Checkout.Session) {
   });
 }
 
-async function handleSubscriptionPayment(invoice: Stripe.Invoice) {
+async function handleSubscriptionPayment(invoice: any) {
   // Log the payment for records
   await db.collection("transactions").add({
     type: "subscription",
@@ -744,7 +737,7 @@ async function handleSubscriptionPayment(invoice: Stripe.Invoice) {
   });
 }
 
-async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
+async function handleSubscriptionCancelled(subscription: any) {
   const customerId = subscription.customer as string;
   
   // Find user by customer ID
@@ -762,7 +755,7 @@ async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
   }
 }
 
-async function handleJobPaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+async function handleJobPaymentSucceeded(paymentIntent: any) {
   const { jobId, proposalId, clientId, freelancerId } = paymentIntent.metadata;
 
   // Update payment record
@@ -797,7 +790,7 @@ async function handleJobPaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   });
 }
 
-async function handleConnectAccountUpdated(account: Stripe.Account) {
+async function handleConnectAccountUpdated(account: any) {
   const userId = account.metadata?.userId;
   if (!userId) return;
 

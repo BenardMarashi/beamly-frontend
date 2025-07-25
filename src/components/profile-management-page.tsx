@@ -203,18 +203,6 @@ export const ProfileManagementPage: React.FC<ProfileManagementPageProps> = ({
                     inputWrapper: "bg-white/5"
                   }}
                 />
-                
-                <Input
-                  label="Location"
-                  placeholder="e.g., New York, USA"
-                  value={profileData.location}
-                  onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                  variant="bordered"
-                  classNames={{
-                    inputWrapper: "bg-white/5"
-                  }}
-                  startContent={<Icon icon="lucide:map-pin" />}
-                />
               </div>
 
               {/* Bio */}
