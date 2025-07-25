@@ -21,6 +21,7 @@ import { db, storage } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { VerificationSection } from '../../components/profile/VerificationSection';
 import { ImageCropper } from '../../components/ImageCropper';
+import { StripeConnectOnboarding } from '../../components/payments/StripeConnectOnboarding';
 
 export const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -537,7 +538,23 @@ export const EditProfilePage: React.FC = () => {
           </div>
         </div>
       </motion.div>
-      
+      {/* Payment Account Section - Only for Freelancers */}
+        {(userData?.userType === 'freelancer' || userData?.userType === 'both') && (
+          <Card className="glass-effect border-none mt-6">
+            <CardHeader>
+              <h3 className="text-xl font-semibold">Payment Account</h3>
+            </CardHeader>
+            <CardBody>
+              <StripeConnectOnboarding 
+                onComplete={() => {
+                  // Refresh user data after completing onboarding
+                  toast.success('Payment account setup complete!');
+                  // You might want to refetch user data here
+                }} 
+              />
+            </CardBody>
+          </Card>
+        )}
       {/* Image Cropper Modal */}
       <ImageCropper
         isOpen={showCropper}

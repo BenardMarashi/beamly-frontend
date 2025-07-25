@@ -49,6 +49,7 @@ const PortfolioPage = lazy(() => import('./pages/portfolio/index'));
 const ProjectDetailsPage = lazy(() => import('./pages/portfolio/details'));
 const ProjectEditPage = lazy(() => import('./pages/portfolio/edit'));
 
+
 // Loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">

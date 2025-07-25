@@ -24,6 +24,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject, StorageReference } from 'firebase/storage';
 import { auth, db, storage } from '../lib/firebase';
+import { StripeService } from './stripe-service';
 
 // Type definitions
 interface UserData {
@@ -2099,7 +2100,8 @@ export const firebaseService = {
   ContractService,
   PaymentService,
   VerificationService,
-  AnalyticsService
+  AnalyticsService,
+  StripeService
 };
 
 // Default export for convenience
