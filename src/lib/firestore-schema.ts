@@ -1,3 +1,4 @@
+// src/lib/firestore-schema.ts
 import { Timestamp } from 'firebase/firestore';
 
 // User Types
@@ -50,6 +51,27 @@ export interface User {
   companyName?: string;
   industry?: string;
   
+  // Stripe Connect fields (for freelancers)
+  stripeConnectAccountId?: string;
+  stripeConnectStatus?: 'pending' | 'active' | 'restricted';
+  stripeConnectChargesEnabled?: boolean;
+  stripeConnectPayoutsEnabled?: boolean;
+  stripeConnectDetailsSubmitted?: boolean;
+  totalEarnings?: number;
+  availableBalance?: number;
+  pendingBalance?: number;
+  
+  // Stripe Customer fields (for subscriptions)
+  stripeCustomerId?: string;
+  
+  // Subscription fields
+  isPro?: boolean;
+  subscriptionStatus?: 'active' | 'cancelled' | 'past_due' | 'unpaid';
+  subscriptionPlan?: 'monthly' | 'quarterly' | 'yearly';
+  stripeSubscriptionId?: string;
+  subscriptionStartDate?: Timestamp;
+  subscriptionEndDate?: Timestamp;
+  
   // Settings
   notifications: NotificationSettings;
   billingInfo?: BillingInfo;
@@ -59,24 +81,29 @@ export interface User {
 export interface Job {
   id: string;
   clientId: string;
+  clientName: string;
+  clientPhotoURL?: string;
   title: string;
   description: string;
   category: string;
+  subcategory?: string;
   skills: string[];
-  budget: {
-    type: 'fixed' | 'hourly';
-    amount: number;
-    currency: string;
-  };
+  budgetType: 'fixed' | 'hourly';
+  budgetMin?: number;
+  budgetMax?: number;
+  fixedPrice?: number;
   duration: string;
   experienceLevel: 'beginner' | 'intermediate' | 'expert';
   status: 'draft' | 'active' | 'in_progress' | 'completed' | 'cancelled';
+  paymentStatus?: 'pending' | 'escrow' | 'released' | 'disputed';
   createdAt: Timestamp;
   updatedAt: Timestamp;
   proposals?: number;
   attachments?: string[];
   visibility: 'public' | 'invite_only';
   assignedFreelancerId?: string;
+  assignedProposalId?: string;
+  completedAt?: Timestamp;
 }
 
 // Collection: proposals
@@ -91,15 +118,46 @@ export interface Milestone {
 export interface Proposal {
   id: string;
   jobId: string;
+  jobTitle: string;
+  clientId: string;
+  clientName: string;
   freelancerId: string;
+  freelancerName: string;
+  freelancerPhotoURL?: string;
+  freelancerRating?: number;
+  freelancerCompletedJobs?: number;
   coverLetter: string;
   proposedRate: number;
   estimatedDuration: string;
+  budgetType: string;
   attachments?: string[];
   status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
   createdAt: Timestamp;
+  updatedAt: Timestamp;
   clientViewed: boolean;
   milestones?: Milestone[];
+}
+
+// Collection: payments
+export interface Payment {
+  id: string;
+  jobId: string;
+  proposalId: string;
+  clientId: string;
+  freelancerId: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'held_in_escrow' | 'released' | 'refunded' | 'failed';
+  type: 'job_payment';
+  stripePaymentIntentId?: string;
+  stripeTransferId?: string;
+  platformFee?: number;
+  freelancerAmount?: number;
+  createdAt: Timestamp;
+  paidAt?: Timestamp;
+  heldAt?: Timestamp;
+  releasedAt?: Timestamp;
+  refundedAt?: Timestamp;
 }
 
 // Collection: conversations
@@ -136,18 +194,26 @@ export interface Message {
 // Collection: transactions
 export interface Transaction {
   id: string;
-  type: 'payment' | 'withdrawal' | 'escrow' | 'release';
+  type: 'payment' | 'withdrawal' | 'escrow' | 'release' | 'subscription' | 'refund';
+  userId: string;
+  userEmail?: string;
   amount: number;
   currency: string;
   fromUserId?: string;
   toUserId?: string;
   jobId?: string;
+  paymentId?: string;
   status: 'pending' | 'completed' | 'failed' | 'refunded';
   paymentMethod?: string;
   stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  stripeTransferId?: string;
+  stripePayoutId?: string;
+  stripeInvoiceId?: string;
   createdAt: Timestamp;
   completedAt?: Timestamp;
   description: string;
+  metadata?: Record<string, any>;
 }
 
 // Collection: reviews
@@ -173,4 +239,29 @@ export interface Notification {
   read: boolean;
   createdAt: Timestamp;
   actionUrl?: string;
+}
+
+// Subscription Plans
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  interval: 'month' | 'quarter' | 'year';
+  features: string[];
+  stripePriceId: string;
+  isPopular?: boolean;
+}
+
+// Payout Request
+export interface PayoutRequest {
+  id: string;
+  freelancerId: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  stripePayoutId?: string;
+  requestedAt: Timestamp;
+  processedAt?: Timestamp;
+  failureReason?: string;
 }
