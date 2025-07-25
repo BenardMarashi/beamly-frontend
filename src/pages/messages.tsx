@@ -246,9 +246,9 @@ export const MessagesPage: React.FC = () => {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#010b29]">
-      {/* Header */}
-      <div className="flex-shrink-0 p-4 border-b border-white/10 flex items-center gap-4 bg-[#010b29]">
+    <div className="fixed inset-0 bg-[#010b29] flex flex-col">
+      {/* Header - Fixed at top */}
+      <div className="fixed top-0 left-0 right-0 z-50 p-4 border-b border-white/10 flex items-center gap-4 bg-[#010b29]">
         <Button
           isIconOnly
           variant="light"
@@ -286,7 +286,7 @@ export const MessagesPage: React.FC = () => {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 pt-20">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
