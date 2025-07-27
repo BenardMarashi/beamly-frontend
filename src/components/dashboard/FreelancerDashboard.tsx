@@ -212,7 +212,7 @@ export const FreelancerDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkM
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card 
           isPressable
           className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
@@ -234,6 +234,18 @@ export const FreelancerDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkM
             <Icon icon="lucide:search" className="text-4xl text-secondary mb-3" />
             <h4 className="font-semibold">Find Jobs</h4>
             <p className="text-sm text-gray-500 mt-1">Browse available jobs</p>
+          </CardBody>
+        </Card>
+        
+        <Card 
+          isPressable
+          className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+          onPress={() => navigate('/freelancer/proposals')}
+        >
+          <CardBody className="text-center p-6">
+            <Icon icon="solar:document-text-bold" className="text-4xl text-warning mb-3" />
+            <h4 className="font-semibold">My Proposals</h4>
+            <p className="text-sm text-gray-500 mt-1">Track your applications</p>
           </CardBody>
         </Card>
         

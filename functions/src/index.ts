@@ -1,11 +1,17 @@
 // functions/src/index.ts
 import { setGlobalOptions } from "firebase-functions/v2/options";
+import { defineSecret } from "firebase-functions/params";
 
+// Define secrets for Stripe
+const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
+const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
+
+// Set global options for all functions
 setGlobalOptions({
-  maxInstances: 10,
-  timeoutSeconds: 540,
-  memory: "2GiB",
-  region: "us-central1",
+    maxInstances: 10,
+    timeoutSeconds: 540,
+    memory: "2GiB",
+    region: "us-central1",
 });
 
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
@@ -13,1338 +19,1186 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import Stripe from "stripe";
+import * as functions from "firebase-functions";
 
+// Initialize Firebase Admin
 admin.initializeApp();
 
 const db = admin.firestore();
 const messaging = admin.messaging();
-const storage = admin.storage();
 
-// Initialize Stripe
-// Initialize Stripe lazily
-let stripe: Stripe;
+// Get configuration
+const config = functions.config();
 
-function getStripe(): Stripe {
-  if (!stripe) {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    if (!secretKey) {
-      throw new Error("Stripe secret key not configured");
-    }
-    // Don't specify apiVersion - Stripe will use the latest stable
-    stripe = new Stripe(secretKey);
-  }
-  return stripe;
-}
+// ====================================================================
+// HEALTH CHECK FUNCTION
+// ====================================================================
 
-// Trigger: Send notification when a new proposal is received
-export const onNewProposal = onDocumentCreated("proposals/{proposalId}", async (event) => {
-  const proposal = event.data?.data();
-  const proposalId = event.params.proposalId;
-
-  if (!proposal) return;
-
-  try {
-    // Get job details
-    const jobDoc = await db.doc(`job/${proposal.jobId}`).get();
-    const job = jobDoc.data();
-
-    if (!job) return;
-
-    // Create notification for client
-    await db.collection("notifications").add({
-      userId: job.clientId,
-      title: "New Proposal Received",
-      body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
-      type: "proposal",
-      actionUrl: `/proposals/${proposalId}`,
-      actionData: {
-        proposalId,
-        jobId: proposal.jobId,
-      },
-      read: false,
-      pushSent: false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // Send push notification if FCM token exists
-    const clientDoc = await db.doc(`users/${job.clientId}`).get();
-    const client = clientDoc.data();
-
-    if (client?.fcmToken) {
-      await messaging.send({
-        token: client.fcmToken,
-        notification: {
-          title: "New Proposal Received",
-          body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
-        },
-        data: {
-          type: "proposal",
-          proposalId,
-          jobId: proposal.jobId,
-        },
-      });
-    }
-  } catch (error) {
-    console.error("Error in onNewProposal:", error);
-  }
+export const healthCheck = onRequest({ cors: true }, (request, response) => {
+    response.send("OK");
 });
 
-// Trigger: Send notification when a proposal is accepted
-export const onProposalAccepted = onDocumentUpdated("proposals/{proposalId}", async (event) => {
-  const before = event.data?.before.data();
-  const after = event.data?.after.data();
-  const proposalId = event.params.proposalId;
+// ====================================================================
+// STRIPE PAYMENT FUNCTIONS
+// ====================================================================
 
-  if (!before || !after) return;
+// Create Stripe Checkout Session for Subscriptions
+export const createStripeCheckoutSession = onCall(
+    {
+        secrets: [stripeSecretKey],
+        cors: true,
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError("unauthenticated", "User must be authenticated");
+        }
 
-  // Check if proposal was just accepted
-  if (before.status !== "accepted" && after.status === "accepted") {
-    try {
-      // Create notification for freelancer
-      await db.collection("notifications").add({
-        userId: after.freelancerId,
-        title: "Proposal Accepted!",
-        body: "Your proposal has been accepted. Payment is being processed.",
-        type: "contract",
-        actionUrl: "/dashboard",
-        actionData: {
-          proposalId,
-          jobId: after.jobId,
-        },
-        read: false,
-        pushSent: false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+        const { planId } = request.data;
+        const userId = request.auth.uid;
 
-      // Send push notification
-      const freelancerDoc = await db.doc(`users/${after.freelancerId}`).get();
-      const freelancer = freelancerDoc.data();
+        try {
+            // Initialize Stripe without specifying apiVersion
+            const stripe = new Stripe(stripeSecretKey.value());
 
-      if (freelancer?.fcmToken) {
-        await messaging.send({
-          token: freelancer.fcmToken,
-          notification: {
-            title: "Proposal Accepted!",
-            body: "Your proposal has been accepted. Payment is being processed.",
-          },
-          data: {
-            type: "contract",
-            proposalId,
-            jobId: after.jobId,
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error in onProposalAccepted:", error);
+            // Get user data
+            const userDoc = await db.doc(`users/${userId}`).get();
+            const userData = userDoc.data();
+
+            if (!userData) {
+                throw new HttpsError("not-found", "User not found");
+            }
+
+            // Price IDs mapping
+            const priceMap: { [key: string]: string } = {
+                monthly: config.stripe?.monthly_price_id || "price_1RoqOADtB4sjDNJywCzlCHBM",
+                quarterly: config.stripe?.quarterly_price_id || "price_1RoqOADtB4sjDNJytiOCXLZx",
+                yearly: config.stripe?.yearly_price_id || "price_1RoqOADtB4sjDNJyGYFrEVTu",
+            };
+
+            const priceId = priceMap[planId];
+            if (!priceId) {
+                throw new HttpsError("invalid-argument", "Invalid plan ID");
+            }
+
+            // Create or get Stripe customer
+            let customerId = userData.stripeCustomerId;
+
+            if (!customerId) {
+                const customer = await stripe.customers.create({
+                    email: userData.email,
+                    metadata: {
+                        userId: userId,
+                    },
+                });
+                customerId = customer.id;
+
+                // Save customer ID to Firestore
+                await db.doc(`users/${userId}`).update({
+                    stripeCustomerId: customerId,
+                });
+            }
+
+            // Create checkout session
+            const appUrl = config.app?.url || "https://beamly-app.web.app";
+            const session = await stripe.checkout.sessions.create({
+                customer: customerId,
+                payment_method_types: ["card"],
+                line_items: [
+                    {
+                        price: priceId,
+                        quantity: 1,
+                    },
+                ],
+                mode: "subscription",
+                success_url: `${appUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${appUrl}/subscription/cancel`,
+                metadata: {
+                    userId: userId,
+                    planType: planId,
+                },
+            });
+
+            return {
+                sessionId: session.id,
+                url: session.url,
+            };
+        } catch (error: any) {
+            console.error("Error creating checkout session:", error);
+            throw new HttpsError("internal", error.message || "Failed to create checkout session");
+        }
     }
-  }
-});
+);
 
-// Trigger: Send notification for new messages
-export const onNewMessage = onDocumentCreated("messages/{messageId}", async (event) => {
-  const message = event.data?.data();
+// Create Payment Intent for Job Payments
+export const createJobPaymentIntent = onCall(
+    {
+        secrets: [stripeSecretKey],
+        cors: true,
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError("unauthenticated", "User must be authenticated");
+        }
 
-  if (!message) return;
+        const { jobId, proposalId, amount } = request.data;
+        const userId = request.auth.uid;
 
-  try {
-    // Determine recipient
-    const conversationParts = message.conversationId.split("_");
-    const recipientId = conversationParts.find(
-      (id: string) => id !== message.senderId
-    );
+        try {
+            const stripe = new Stripe(stripeSecretKey.value());
 
-    if (!recipientId) return;
+            // Verify job and proposal exist
+            const [jobDoc, proposalDoc] = await Promise.all([
+                db.doc(`jobs/${jobId}`).get(),
+                db.doc(`proposals/${proposalId}`).get(),
+            ]);
 
-    // Create notification
-    await db.collection("notifications").add({
-      userId: recipientId,
-      title: "New Message",
-      body: `${message.senderName}: ${message.text?.substring(0, 50)}...`,
-      type: "message",
-      actionUrl: `/messages/${message.conversationId}`,
-      actionData: {
-        conversationId: message.conversationId,
-      },
-      read: false,
-      pushSent: false,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+            if (!jobDoc.exists || !proposalDoc.exists) {
+                throw new HttpsError("not-found", "Job or proposal not found");
+            }
 
-    // Update unread count in conversation
-    await db.doc(`conversations/${message.conversationId}`).update({
-      [`unreadCount.${recipientId}`]: admin.firestore.FieldValue.increment(1),
-    });
+            const job = jobDoc.data()!;
+            const proposal = proposalDoc.data()!;
 
-    // Send push notification
-    const recipientDoc = await db.doc(`users/${recipientId}`).get();
-    const recipient = recipientDoc.data();
+            // Verify the user is the client who posted the job
+            if (job.clientId !== userId) {
+                throw new HttpsError("permission-denied", "Only the job client can make payments");
+            }
 
-    if (recipient?.fcmToken) {
-      await messaging.send({
-        token: recipient.fcmToken,
-        notification: {
-          title: `New message from ${message.senderName}`,
-          body: message.text?.substring(0, 100) || "Sent an attachment",
-        },
-        data: {
-          type: "message",
-          conversationId: message.conversationId,
-        },
-      });
+            // Create payment intent
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: Math.round(amount * 100), // Convert to cents
+                currency: "usd",
+                metadata: {
+                    jobId,
+                    proposalId,
+                    clientId: userId,
+                    freelancerId: proposal.freelancerId,
+                    type: "job_payment",
+                },
+            });
+
+            // Create payment record in Firestore
+            await db.collection("payments").doc(paymentIntent.id).set({
+                jobId,
+                proposalId,
+                clientId: userId,
+                freelancerId: proposal.freelancerId,
+                amount,
+                currency: "usd",
+                status: "pending",
+                stripePaymentIntentId: paymentIntent.id,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+
+            return {
+                clientSecret: paymentIntent.client_secret,
+                paymentIntentId: paymentIntent.id,
+            };
+        } catch (error: any) {
+            console.error("Error creating payment intent:", error);
+            throw new HttpsError("internal", error.message || "Failed to create payment");
+        }
     }
-  } catch (error) {
-    console.error("Error in onNewMessage:", error);
-  }
-});
+);
 
-// Stripe Connect Functions
 // Create Stripe Connect Account for Freelancers
-export const createStripeConnectAccount = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
+export const createStripeConnectAccount = onCall(
+    {
+        secrets: [stripeSecretKey],
+        cors: true,
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError("unauthenticated", "User must be authenticated");
+        }
 
-  const { userId } = request.data;
+        const userId = request.auth.uid;
 
-  try {
-    // Get user data
-    const userDoc = await db.doc(`users/${userId}`).get();
-    const userData = userDoc.data();
+        try {
+            const stripe = new Stripe(stripeSecretKey.value());
 
-    if (!userData) {
-      throw new HttpsError("not-found", "User not found");
+            // Get user data
+            const userDoc = await db.doc(`users/${userId}`).get();
+            const userData = userDoc.data();
+
+            if (!userData) {
+                throw new HttpsError("not-found", "User not found");
+            }
+
+            // Check if Connect account already exists
+            if (userData.stripeConnectAccountId) {
+                // Return new onboarding link for existing account
+                const accountLink = await stripe.accountLinks.create({
+                    account: userData.stripeConnectAccountId,
+                    refresh_url: `${config.app?.url || "https://beamly-app.web.app"}/settings/payments`,
+                    return_url: `${config.app?.url || "https://beamly-app.web.app"}/settings/payments?success=true`,
+                    type: "account_onboarding",
+                });
+
+                return {
+                    url: accountLink.url,
+                    accountId: userData.stripeConnectAccountId,
+                };
+            }
+
+            // Create new Connect account
+            const account = await stripe.accounts.create({
+                type: "express",
+                country: "US",
+                email: userData.email,
+                metadata: {
+                    userId: userId,
+                },
+                capabilities: {
+                    card_payments: { requested: true },
+                    transfers: { requested: true },
+                },
+            });
+
+            // Save account ID to Firestore
+            await db.doc(`users/${userId}`).update({
+                stripeConnectAccountId: account.id,
+            });
+
+            // Create account onboarding link
+            const accountLink = await stripe.accountLinks.create({
+                account: account.id,
+                refresh_url: `${config.app?.url || "https://beamly-app.web.app"}/settings/payments`,
+                return_url: `${config.app?.url || "https://beamly-app.web.app"}/settings/payments?success=true`,
+                type: "account_onboarding",
+            });
+
+            return {
+                url: accountLink.url,
+                accountId: account.id,
+            };
+        } catch (error: any) {
+            console.error("Error creating Connect account:", error);
+            throw new HttpsError("internal", error.message || "Failed to create payment account");
+        }
     }
+);
 
-    // Create Express account for freelancer
-    const account = await getStripe().accounts.create({
-      type: "express",
-      country: "CZ", // Czech Republic based on your screenshots
-      email: userData.email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-      business_type: "individual",
-      metadata: {
-        userId,
-      },
-    });
+// Release Payment from Escrow to Freelancer
+export const releasePayment = onCall(
+    {
+        secrets: [stripeSecretKey],
+        cors: true,
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError("unauthenticated", "User must be authenticated");
+        }
 
-    // Create account link for onboarding
-    const accountLink = await getStripe().accountLinks.create({
-      account: account.id,
-      refresh_url: `${process.env.APP_URL || "https://localhost:5173"}/profile/edit?stripe_connect=refresh`,
-      return_url: `${process.env.APP_URL || "https://localhost:5173"}/profile/edit?stripe_connect=success`,
-      type: "account_onboarding",
-    });
+        const { jobId, paymentId } = request.data;
+        const userId = request.auth.uid;
 
-    // Update user document with Stripe account ID
-    await db.doc(`users/${userId}`).update({
-      stripeConnectAccountId: account.id,
-      stripeConnectStatus: "pending",
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+        try {
+            const stripe = new Stripe(stripeSecretKey.value());
 
-    return {
-      success: true,
-      accountId: account.id,
-      onboardingUrl: accountLink.url,
-    };
-  } catch (error: unknown) {
-    console.error("Error creating Connect account:", error);
-    throw new HttpsError("internal", (error as Error).message);
-  }
-});
+            // Get payment record
+            const paymentDoc = await db.doc(`payments/${paymentId}`).get();
+            const payment = paymentDoc.data();
 
-// Check Stripe Connect Account Status
-export const checkStripeConnectStatus = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
+            if (!payment) {
+                throw new HttpsError("not-found", "Payment not found");
+            }
 
-  const { accountId } = request.data;
+            // Verify the user is the client
+            if (payment.clientId !== userId) {
+                throw new HttpsError("permission-denied", "Only the client can release payment");
+            }
 
-  try {
-    const account = await getStripe().accounts.retrieve(accountId);
+            // Check payment status
+            if (payment.status !== "held_in_escrow") {
+                throw new HttpsError("failed-precondition", "Payment is not in escrow");
+            }
 
-    await db.doc(`users/${request.auth.uid}`).update({
-      stripeConnectStatus: account.details_submitted ? "active" : "pending",
-      stripeConnectChargesEnabled: account.charges_enabled,
-      stripeConnectPayoutsEnabled: account.payouts_enabled,
-      stripeConnectDetailsSubmitted: account.details_submitted,
-    });
+            // Get freelancer's Connect account
+            const freelancerDoc = await db.doc(`users/${payment.freelancerId}`).get();
+            const freelancer = freelancerDoc.data();
 
-    return {
-      success: true,
-      status: account.details_submitted ? "active" : "pending",
-      detailsSubmitted: account.details_submitted,
-      chargesEnabled: account.charges_enabled,
-      payoutsEnabled: account.payouts_enabled,
-    };
-  } catch (error: unknown) {
-    console.error("Error checking Connect status:", error);
-    throw new HttpsError("internal", (error as Error).message);
-  }
-});
+            if (!freelancer?.stripeConnectAccountId) {
+                throw new HttpsError("failed-precondition", "Freelancer has not set up payment account");
+            }
 
-// Create Account Link for Re-onboarding
-export const createStripeAccountLink = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
+            // Calculate platform fee (10%)
+            const platformFee = Math.round(payment.amount * 0.1 * 100); // in cents
+            const freelancerAmount = Math.round(payment.amount * 100) - platformFee; // in cents
 
-  const { userId, returnUrl, refreshUrl } = request.data;
+            // Create transfer to freelancer
+            const transfer = await stripe.transfers.create({
+                amount: freelancerAmount,
+                currency: "usd",
+                destination: freelancer.stripeConnectAccountId,
+                metadata: {
+                    jobId,
+                    freelancerId: payment.freelancerId,
+                    paymentId: paymentDoc.id,
+                },
+            });
 
-  try {
-    const userDoc = await db.doc(`users/${userId}`).get();
-    const accountId = userDoc.data()?.stripeConnectAccountId;
+            // Update payment record
+            const batch = db.batch();
 
-    if (!accountId) {
-      throw new HttpsError("not-found", "No Connect account found");
+            // Update payment status
+            batch.update(paymentDoc.ref, {
+                status: "released",
+                releasedAt: admin.firestore.FieldValue.serverTimestamp(),
+                stripeTransferId: transfer.id,
+                platformFee: platformFee / 100,
+                freelancerAmount: freelancerAmount / 100,
+            });
+
+            // Update freelancer earnings
+            batch.update(db.doc(`users/${payment.freelancerId}`), {
+                totalEarnings: admin.firestore.FieldValue.increment(freelancerAmount / 100),
+                completedJobs: admin.firestore.FieldValue.increment(1),
+            });
+
+            // Update job status
+            batch.update(db.doc(`jobs/${jobId}`), {
+                status: "completed",
+                paymentStatus: "released",
+                completedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+
+            await batch.commit();
+
+            // Send notification to freelancer
+            await db.collection("notifications").add({
+                userId: payment.freelancerId,
+                type: "payment",
+                title: "Payment Released!",
+                body: `Payment of $${(freelancerAmount / 100).toFixed(2)} has been released for your completed job.`,
+                actionUrl: "/earnings",
+                read: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+
+            return {
+                success: true,
+                transferId: transfer.id,
+                amount: freelancerAmount / 100,
+            };
+        } catch (error: any) {
+            console.error("Error releasing payment:", error);
+            throw new HttpsError("internal", error.message || "Failed to release payment");
+        }
     }
+);
 
-    const accountLink = await getStripe().accountLinks.create({
-      account: accountId,
-      refresh_url: refreshUrl,
-      return_url: returnUrl,
-      type: "account_onboarding",
-    });
+// Create Payout for Freelancer Withdrawal
+export const createStripePayout = onCall(
+    {
+        secrets: [stripeSecretKey],
+        cors: true,
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError("unauthenticated", "User must be authenticated");
+        }
 
-    return {
-      success: true,
-      url: accountLink.url,
-    };
-  } catch (error: unknown) {
-    console.error("Error creating account link:", error);
-    throw new HttpsError("internal", (error as Error).message);
-  }
-});
+        const { amount } = request.data;
+        const userId = request.auth.uid;
 
-// Create Payment Intent for Job (Escrow)
-export const createJobPaymentIntent = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
+        try {
+            const stripe = new Stripe(stripeSecretKey.value());
 
-  const { jobId, proposalId, amount } = request.data;
+            // Get user's Connect account
+            const userDoc = await db.doc(`users/${userId}`).get();
+            const connectAccountId = userDoc.data()?.stripeConnectAccountId;
 
-  try {
-    // Get job and proposal details
-    const jobDoc = await db.doc(`jobs/${jobId}`).get();
-    const proposalDoc = await db.doc(`proposals/${proposalId}`).get();
+            if (!connectAccountId) {
+                throw new HttpsError("failed-precondition", "No payment account found");
+            }
 
-    if (!jobDoc.exists || !proposalDoc.exists) {
-      throw new HttpsError("not-found", "Job or proposal not found");
+            // Check available balance
+            const balance = await stripe.balance.retrieve({
+                stripeAccount: connectAccountId,
+            });
+
+            const availableBalance = balance.available[0]?.amount || 0;
+
+            if (amount * 100 > availableBalance) {
+                throw new HttpsError(
+                    "failed-precondition",
+                    `Insufficient balance. Available: $${(availableBalance / 100).toFixed(2)}`
+                );
+            }
+
+            // Create payout
+            const payout = await stripe.payouts.create(
+                {
+                    amount: Math.round(amount * 100),
+                    currency: "usd",
+                    metadata: {
+                        userId,
+                    },
+                },
+                {
+                    stripeAccount: connectAccountId,
+                }
+            );
+
+            // Record transaction
+            await db.collection("transactions").add({
+                type: "withdrawal",
+                userId,
+                amount,
+                currency: "usd",
+                status: "pending",
+                stripePayoutId: payout.id,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+
+            return {
+                success: true,
+                payoutId: payout.id,
+                estimatedArrival: payout.arrival_date,
+            };
+        } catch (error: any) {
+            console.error("Error creating payout:", error);
+            throw new HttpsError("internal", error.message || "Failed to create payout");
+        }
     }
+);
 
-    const proposalData = proposalDoc.data();
-    if (!proposalData) {
-      throw new HttpsError("not-found", "Proposal data not found");
+// Get Stripe Balance for Freelancer
+export const getStripeBalance = onCall(
+    {
+        secrets: [stripeSecretKey],
+        cors: true,
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError("unauthenticated", "User must be authenticated");
+        }
+
+        const userId = request.auth.uid;
+
+        try {
+            const stripe = new Stripe(stripeSecretKey.value());
+
+            const userDoc = await db.doc(`users/${userId}`).get();
+            const connectAccountId = userDoc.data()?.stripeConnectAccountId;
+
+            if (!connectAccountId) {
+                return {
+                    success: true,
+                    available: 0,
+                    pending: 0,
+                };
+            }
+
+            // Get balance from connected account
+            const balance = await stripe.balance.retrieve({
+                stripeAccount: connectAccountId,
+            });
+
+            // Sum available and pending balances across all currencies
+            const available = balance.available.reduce((sum, bal) => sum + bal.amount, 0) / 100;
+            const pending = balance.pending.reduce((sum, bal) => sum + bal.amount, 0) / 100;
+
+            return {
+                success: true,
+                available,
+                pending,
+            };
+        } catch (error: any) {
+            console.error("Error getting balance:", error);
+            throw new HttpsError("internal", error.message || "Failed to get balance");
+        }
     }
-
-    // Create payment intent with metadata
-    const paymentIntent = await getStripe().paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
-      currency: "usd",
-      metadata: {
-        jobId,
-        proposalId,
-        clientId: request.auth.uid,
-        freelancerId: proposalData.freelancerId,
-        type: "job_payment",
-      },
-      // Hold funds but don't transfer yet
-      capture_method: "automatic",
-      setup_future_usage: "off_session",
-    });
-
-    // Create payment record in database
-    const paymentRef = db.collection("payments").doc(paymentIntent.id);
-    await paymentRef.set({
-      id: paymentIntent.id,
-      jobId,
-      proposalId,
-      clientId: request.auth.uid,
-      freelancerId: proposalData.freelancerId,
-      amount,
-      currency: "usd",
-      status: "pending",
-      type: "job_payment",
-      stripePaymentIntentId: paymentIntent.id,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    return {
-      success: true,
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
-    };
-  } catch (error: unknown) {
-    console.error("Error creating payment intent:", error);
-    throw new HttpsError("internal", (error as Error).message);
-  }
-});
-
-// Release Payment to Freelancer
-export const releasePaymentToFreelancer = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
-
-  const { jobId, freelancerId } = request.data;
-
-  try {
-    // Get freelancer's Connect account
-    const freelancerDoc = await db.doc(`users/${freelancerId}`).get();
-    const connectAccountId = freelancerDoc.data()?.stripeConnectAccountId;
-
-    if (!connectAccountId) {
-      throw new HttpsError("failed-precondition", "Freelancer has no Connect account");
-    }
-
-    // Get payment details
-    const paymentsQuery = await db.collection("payments")
-      .where("jobId", "==", jobId)
-      .where("status", "==", "held_in_escrow")
-      .limit(1)
-      .get();
-
-    if (paymentsQuery.empty) {
-      throw new HttpsError("not-found", "No payment found for this job");
-    }
-
-    const paymentDoc = paymentsQuery.docs[0];
-    const paymentData = paymentDoc.data();
-
-    // Calculate platform fee (e.g., 10%)
-    const platformFeePercent = 0.10;
-    const amount = paymentData.amount;
-    const platformFee = Math.round(amount * platformFeePercent * 100); // In cents
-    const freelancerAmount = Math.round(amount * 100) - platformFee; // In cents
-
-    // Create transfer to freelancer
-    const transfer = await getStripe().transfers.create({
-      amount: freelancerAmount,
-      currency: "usd",
-      destination: connectAccountId,
-      metadata: {
-        jobId,
-        freelancerId,
-        paymentId: paymentDoc.id,
-      },
-    });
-
-    // Update payment status
-    await paymentDoc.ref.update({
-      status: "released",
-      releasedAt: admin.firestore.FieldValue.serverTimestamp(),
-      stripeTransferId: transfer.id,
-      platformFee: platformFee / 100,
-      freelancerAmount: freelancerAmount / 100,
-    });
-
-    // Update freelancer's earnings
-    await db.doc(`users/${freelancerId}`).update({
-      totalEarnings: admin.firestore.FieldValue.increment(freelancerAmount / 100),
-      completedJobs: admin.firestore.FieldValue.increment(1),
-    });
-
-    // Update job status
-    await db.doc(`jobs/${jobId}`).update({
-      status: "completed",
-      paymentStatus: "released",
-      completedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    return {
-      success: true,
-      transferId: transfer.id,
-    };
-  } catch (error: unknown) {
-    console.error("Error releasing payment:", error);
-    throw new HttpsError("internal", (error as Error).message);
-  }
-});
-
-// Create Subscription Checkout Session
-export const createSubscriptionCheckout = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
-
-  const { userId, priceId, successUrl, cancelUrl } = request.data;
-
-  try {
-    // Check if user already has a Stripe customer ID
-    const userDoc = await db.doc(`users/${userId}`).get();
-    let customerId = userDoc.data()?.stripeCustomerId;
-
-    // Create customer if doesn't exist
-    if (!customerId) {
-      const customer = await getStripe().customers.create({
-        email: userDoc.data()?.email,
-        metadata: {
-          userId,
-        },
-      });
-      customerId = customer.id;
-
-      // Save customer ID
-      await db.doc(`users/${userId}`).update({
-        stripeCustomerId: customerId,
-      });
-    }
-
-    // Create checkout session
-    const session = await getStripe().checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: {
-        userId,
-      },
-    });
-
-    return {
-      success: true,
-      url: session.url,
-    };
-  } catch (error: unknown) {
-    console.error("Error creating subscription checkout:", error);
-    throw new HttpsError("internal", (error as Error).message);
-  }
-});
+);
 
 // Cancel Subscription
-export const cancelSubscription = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
+export const cancelSubscription = onCall(
+    {
+        secrets: [stripeSecretKey],
+        cors: true,
+    },
+    async (request) => {
+        if (!request.auth) {
+            throw new HttpsError("unauthenticated", "User must be authenticated");
+        }
 
-  const { userId } = request.data;
+        const userId = request.auth.uid;
 
-  try {
-    const userDoc = await db.doc(`users/${userId}`).get();
-    const subscriptionId = userDoc.data()?.stripeSubscriptionId;
+        try {
+            const stripe = new Stripe(stripeSecretKey.value());
 
-    if (!subscriptionId) {
-      throw new HttpsError("not-found", "No active subscription found");
+            const userDoc = await db.doc(`users/${userId}`).get();
+            const userData = userDoc.data();
+            const subscriptionId = userData?.stripeSubscriptionId;
+
+            if (!subscriptionId) {
+                throw new HttpsError("not-found", "No active subscription found");
+            }
+
+            // Cancel at period end
+            const subscription = await stripe.subscriptions.update(subscriptionId, {
+                cancel_at_period_end: true,
+            });
+
+            // Update user document
+            await db.doc(`users/${userId}`).update({
+                subscriptionStatus: "cancelling",
+                subscriptionCancelAt: admin.firestore.Timestamp.fromDate(
+                    new Date(subscription.cancel_at! * 1000)
+                ),
+            });
+
+            return {
+                success: true,
+                endDate: new Date(subscription.cancel_at! * 1000).toISOString(),
+            };
+        } catch (error: any) {
+            console.error("Error cancelling subscription:", error);
+            throw new HttpsError("internal", error.message || "Failed to cancel subscription");
+        }
     }
-
-    // Cancel at period end (allow access until end of billing period)
-    const subscription = await getStripe().subscriptions.update(subscriptionId, {
-      cancel_at_period_end: true,
-    });
-
-    return {
-      success: true,
-      endDate: new Date((subscription as any).current_period_end * 1000),
-    };
-  } catch (error: unknown) {
-    console.error("Error cancelling subscription:", error);
-    throw new HttpsError("internal", (error as Error).message);
-  }
-});
-
-// Create Payout for Freelancer
-export const createStripePayout = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
-
-  const { userId, amount } = request.data;
-
-  try {
-    const userDoc = await db.doc(`users/${userId}`).get();
-    const connectAccountId = userDoc.data()?.stripeConnectAccountId;
-
-    if (!connectAccountId) {
-      throw new HttpsError("failed-precondition", "No Connect account found");
-    }
-
-    // Create payout in connected account
-    const payout = await getStripe().payouts.create(
-      {
-        amount: Math.round(amount * 100), // Convert to cents
-        currency: "usd",
-        metadata: {
-          userId,
-        },
-      },
-      {
-        stripeAccount: connectAccountId,
-      }
-    );
-
-    // Record transaction
-    await db.collection("transactions").add({
-      type: "withdrawal",
-      userId,
-      amount,
-      currency: "usd",
-      status: "pending",
-      stripePayoutId: payout.id,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    return {
-      success: true,
-      payoutId: payout.id,
-    };
-  } catch (error: unknown) {
-    console.error("Error creating payout:", error);
-    throw new HttpsError("internal", (error as Error).message);
-  }
-});
-
-// Get Stripe Balance
-export const getStripeBalance = onCall(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
-
-  const { userId } = request.data;
-
-  try {
-    const userDoc = await db.doc(`users/${userId}`).get();
-    const connectAccountId = userDoc.data()?.stripeConnectAccountId;
-
-    if (!connectAccountId) {
-      return {
-        success: true,
-        available: 0,
-        pending: 0,
-      };
-    }
-
-    // Get balance from connected account
-    const balance = await getStripe().balance.retrieve({
-      stripeAccount: connectAccountId,
-    });
-
-    // Sum available balance across all currencies
-    const available = balance.available.reduce((sum: number, bal: Stripe.Balance.Available) => sum + bal.amount, 0) / 100;
-    const pending = balance.pending.reduce((sum: number, bal: Stripe.Balance.Pending) => sum + bal.amount, 0) / 100;
-
-    return {
-      success: true,
-      available,
-      pending,
-    };
-  } catch (error: unknown) {
-    console.error("Error getting balance:", error);
-    throw new HttpsError("internal", (error as Error).message);
-  }
-});
-
-// Webhook to handle Stripe events
-export const stripeWebhook = onRequest(async (req, res) => {
-  const sig = req.headers["stripe-signature"] as string;
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  let event: Stripe.Event;
-
-  try {
-    event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret || "");
-  } catch (err: unknown) {
-    console.error("Webhook signature verification failed:", (err as Error).message);
-    res.status(400).send(`Webhook Error: ${(err as Error).message}`);
-    return;
-  }
-
-  // Handle the event
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-
-      // Handle subscription creation
-      if (session.mode === "subscription" && session.subscription) {
-        await handleSubscriptionCreated(session);
-      }
-      break;
-    }
-
-    case "invoice.payment_succeeded": {
-      const invoice = event.data.object as Stripe.Invoice;
-
-      // Handle recurring subscription payment
-      if ((invoice as any).subscription) {
-        await handleSubscriptionPayment(invoice);
-      }
-      break;
-    }
-
-    case "customer.subscription.deleted": {
-      const subscription = event.data.object as Stripe.Subscription;
-      await handleSubscriptionCancelled(subscription);
-      break;
-    }
-
-    case "payment_intent.succeeded": {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-
-      // Handle job payment
-      if (paymentIntent.metadata.type === "job_payment") {
-        await handleJobPaymentSucceeded(paymentIntent);
-      }
-      break;
-    }
-
-    case "account.updated": {
-      const account = event.data.object as Stripe.Account;
-      await handleConnectAccountUpdated(account);
-      break;
-    }
-  }
-
-  res.json({ received: true });
-});
-
-// Helper functions for webhook handlers
-async function handleSubscriptionCreated(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.userId;
-  if (!userId || !session.subscription) return;
-
-  const subscription = await getStripe().subscriptions.retrieve(session.subscription as string);
-
-  // Determine plan type based on price
-  let planType = "monthly";
-  const priceId = subscription.items.data[0].price.id;
-  if (priceId === process.env.STRIPE_QUARTERLY_PRICE_ID) planType = "quarterly";
-  if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) planType = "yearly";
-
-  await db.doc(`users/${userId}`).update({
-    subscriptionStatus: "active",
-    subscriptionPlan: planType,
-    stripeSubscriptionId: subscription.id,
-    subscriptionStartDate: admin.firestore.Timestamp.fromDate(new Date((subscription as any).current_period_start * 1000)),
-    subscriptionEndDate: admin.firestore.Timestamp.fromDate(new Date((subscription as any).current_period_end * 1000)),
-    isPro: true,
-  });
-
-  // Create transaction record
-  await db.collection("transactions").add({
-    type: "subscription",
-    userId,
-    amount: (session.amount_total || 0) / 100,
-    currency: session.currency || "usd",
-    status: "completed",
-    stripeSessionId: session.id,
-    description: `${planType} subscription`,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    completedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-}
-
-async function handleSubscriptionPayment(invoice: Stripe.Invoice) {
-  // Log the payment for records
-  await db.collection("transactions").add({
-    type: "subscription",
-    userId: invoice.metadata?.userId,
-    amount: invoice.amount_paid / 100,
-    currency: invoice.currency,
-    status: "completed",
-    stripeInvoiceId: invoice.id,
-    description: "Subscription renewal",
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    completedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-}
-
-async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
-  const customerId = subscription.customer as string;
-
-  // Find user by customer ID
-  const usersQuery = await db.collection("users")
-    .where("stripeCustomerId", "==", customerId)
-    .limit(1)
-    .get();
-
-  if (!usersQuery.empty) {
-    const userDoc = usersQuery.docs[0];
-    await userDoc.ref.update({
-      subscriptionStatus: "cancelled",
-      isPro: false,
-    });
-  }
-}
-
-async function handleJobPaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
-  const { jobId, proposalId, freelancerId } = paymentIntent.metadata;
-
-  // Update payment record
-  await db.doc(`payments/${paymentIntent.id}`).update({
-    status: "held_in_escrow",
-    paidAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-
-  // Update proposal status
-  await db.doc(`proposals/${proposalId}`).update({
-    status: "accepted",
-    acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-
-  // Update job status
-  await db.doc(`jobs/${jobId}`).update({
-    status: "in_progress",
-    paymentStatus: "escrow",
-    assignedFreelancerId: freelancerId,
-    assignedProposalId: proposalId,
-  });
-
-  // Create notification for freelancer
-  await db.collection("notifications").add({
-    userId: freelancerId,
-    type: "proposal",
-    title: "Proposal Accepted!",
-    body: "Your proposal has been accepted and the client has made the payment.",
-    data: { jobId, proposalId },
-    read: false,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-}
-
-async function handleConnectAccountUpdated(account: Stripe.Account) {
-  const userId = account.metadata?.userId;
-  if (!userId) return;
-
-  await db.doc(`users/${userId}`).update({
-    stripeConnectChargesEnabled: account.charges_enabled,
-    stripeConnectPayoutsEnabled: account.payouts_enabled,
-    stripeConnectDetailsSubmitted: account.details_submitted,
-    stripeConnectStatus: account.details_submitted ? "active" : "pending",
-  });
-}
-
-// HTTP Function: Create Job
-export const createJob = onCall(
-  {
-    cors: true, // Enable CORS
-    maxInstances: 10,
-  },
-  async (request) => {
-    // Verify user is authenticated
-    if (!request.auth) {
-      throw new HttpsError("unauthenticated", "User must be authenticated");
-    }
-
-    const { data } = request;
-
-    try {
-      // Validate user is a client
-      const userDoc = await db.doc(`users/${request.auth.uid}`).get();
-      const userData = userDoc.data();
-
-      if (!userData) {
-        throw new HttpsError("not-found", "User profile not found");
-      }
-
-      if (userData.userType !== "client" && userData.userType !== "both") {
-        throw new HttpsError("permission-denied", "Only clients can post jobs");
-      }
-
-      // Create job document
-      const jobRef = db.collection("jobs").doc();
-      const now = admin.firestore.FieldValue.serverTimestamp();
-
-      const jobData = {
-        id: jobRef.id,
-        clientId: request.auth.uid,
-        clientName: userData.displayName || "Anonymous",
-        clientPhotoURL: userData.photoURL || "",
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        subcategory: data.subcategory || "",
-        skills: data.skills || [],
-        budgetType: data.budgetType,
-        budgetMin: data.budgetMin || 0,
-        budgetMax: data.budgetMax || 0,
-        fixedPrice: data.fixedPrice || 0,
-        hourlyRateMin: data.hourlyRateMin || 0,
-        hourlyRateMax: data.hourlyRateMax || 0,
-        duration: data.duration,
-        experienceLevel: data.experienceLevel,
-        locationType: data.locationType,
-        location: data.location || "",
-        projectSize: data.projectSize,
-        status: "open",
-        proposalCount: 0,
-        invitesSent: 0,
-        featured: false,
-        viewCount: 0,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      await jobRef.set(jobData);
-
-      // Send notifications to relevant freelancers
-      await notifyFreelancersAboutNewJob(jobData);
-
-      return { success: true, jobId: jobRef.id };
-    } catch (error: unknown) {
-      console.error("Error creating job:", error);
-
-      if (error instanceof HttpsError) {
-        throw error;
-      }
-
-      throw new HttpsError("internal", "Failed to create job");
-    }
-  }
 );
 
-// Helper function: Notify freelancers about new job
-async function notifyFreelancersAboutNewJob(job: Record<string, unknown>) {
-  try {
-    // Query freelancers with matching skills
-    const freelancersSnapshot = await db.collection("users")
-      .where("userType", "in", ["freelancer", "both"])
-      .where("skills", "array-contains-any", (job.skills as string[]).slice(0, 10))
-      .where("isAvailable", "==", true)
-      .limit(50)
-      .get();
+// ====================================================================
+// STRIPE WEBHOOK HANDLER
+// ====================================================================
 
-    const batch = db.batch();
-    const now = admin.firestore.FieldValue.serverTimestamp();
+// Complete replacement for the stripeWebhook function
+// This handles all type issues properly
 
-    freelancersSnapshot.docs.forEach((doc) => {
-      const notificationRef = db.collection("notifications").doc();
-      batch.set(notificationRef, {
-        id: notificationRef.id,
-        userId: doc.id,
-        title: "New Job Match",
-        body: `New ${job.category} job: "${job.title}"`,
-        type: "new-job",
-        actionUrl: `/job/${job.id}`,
-        actionData: { jobId: job.id },
-        read: false,
-        pushSent: false,
-        createdAt: now,
-      });
-    });
+export const stripeWebhook = onRequest(
+    {
+        secrets: [stripeSecretKey, stripeWebhookSecret],
+        cors: false,
+    },
+    async (req, res) => {
+        const sig = req.headers["stripe-signature"] as string;
 
-    await batch.commit();
-  } catch (error) {
-    console.error("Error notifying freelancers:", error);
-    // Don't throw - this is not critical for job creation
-  }
-}
+        if (!sig) {
+            res.status(400).send("No stripe signature");
+            return;
+        }
 
-// HTTP Function: Submit Proposal
-export const submitProposal = onCall(
-  {
-    cors: true,
-    maxInstances: 10,
-  },
-  async (request) => {
-    // Verify user is authenticated
-    if (!request.auth) {
-      throw new HttpsError("unauthenticated", "User must be authenticated");
+        let event: Stripe.Event;
+
+        try {
+            const stripe = new Stripe(stripeSecretKey.value());
+
+            event = stripe.webhooks.constructEvent(
+                req.rawBody,
+                sig,
+                stripeWebhookSecret.value()
+            );
+        } catch (err: any) {
+            console.error("Webhook signature verification failed:", err);
+            res.status(400).send(`Webhook Error: ${err.message}`);
+            return;
+        }
+
+        try {
+            switch (event.type) {
+                case "checkout.session.completed": {
+                    const session = event.data.object as any; // Use 'any' to bypass type issues
+
+                    if (session.mode === "subscription" && session.subscription) {
+                        const userId = session.metadata?.userId;
+                        const planType = session.metadata?.planType || "monthly";
+
+                        if (userId) {
+                            const stripe = new Stripe(stripeSecretKey.value());
+
+                            // Retrieve the full subscription object
+                            const subscription = await stripe.subscriptions.retrieve(session.subscription);
+
+                            await db.doc(`users/${userId}`).update({
+                                subscriptionStatus: "active",
+                                subscriptionPlan: planType,
+                                stripeSubscriptionId: subscription.id,
+                                stripeCustomerId: session.customer,
+                                subscriptionStartDate: admin.firestore.Timestamp.fromDate(
+                                    new Date((subscription as any).current_period_start * 1000)
+                                ),
+                                subscriptionEndDate: admin.firestore.Timestamp.fromDate(
+                                    new Date((subscription as any).current_period_end * 1000)
+                                ),
+                                isPro: true,
+                                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                            });
+
+                            // Create transaction record
+                            await db.collection("transactions").add({
+                                type: "subscription",
+                                userId,
+                                amount: (session.amount_total || 0) / 100,
+                                currency: session.currency || "usd",
+                                status: "completed",
+                                stripeSessionId: session.id,
+                                description: `${planType} subscription`,
+                                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                            });
+                        }
+                    }
+                    break;
+                }
+
+                case "invoice.payment_succeeded": {
+                    const invoice = event.data.object as any; // Use 'any' to bypass type issues
+
+                    // Check if this is a subscription invoice
+                    if (invoice.subscription) {
+                        try {
+                            const stripe = new Stripe(stripeSecretKey.value());
+
+                            // Handle subscription as string or object
+                            const subscriptionId = typeof invoice.subscription === "string"
+                                ? invoice.subscription
+                                : invoice.subscription.id;
+
+                            // Get subscription to find the user
+                            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+                            // Try to get userId from subscription metadata
+                            let userId: string | undefined = (subscription as any).metadata?.userId;
+
+                            // If not found in subscription, try to find by customer
+                            if (!userId && invoice.customer) {
+                                const customerId = typeof invoice.customer === "string"
+                                    ? invoice.customer
+                                    : invoice.customer.id;
+
+                                const usersQuery = await db.collection("users")
+                                    .where("stripeCustomerId", "==", customerId)
+                                    .limit(1)
+                                    .get();
+
+                                if (!usersQuery.empty) {
+                                    userId = usersQuery.docs[0].id;
+                                }
+                            }
+
+                            if (userId) {
+                                await db.collection("transactions").add({
+                                    type: "subscription_renewal",
+                                    userId,
+                                    amount: invoice.amount_paid / 100,
+                                    currency: invoice.currency,
+                                    status: "completed",
+                                    stripeInvoiceId: invoice.id,
+                                    description: "Subscription renewal",
+                                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                                });
+                            }
+                        } catch (error) {
+                            console.error("Error processing subscription invoice:", error);
+                        }
+                    }
+                    break;
+                }
+
+                case "customer.subscription.deleted": {
+                    const subscription = event.data.object as any; // Use 'any' to bypass type issues
+
+                    const customerId = typeof subscription.customer === "string"
+                        ? subscription.customer
+                        : subscription.customer?.id || subscription.customer;
+
+                    if (customerId) {
+                        const usersQuery = await db.collection("users")
+                            .where("stripeCustomerId", "==", customerId)
+                            .limit(1)
+                            .get();
+
+                        if (!usersQuery.empty) {
+                            const userDoc = usersQuery.docs[0];
+                            await userDoc.ref.update({
+                                subscriptionStatus: "cancelled",
+                                isPro: false,
+                                subscriptionEndDate: admin.firestore.Timestamp.now(),
+                                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                            });
+                        }
+                    }
+                    break;
+                }
+
+                case "payment_intent.succeeded": {
+                    const paymentIntent = event.data.object as any; // Use 'any' to bypass type issues
+
+                    if (paymentIntent.metadata?.type === "job_payment") {
+                        const { jobId, proposalId, freelancerId } = paymentIntent.metadata;
+
+                        if (jobId && proposalId && freelancerId) {
+                            // Update payment record
+                            await db.doc(`payments/${paymentIntent.id}`).update({
+                                status: "held_in_escrow",
+                                paidAt: admin.firestore.FieldValue.serverTimestamp(),
+                            });
+
+                            // Update proposal
+                            await db.doc(`proposals/${proposalId}`).update({
+                                status: "accepted",
+                                acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
+                            });
+
+                            // Update job
+                            await db.doc(`jobs/${jobId}`).update({
+                                status: "in_progress",
+                                paymentStatus: "escrow",
+                                assignedFreelancerId: freelancerId,
+                                assignedProposalId: proposalId,
+                                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                            });
+
+                            // Notify freelancer
+                            await db.collection("notifications").add({
+                                userId: freelancerId,
+                                type: "proposal",
+                                title: "Proposal Accepted!",
+                                body: "Your proposal has been accepted and the client has made the payment.",
+                                actionUrl: "/my-jobs",
+                                data: { jobId, proposalId },
+                                read: false,
+                                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                            });
+                        }
+                    }
+                    break;
+                }
+
+                case "account.updated": {
+                    const account = event.data.object as any; // Use 'any' to bypass type issues
+
+                    const userId = account.metadata?.userId;
+
+                    if (userId) {
+                        await db.doc(`users/${userId}`).update({
+                            stripeConnectChargesEnabled: account.charges_enabled || false,
+                            stripeConnectPayoutsEnabled: account.payouts_enabled || false,
+                            stripeConnectDetailsSubmitted: account.details_submitted || false,
+                            stripeConnectStatus: account.details_submitted ? "active" : "pending",
+                            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                        });
+                    }
+                    break;
+                }
+
+                case "payout.paid": {
+                    const payout = event.data.object as any; // Use 'any' to bypass type issues
+
+                    if (payout.id) {
+                        const transactionsQuery = await db.collection("transactions")
+                            .where("stripePayoutId", "==", payout.id)
+                            .limit(1)
+                            .get();
+
+                        if (!transactionsQuery.empty) {
+                            const transactionDoc = transactionsQuery.docs[0];
+                            await transactionDoc.ref.update({
+                                status: "completed",
+                                completedAt: admin.firestore.FieldValue.serverTimestamp(),
+                            });
+                        }
+                    }
+                    break;
+                }
+
+                default: {
+                    console.log(`Unhandled event type: ${event.type}`);
+                }
+            }
+
+            res.json({ received: true });
+        } catch (error: any) {
+            console.error("Error processing webhook:", error);
+            res.status(500).send("Webhook processing error");
+        }
     }
-
-    const { data } = request;
-    const freelancerId = request.auth.uid;
-
-    try {
-      // Validate required fields
-      if (!data.jobId || !data.coverLetter || !data.proposedRate) {
-        throw new HttpsError("invalid-argument", "Missing required fields");
-      }
-
-      // Get freelancer data
-      const freelancerDoc = await db.doc(`users/${freelancerId}`).get();
-      const freelancerData = freelancerDoc.data();
-
-      if (!freelancerData) {
-        throw new HttpsError("not-found", "Freelancer profile not found");
-      }
-
-      if (freelancerData.userType !== "freelancer" && freelancerData.userType !== "both") {
-        throw new HttpsError("permission-denied", "Only freelancers can submit proposals");
-      }
-
-      // Get job data
-      const jobDoc = await db.doc(`jobs/${data.jobId}`).get();
-      const jobData = jobDoc.data();
-
-      if (!jobDoc.exists || !jobData) {
-        throw new HttpsError("not-found", "Job not found");
-      }
-
-      if (jobData.status !== "open" && jobData.status !== "active") {
-        throw new HttpsError("failed-precondition", "Job is not accepting proposals");
-      }
-
-      // Check if freelancer already applied
-      const existingProposal = await db.collection("proposals")
-        .where("jobId", "==", data.jobId)
-        .where("freelancerId", "==", freelancerId)
-        .get();
-
-      if (!existingProposal.empty) {
-        throw new HttpsError("already-exists", "You have already submitted a proposal for this job");
-      }
-
-      // Create proposal
-      const proposalRef = db.collection("proposals").doc();
-      const now = admin.firestore.FieldValue.serverTimestamp();
-
-      const proposalData = {
-        id: proposalRef.id,
-        jobId: data.jobId,
-        jobTitle: jobData.title,
-        clientId: jobData.clientId,
-        clientName: jobData.clientName,
-        freelancerId: freelancerId,
-        freelancerName: freelancerData.displayName || "Anonymous",
-        freelancerPhotoURL: freelancerData.photoURL || "",
-        freelancerRating: freelancerData.rating || 0,
-        freelancerCompletedJobs: freelancerData.completedProjects || 0,
-        coverLetter: data.coverLetter,
-        proposedRate: data.proposedRate,
-        estimatedDuration: data.estimatedDuration || "",
-        budgetType: jobData.budgetType,
-        attachments: data.attachments || [],
-        status: "pending",
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      // Use a transaction to ensure consistency
-      await db.runTransaction(async (transaction) => {
-        // Create proposal
-        transaction.set(proposalRef, proposalData);
-
-        // Increment proposal count on job
-        const jobRef = db.doc(`jobs/${data.jobId}`);
-        transaction.update(jobRef, {
-          proposalCount: admin.firestore.FieldValue.increment(1),
-          updatedAt: now,
-        });
-      });
-
-      // Trigger will handle notification creation
-
-      return { success: true, proposalId: proposalRef.id };
-    } catch (error: unknown) {
-      console.error("Error submitting proposal:", error);
-
-      if (error instanceof HttpsError) {
-        throw error;
-      }
-
-      throw new HttpsError("internal", "Failed to submit proposal");
-    }
-  }
 );
 
-// HTTP Function: Send Message
-export const sendMessage = onCall(
-  {
-    cors: true,
-    maxInstances: 10,
-  },
-  async (request) => {
-    // Verify user is authenticated
-    if (!request.auth) {
-      throw new HttpsError("unauthenticated", "User must be authenticated");
+// ====================================================================
+// NOTIFICATION TRIGGERS
+// ====================================================================
+
+// Send notification when a new proposal is received
+export const onNewProposal = onDocumentCreated(
+    {
+        document: "proposals/{proposalId}",
+        region: "us-central1",
+    },
+    async (event) => {
+        const proposal = event.data?.data();
+        const proposalId = event.params.proposalId;
+
+        if (!proposal) return;
+
+        try {
+            // Get job details
+            const jobDoc = await db.doc(`jobs/${proposal.jobId}`).get();
+            const job = jobDoc.data();
+
+            if (!job) return;
+
+            // Create notification for client
+            await db.collection("notifications").add({
+                userId: job.clientId,
+                type: "proposal",
+                title: "New Proposal Received",
+                body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
+                actionUrl: `/jobs/${proposal.jobId}/proposals`,
+                actionData: {
+                    proposalId,
+                    jobId: proposal.jobId,
+                },
+                read: false,
+                pushSent: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+
+            // Send push notification if FCM token exists
+            const clientDoc = await db.doc(`users/${job.clientId}`).get();
+            const client = clientDoc.data();
+
+            if (client?.fcmToken) {
+                try {
+                    await messaging.send({
+                        token: client.fcmToken,
+                        notification: {
+                            title: "New Proposal Received",
+                            body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
+                        },
+                        data: {
+                            type: "proposal",
+                            proposalId,
+                            jobId: proposal.jobId,
+                        },
+                    });
+                } catch (fcmError) {
+                    console.error("FCM send error:", fcmError);
+                }
+            }
+        } catch (error) {
+            console.error("Error in onNewProposal:", error);
+        }
     }
-
-    const { data } = request;
-    const senderId = request.auth.uid;
-
-    try {
-      // Validate required fields
-      if (!data.recipientId || !data.text) {
-        throw new HttpsError("invalid-argument", "Missing required fields");
-      }
-
-      // Get sender data
-      const senderDoc = await db.doc(`users/${senderId}`).get();
-      const senderData = senderDoc.data();
-
-      if (!senderData) {
-        throw new HttpsError("not-found", "Sender profile not found");
-      }
-
-      // Get recipient data
-      const recipientDoc = await db.doc(`users/${data.recipientId}`).get();
-      const recipientData = recipientDoc.data();
-
-      if (!recipientData) {
-        throw new HttpsError("not-found", "Recipient profile not found");
-      }
-
-      // Create or get conversation
-      const conversationId = data.conversationId || [senderId, data.recipientId].sort().join("_");
-      const conversationRef = db.doc(`conversations/${conversationId}`);
-
-      // Check if conversation exists
-      const conversationDoc = await conversationRef.get();
-      const now = admin.firestore.FieldValue.serverTimestamp();
-
-      if (!conversationDoc.exists) {
-        // Create new conversation
-        await conversationRef.set({
-          id: conversationId,
-          participants: [senderId, data.recipientId],
-          participantNames: {
-            [senderId]: senderData.displayName || "Unknown",
-            [data.recipientId]: recipientData.displayName || "Unknown",
-          },
-          participantPhotos: {
-            [senderId]: senderData.photoURL || "",
-            [data.recipientId]: recipientData.photoURL || "",
-          },
-          lastMessage: data.text,
-          lastMessageTime: now,
-          unreadCount: {
-            [senderId]: 0,
-            [data.recipientId]: 1,
-          },
-          createdAt: now,
-          updatedAt: now,
-        });
-      } else {
-        // Update existing conversation
-        await conversationRef.update({
-          lastMessage: data.text,
-          lastMessageTime: now,
-          [`unreadCount.${data.recipientId}`]: admin.firestore.FieldValue.increment(1),
-          updatedAt: now,
-        });
-      }
-
-      // Add message to messages subcollection
-      const messageRef = db.collection("messages").doc();
-      await messageRef.set({
-        id: messageRef.id,
-        conversationId: conversationId,
-        senderId: senderId,
-        senderName: senderData.displayName || "Unknown",
-        senderAvatar: senderData.photoURL || "",
-        text: data.text,
-        attachments: data.attachments || [],
-        status: "sent",
-        createdAt: now,
-      });
-
-      // Create notification for recipient
-      await db.collection("notifications").add({
-        userId: data.recipientId,
-        title: "New Message",
-        message: `${senderData.displayName || "Someone"} sent you a message`,
-        type: "message",
-        read: false,
-        link: "/chat",
-        createdAt: now,
-      });
-
-      return { success: true, messageId: messageRef.id, conversationId };
-    } catch (error: unknown) {
-      console.error("Error sending message:", error);
-
-      if (error instanceof HttpsError) {
-        throw error;
-      }
-
-      throw new HttpsError("internal", "Failed to send message");
-    }
-  }
 );
 
-// HTTP Function: Upload file to avoid CORS issues
-export const uploadFile = onCall({ cors: true }, async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
+// Send notification when a proposal is accepted
+export const onProposalAccepted = onDocumentUpdated(
+    {
+        document: "proposals/{proposalId}",
+        region: "us-central1",
+    },
+    async (event) => {
+        const before = event.data?.before.data();
+        const after = event.data?.after.data();
+        const proposalId = event.params.proposalId;
 
-  const { fileData, fileName, contentType, path } = request.data;
+        if (!before || !after) return;
 
-  if (!fileData || !fileName || !path) {
-    throw new HttpsError("invalid-argument", "Missing required fields");
-  }
+        // Check if proposal was just accepted
+        if (before.status !== "accepted" && after.status === "accepted") {
+            try {
+                // Create notification for freelancer
+                await db.collection("notifications").add({
+                    userId: after.freelancerId,
+                    type: "proposal",
+                    title: "Proposal Accepted!",
+                    body: "Your proposal has been accepted. Payment is being processed.",
+                    actionUrl: "/my-jobs",
+                    actionData: {
+                        proposalId,
+                        jobId: after.jobId,
+                    },
+                    read: false,
+                    pushSent: false,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
 
-  try {
-    const bucket = storage.bucket();
-    const userId = request.auth.uid;
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const timestamp = Date.now();
-    const fullPath = `${path}/${userId}/${timestamp}_${sanitizedFileName}`;
+                // Send push notification
+                const freelancerDoc = await db.doc(`users/${after.freelancerId}`).get();
+                const freelancer = freelancerDoc.data();
 
-    // Convert base64 to buffer
-    const buffer = Buffer.from(fileData, "base64");
+                if (freelancer?.fcmToken) {
+                    try {
+                        await messaging.send({
+                            token: freelancer.fcmToken,
+                            notification: {
+                                title: "Proposal Accepted!",
+                                body: "Your proposal has been accepted. Check your dashboard for details.",
+                            },
+                            data: {
+                                type: "proposal_accepted",
+                                proposalId,
+                                jobId: after.jobId,
+                            },
+                        });
+                    } catch (fcmError) {
+                        console.error("FCM send error:", fcmError);
+                    }
+                }
+            } catch (error) {
+                console.error("Error in onProposalAccepted:", error);
+            }
+        }
+    }
+);
 
-    const file = bucket.file(fullPath);
+// Send notification when a message is sent
+export const onNewMessage = onDocumentCreated(
+    {
+        document: "conversations/{conversationId}/messages/{messageId}",
+        region: "us-central1",
+    },
+    async (event) => {
+        const message = event.data?.data();
+        const conversationId = event.params.conversationId;
 
-    await file.save(buffer, {
-      metadata: {
-        contentType: contentType || "application/octet-stream",
-        metadata: {
-          uploadedBy: userId,
-          uploadedAt: new Date().toISOString(),
-          originalName: fileName,
-        },
-      },
-    });
+        if (!message) return;
 
-    // Make file publicly readable
-    await file.makePublic();
+        try {
+            // Get conversation details
+            const conversationDoc = await db.doc(`conversations/${conversationId}`).get();
+            const conversation = conversationDoc.data();
 
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fullPath}`;
+            if (!conversation) return;
 
-    return {
-      success: true,
-      downloadURL: publicUrl,
-      path: fullPath,
-    };
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    throw new HttpsError("internal", "Error uploading file");
-  }
-});
+            // Determine recipient
+            const recipientId = message.senderId === conversation.freelancerId
+                ? conversation.clientId
+                : conversation.freelancerId;
 
-// Scheduled Function: Check expired subscriptions
-export const checkExpiredSubscriptions = onSchedule("every 24 hours", async (event) => {
-  console.log("Running scheduled function:", event.scheduleTime);
-  const now = admin.firestore.Timestamp.now();
+            // Create notification
+            await db.collection("notifications").add({
+                userId: recipientId,
+                type: "message",
+                title: "New Message",
+                body: message.text.substring(0, 100) + (message.text.length > 100 ? "..." : ""),
+                actionUrl: `/messages/${conversationId}`,
+                actionData: {
+                    conversationId,
+                    messageId: event.params.messageId,
+                },
+                read: false,
+                pushSent: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
 
-  try {
-    // Find expired subscriptions
-    const expiredSubs = await db.collection("users")
-      .where("subscriptionStatus", "==", "active")
-      .where("subscriptionEndDate", "<=", now)
-      .get();
+            // Update conversation with last message
+            await conversationDoc.ref.update({
+                lastMessage: message.text,
+                lastMessageAt: message.createdAt,
+                [`unreadCount.${recipientId}`]: admin.firestore.FieldValue.increment(1),
+            });
+        } catch (error) {
+            console.error("Error in onNewMessage:", error);
+        }
+    }
+);
 
-    const batch = db.batch();
+// ====================================================================
+// SCHEDULED FUNCTIONS
+// ====================================================================
 
-    expiredSubs.forEach((doc) => {
-      batch.update(doc.ref, {
-        subscriptionStatus: "expired",
-        isPro: false,
-      });
+// Send reminder when a contract is about to expire
+export const contractExpiryReminder = onSchedule(
+    {
+        schedule: "every day 09:00",
+        timeZone: "UTC",
+        region: "us-central1",
+    },
+    async () => {
+        const threeDaysFromNow = new Date();
+        threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
 
-      // Create notification
-      const notification = db.collection("notifications").doc();
-      batch.set(notification, {
-        userId: doc.id,
-        title: "Subscription Expired",
-        body: "Your subscription has expired. Renew to continue enjoying premium features.",
-        type: "system",
-        actionUrl: "/billing",
-        read: false,
-        pushSent: false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-    });
+        try {
+            const expiringContracts = await db.collection("contracts")
+                .where("status", "==", "active")
+                .where("endDate", "<=", threeDaysFromNow)
+                .get();
 
-    await batch.commit();
+            const batch = db.batch();
+            let notificationCount = 0;
 
-    console.log(`Updated ${expiredSubs.size} expired subscriptions`);
-  } catch (error) {
-    console.error("Error in checkExpiredSubscriptions:", error);
-  }
-});
+            for (const doc of expiringContracts.docs) {
+                const contract = doc.data();
 
-// Scheduled Function: Calculate daily analytics
-export const calculateDailyAnalytics = onSchedule("every 24 hours", async (event) => {
-  console.log("Calculating daily analytics:", event.scheduleTime);
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  yesterday.setHours(0, 0, 0, 0);
+                // Notify freelancer
+                const freelancerNotif = db.collection("notifications").doc();
+                batch.set(freelancerNotif, {
+                    userId: contract.freelancerId,
+                    type: "contract",
+                    title: "Contract Expiring Soon",
+                    body: `Your contract for "${contract.jobTitle}" expires in 3 days.`,
+                    actionUrl: `/contracts/${doc.id}`,
+                    read: false,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+                // Notify client
+                const clientNotif = db.collection("notifications").doc();
+                batch.set(clientNotif, {
+                    userId: contract.clientId,
+                    type: "contract",
+                    title: "Contract Expiring Soon",
+                    body: `The contract for "${contract.jobTitle}" expires in 3 days.`,
+                    actionUrl: `/contracts/${doc.id}`,
+                    read: false,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
 
-  const yesterdayTimestamp = admin.firestore.Timestamp.fromDate(yesterday);
-  const todayTimestamp = admin.firestore.Timestamp.fromDate(today);
+                notificationCount += 2;
+            }
 
-  try {
-    // Count new users
-    const newUsers = await db.collection("users")
-      .where("createdAt", ">=", yesterdayTimestamp)
-      .where("createdAt", "<", todayTimestamp)
-      .get();
+            await batch.commit();
+            console.log(`Sent ${notificationCount} contract expiry notifications`);
+        } catch (error) {
+            console.error("Error in contractExpiryReminder:", error);
+        }
+    }
+);
 
-    // Count active users (users who logged in)
-    const activeUsers = await db.collection("users")
-      .where("lastActive", ">=", yesterdayTimestamp)
-      .where("lastActive", "<", todayTimestamp)
-      .get();
+// Clean up old notifications
+export const cleanupOldNotifications = onSchedule(
+    {
+        schedule: "every day 00:00",
+        timeZone: "UTC",
+        region: "us-central1",
+    },
+    async () => {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Count new jobs
-    const newJobs = await db.collection("jobs")
-      .where("createdAt", ">=", yesterdayTimestamp)
-      .where("createdAt", "<", todayTimestamp)
-      .get();
+        try {
+            const oldNotifications = await db.collection("notifications")
+                .where("createdAt", "<", thirtyDaysAgo)
+                .where("read", "==", true)
+                .limit(500)
+                .get();
 
-    // Count completed jobs
-    const completedJobs = await db.collection("jobs")
-      .where("completedAt", ">=", yesterdayTimestamp)
-      .where("completedAt", "<", todayTimestamp)
-      .get();
+            const batch = db.batch();
+            let count = 0;
 
-    // Calculate revenue
-    const transactions = await db.collection("transactions")
-      .where("completedAt", ">=", yesterdayTimestamp)
-      .where("completedAt", "<", todayTimestamp)
-      .where("status", "==", "completed")
-      .get();
+            oldNotifications.forEach((doc) => {
+                batch.delete(doc.ref);
+                count++;
+            });
 
-    const revenue = {
-      subscriptions: 0,
-      jobFees: 0,
-      total: 0,
-    };
+            if (count > 0) {
+                await batch.commit();
+            }
 
-    transactions.forEach((doc) => {
-      const transaction = doc.data();
-      revenue.total += transaction.amount;
+            console.log(`Deleted ${count} old notifications`);
+        } catch (error) {
+            console.error("Error cleaning up notifications:", error);
+        }
+    }
+);
 
-      switch (transaction.type) {
-        case "subscription":
-          revenue.subscriptions += transaction.amount;
-          break;
-        case "escrow":
-        case "release":
-          revenue.jobFees += transaction.amount * 0.1; // 10% platform fee
-          break;
-      }
-    });
+// Update platform statistics
+export const updatePlatformStats = onSchedule(
+    {
+        schedule: "every day 02:00",
+        timeZone: "UTC",
+        region: "us-central1",
+    },
+    async () => {
+        try {
+            // Count active jobs
+            const activeJobsSnapshot = await db.collection("jobs")
+                .where("status", "==", "active")
+                .count()
+                .get();
 
-    // Save analytics
-    const analyticsId = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
-    await db.doc(`analytics/${analyticsId}`).set({
-      date: yesterdayTimestamp,
-      newUsers: newUsers.size,
-      activeUsers: activeUsers.size,
-      totalUsers: (await db.collection("users").get()).size,
-      newJobs: newJobs.size,
-      activeJobs: (await db.collection("jobs").where("status", "==", "open").get()).size,
-      completedJobs: completedJobs.size,
-      revenue,
-      proposalsSubmitted: (await db.collection("proposals")
-        .where("createdAt", ">=", yesterdayTimestamp)
-        .where("createdAt", "<", todayTimestamp)
-        .get()).size,
-      messagesSent: (await db.collection("messages")
-        .where("createdAt", ">=", yesterdayTimestamp)
-        .where("createdAt", "<", todayTimestamp)
-        .get()).size,
-    });
+            // Count completed jobs today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-    console.log(`Analytics calculated for ${analyticsId}`);
-  } catch (error) {
-    console.error("Error in calculateDailyAnalytics:", error);
-  }
-});
+            const completedTodaySnapshot = await db.collection("jobs")
+                .where("status", "==", "completed")
+                .where("completedAt", ">=", today)
+                .count()
+                .get();
+
+            // Count active freelancers (logged in last 30 days)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const activeFreelancersSnapshot = await db.collection("users")
+                .where("userType", "in", ["freelancer", "both"])
+                .where("lastLoginAt", ">=", thirtyDaysAgo)
+                .count()
+                .get();
+
+            // Count total transactions this month
+            const firstDayOfMonth = new Date();
+            firstDayOfMonth.setDate(1);
+            firstDayOfMonth.setHours(0, 0, 0, 0);
+
+            const monthlyTransactionsSnapshot = await db.collection("transactions")
+                .where("createdAt", ">=", firstDayOfMonth)
+                .where("status", "==", "completed")
+                .get();
+
+            let monthlyRevenue = 0;
+            monthlyTransactionsSnapshot.forEach((doc) => {
+                const transaction = doc.data();
+                if (transaction.platformFee) {
+                    monthlyRevenue += transaction.platformFee;
+                }
+            });
+
+            // Update stats document
+            await db.doc("analytics/platform_stats").set({
+                activeJobs: activeJobsSnapshot.data().count,
+                completedToday: completedTodaySnapshot.data().count,
+                activeFreelancers: activeFreelancersSnapshot.data().count,
+                monthlyRevenue,
+                lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+
+            console.log("Updated platform statistics");
+        } catch (error) {
+            console.error("Error updating platform stats:", error);
+        }
+    }
+);
+
+// Check for expired jobs and update status
+export const updateExpiredJobs = onSchedule(
+    {
+        schedule: "every day 01:00",
+        timeZone: "UTC",
+        region: "us-central1",
+    },
+    async () => {
+        try {
+            const now = new Date();
+
+            const expiredJobs = await db.collection("jobs")
+                .where("status", "==", "active")
+                .where("deadline", "<", now)
+                .limit(100)
+                .get();
+
+            const batch = db.batch();
+            let count = 0;
+
+            expiredJobs.forEach((doc) => {
+                batch.update(doc.ref, {
+                    status: "expired",
+                    expiredAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                count++;
+            });
+
+            if (count > 0) {
+                await batch.commit();
+            }
+
+            console.log(`Updated ${count} expired jobs`);
+        } catch (error) {
+            console.error("Error updating expired jobs:", error);
+        }
+    }
+);

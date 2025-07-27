@@ -81,7 +81,6 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
       { path: '/browse-jobs', label: 'Looking for Work', icon: 'solar:case-round-minimalistic-bold' },
       { path: '/how-it-works', label: 'How it Works', icon: 'solar:question-circle-bold' },
       { path: '/dashboard', label: 'Dashboard', icon: 'solar:widget-2-bold' },
-      { path: '/browse-jobs', label: 'Find Work', icon: 'solar:case-round-minimalistic-bold' },
       { path: '/messages', label: 'Messages', icon: 'solar:chat-round-dots-bold' },
       { path: '/settings', label: 'Settings', icon: 'solar:settings-bold' },
     ];
@@ -90,16 +89,23 @@ export const UnifiedHamburgerMenu: React.FC<UnifiedHamburgerMenuProps> = ({
     if (userData?.userType === 'freelancer' || userData?.userType === 'both') {
       items.push(
         { path: '/post-project', label: 'Post Project', icon: 'solar:folder-plus-bold' },
-        { path: '/portfolio', label: 'Portfolio', icon: 'solar:folder-bold' }
+        { path: '/portfolio', label: 'Portfolio', icon: 'solar:folder-bold' },
+        { path: '/freelancer/proposals', label: 'My Proposals', icon: 'solar:document-text-bold' }
       );
     }
 
     if (userData?.userType === 'client' || userData?.userType === 'both') {
       items.push(
         { path: '/post-job', label: 'Post Job', icon: 'solar:add-circle-bold' },
-        { path: '/job/manage', label: 'My Jobs', icon: 'solar:briefcase-bold' }
+        { path: '/job/manage', label: 'My Jobs', icon: 'solar:briefcase-bold' },
+        { path: '/client/proposals', label: 'View Proposals', icon: 'solar:document-text-bold' }
       );
     }
+
+    // Add billing page (visible to all logged-in users)
+    items.push(
+      { path: '/billing', label: 'Billing', icon: 'solar:wallet-bold' }
+    );
 
     return items;
   };
