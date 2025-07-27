@@ -3,7 +3,7 @@ import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/fire
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-const Stripe = require('stripe');
+import Stripe from "stripe";
 
 admin.initializeApp();
 
@@ -11,10 +11,21 @@ const db = admin.firestore();
 const messaging = admin.messaging();
 const storage = admin.storage();
 
-// Initialize Stripe 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2023-10-16",
-});
+// Initialize Stripe
+// Initialize Stripe lazily
+let stripe: Stripe;
+
+function getStripe(): Stripe {
+  if (!stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("Stripe secret key not configured");
+    }
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-06-30.basil" as Stripe.LatestApiVersion,
+    });
+  }
+  return stripe;
+}
 
 // Trigger: Send notification when a new proposal is received
 export const onNewProposal = onDocumentCreated("proposals/{proposalId}", async (event) => {
@@ -190,13 +201,13 @@ export const createStripeConnectAccount = onCall(async (request) => {
     // Get user data
     const userDoc = await db.doc(`users/${userId}`).get();
     const userData = userDoc.data();
-    
+
     if (!userData) {
       throw new HttpsError("not-found", "User not found");
     }
 
     // Create Express account for freelancer
-    const account = await stripe.accounts.create({
+    const account = await getStripe().accounts.create({
       type: "express",
       country: "CZ", // Czech Republic based on your screenshots
       email: userData.email,
@@ -211,10 +222,10 @@ export const createStripeConnectAccount = onCall(async (request) => {
     });
 
     // Create account link for onboarding
-    const accountLink = await stripe.accountLinks.create({
+    const accountLink = await getStripe().accountLinks.create({
       account: account.id,
-      refresh_url: `${process.env.APP_URL}/profile/edit?stripe_connect=refresh`,
-      return_url: `${process.env.APP_URL}/profile/edit?stripe_connect=success`,
+      refresh_url: `${process.env.APP_URL || "https://localhost:5173"}/profile/edit?stripe_connect=refresh`,
+      return_url: `${process.env.APP_URL || "https://localhost:5173"}/profile/edit?stripe_connect=success`,
       type: "account_onboarding",
     });
 
@@ -230,9 +241,9 @@ export const createStripeConnectAccount = onCall(async (request) => {
       accountId: account.id,
       onboardingUrl: accountLink.url,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating Connect account:", error);
-    throw new HttpsError("internal", error.message);
+    throw new HttpsError("internal", (error as Error).message);
   }
 });
 
@@ -245,7 +256,7 @@ export const checkStripeConnectStatus = onCall(async (request) => {
   const { accountId } = request.data;
 
   try {
-    const account = await stripe.accounts.retrieve(accountId);
+    const account = await getStripe().accounts.retrieve(accountId);
 
     await db.doc(`users/${request.auth.uid}`).update({
       stripeConnectStatus: account.details_submitted ? "active" : "pending",
@@ -261,9 +272,9 @@ export const checkStripeConnectStatus = onCall(async (request) => {
       chargesEnabled: account.charges_enabled,
       payoutsEnabled: account.payouts_enabled,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error checking Connect status:", error);
-    throw new HttpsError("internal", error.message);
+    throw new HttpsError("internal", (error as Error).message);
   }
 });
 
@@ -283,7 +294,7 @@ export const createStripeAccountLink = onCall(async (request) => {
       throw new HttpsError("not-found", "No Connect account found");
     }
 
-    const accountLink = await stripe.accountLinks.create({
+    const accountLink = await getStripe().accountLinks.create({
       account: accountId,
       refresh_url: refreshUrl,
       return_url: returnUrl,
@@ -294,9 +305,9 @@ export const createStripeAccountLink = onCall(async (request) => {
       success: true,
       url: accountLink.url,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating account link:", error);
-    throw new HttpsError("internal", error.message);
+    throw new HttpsError("internal", (error as Error).message);
   }
 });
 
@@ -317,11 +328,13 @@ export const createJobPaymentIntent = onCall(async (request) => {
       throw new HttpsError("not-found", "Job or proposal not found");
     }
 
-    const jobData = jobDoc.data()!;
-    const proposalData = proposalDoc.data()!;
+    const proposalData = proposalDoc.data();
+    if (!proposalData) {
+      throw new HttpsError("not-found", "Proposal data not found");
+    }
 
     // Create payment intent with metadata
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await getStripe().paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: "usd",
       metadata: {
@@ -357,9 +370,9 @@ export const createJobPaymentIntent = onCall(async (request) => {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating payment intent:", error);
-    throw new HttpsError("internal", error.message);
+    throw new HttpsError("internal", (error as Error).message);
   }
 });
 
@@ -401,7 +414,7 @@ export const releasePaymentToFreelancer = onCall(async (request) => {
     const freelancerAmount = Math.round(amount * 100) - platformFee; // In cents
 
     // Create transfer to freelancer
-    const transfer = await stripe.transfers.create({
+    const transfer = await getStripe().transfers.create({
       amount: freelancerAmount,
       currency: "usd",
       destination: connectAccountId,
@@ -438,9 +451,9 @@ export const releasePaymentToFreelancer = onCall(async (request) => {
       success: true,
       transferId: transfer.id,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error releasing payment:", error);
-    throw new HttpsError("internal", error.message);
+    throw new HttpsError("internal", (error as Error).message);
   }
 });
 
@@ -459,7 +472,7 @@ export const createSubscriptionCheckout = onCall(async (request) => {
 
     // Create customer if doesn't exist
     if (!customerId) {
-      const customer = await stripe.customers.create({
+      const customer = await getStripe().customers.create({
         email: userDoc.data()?.email,
         metadata: {
           userId,
@@ -474,7 +487,7 @@ export const createSubscriptionCheckout = onCall(async (request) => {
     }
 
     // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: customerId,
       payment_method_types: ["card"],
       line_items: [
@@ -495,9 +508,9 @@ export const createSubscriptionCheckout = onCall(async (request) => {
       success: true,
       url: session.url,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating subscription checkout:", error);
-    throw new HttpsError("internal", error.message);
+    throw new HttpsError("internal", (error as Error).message);
   }
 });
 
@@ -518,7 +531,7 @@ export const cancelSubscription = onCall(async (request) => {
     }
 
     // Cancel at period end (allow access until end of billing period)
-    const subscription = await stripe.subscriptions.update(subscriptionId, {
+    const subscription = await getStripe().subscriptions.update(subscriptionId, {
       cancel_at_period_end: true,
     });
 
@@ -526,9 +539,9 @@ export const cancelSubscription = onCall(async (request) => {
       success: true,
       endDate: new Date((subscription as any).current_period_end * 1000),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error cancelling subscription:", error);
-    throw new HttpsError("internal", error.message);
+    throw new HttpsError("internal", (error as Error).message);
   }
 });
 
@@ -549,7 +562,7 @@ export const createStripePayout = onCall(async (request) => {
     }
 
     // Create payout in connected account
-    const payout = await stripe.payouts.create(
+    const payout = await getStripe().payouts.create(
       {
         amount: Math.round(amount * 100), // Convert to cents
         currency: "usd",
@@ -577,9 +590,9 @@ export const createStripePayout = onCall(async (request) => {
       success: true,
       payoutId: payout.id,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating payout:", error);
-    throw new HttpsError("internal", error.message);
+    throw new HttpsError("internal", (error as Error).message);
   }
 });
 
@@ -604,22 +617,22 @@ export const getStripeBalance = onCall(async (request) => {
     }
 
     // Get balance from connected account
-    const balance = await stripe.balance.retrieve({
+    const balance = await getStripe().balance.retrieve({
       stripeAccount: connectAccountId,
     });
 
     // Sum available balance across all currencies
-    const available = balance.available.reduce((sum: number, bal: any) => sum + bal.amount, 0) / 100;
-    const pending = balance.pending.reduce((sum: number, bal: any) => sum + bal.amount, 0) / 100;
+    const available = balance.available.reduce((sum: number, bal: Stripe.Balance.Available) => sum + bal.amount, 0) / 100;
+    const pending = balance.pending.reduce((sum: number, bal: Stripe.Balance.Pending) => sum + bal.amount, 0) / 100;
 
     return {
       success: true,
       available,
       pending,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error getting balance:", error);
-    throw new HttpsError("internal", error.message);
+    throw new HttpsError("internal", (error as Error).message);
   }
 });
 
@@ -628,21 +641,21 @@ export const stripeWebhook = onRequest(async (req, res) => {
   const sig = req.headers["stripe-signature"] as string;
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  let event: any;
+  let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret!);
-  } catch (err: any) {
-    console.error("Webhook signature verification failed:", err.message);
-    res.status(400).send(`Webhook Error: ${err.message}`);
+    event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret || "");
+  } catch (err: unknown) {
+    console.error("Webhook signature verification failed:", (err as Error).message);
+    res.status(400).send(`Webhook Error: ${(err as Error).message}`);
     return;
   }
 
   // Handle the event
   switch (event.type) {
     case "checkout.session.completed": {
-      const session = event.data.object;
-      
+      const session = event.data.object as Stripe.Checkout.Session;
+
       // Handle subscription creation
       if (session.mode === "subscription" && session.subscription) {
         await handleSubscriptionCreated(session);
@@ -651,24 +664,24 @@ export const stripeWebhook = onRequest(async (req, res) => {
     }
 
     case "invoice.payment_succeeded": {
-      const invoice = event.data.object;
-      
-      // Handle recurring subscription payment  
-      if (invoice.subscription) {
+      const invoice = event.data.object as Stripe.Invoice;
+
+      // Handle recurring subscription payment
+      if ((invoice as any).subscription) {
         await handleSubscriptionPayment(invoice);
       }
       break;
     }
 
     case "customer.subscription.deleted": {
-      const subscription = event.data.object;
+      const subscription = event.data.object as Stripe.Subscription;
       await handleSubscriptionCancelled(subscription);
       break;
     }
 
     case "payment_intent.succeeded": {
-      const paymentIntent = event.data.object;
-      
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+
       // Handle job payment
       if (paymentIntent.metadata.type === "job_payment") {
         await handleJobPaymentSucceeded(paymentIntent);
@@ -677,7 +690,7 @@ export const stripeWebhook = onRequest(async (req, res) => {
     }
 
     case "account.updated": {
-      const account = event.data.object;
+      const account = event.data.object as Stripe.Account;
       await handleConnectAccountUpdated(account);
       break;
     }
@@ -687,12 +700,12 @@ export const stripeWebhook = onRequest(async (req, res) => {
 });
 
 // Helper functions for webhook handlers
-async function handleSubscriptionCreated(session: any) {
+async function handleSubscriptionCreated(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.userId;
   if (!userId || !session.subscription) return;
 
-  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-  
+  const subscription = await getStripe().subscriptions.retrieve(session.subscription as string);
+
   // Determine plan type based on price
   let planType = "monthly";
   const priceId = subscription.items.data[0].price.id;
@@ -703,8 +716,8 @@ async function handleSubscriptionCreated(session: any) {
     subscriptionStatus: "active",
     subscriptionPlan: planType,
     stripeSubscriptionId: subscription.id,
-    subscriptionStartDate: admin.firestore.Timestamp.fromDate(new Date(subscription.current_period_start * 1000)),
-    subscriptionEndDate: admin.firestore.Timestamp.fromDate(new Date(subscription.current_period_end * 1000)),
+    subscriptionStartDate: admin.firestore.Timestamp.fromDate(new Date((subscription as any).current_period_start * 1000)),
+    subscriptionEndDate: admin.firestore.Timestamp.fromDate(new Date((subscription as any).current_period_end * 1000)),
     isPro: true,
   });
 
@@ -712,8 +725,8 @@ async function handleSubscriptionCreated(session: any) {
   await db.collection("transactions").add({
     type: "subscription",
     userId,
-    amount: session.amount_total! / 100,
-    currency: session.currency!,
+    amount: (session.amount_total || 0) / 100,
+    currency: session.currency || "usd",
     status: "completed",
     stripeSessionId: session.id,
     description: `${planType} subscription`,
@@ -722,7 +735,7 @@ async function handleSubscriptionCreated(session: any) {
   });
 }
 
-async function handleSubscriptionPayment(invoice: any) {
+async function handleSubscriptionPayment(invoice: Stripe.Invoice) {
   // Log the payment for records
   await db.collection("transactions").add({
     type: "subscription",
@@ -737,9 +750,9 @@ async function handleSubscriptionPayment(invoice: any) {
   });
 }
 
-async function handleSubscriptionCancelled(subscription: any) {
+async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
-  
+
   // Find user by customer ID
   const usersQuery = await db.collection("users")
     .where("stripeCustomerId", "==", customerId)
@@ -755,8 +768,8 @@ async function handleSubscriptionCancelled(subscription: any) {
   }
 }
 
-async function handleJobPaymentSucceeded(paymentIntent: any) {
-  const { jobId, proposalId, clientId, freelancerId } = paymentIntent.metadata;
+async function handleJobPaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+  const { jobId, proposalId, freelancerId } = paymentIntent.metadata;
 
   // Update payment record
   await db.doc(`payments/${paymentIntent.id}`).update({
@@ -790,7 +803,7 @@ async function handleJobPaymentSucceeded(paymentIntent: any) {
   });
 }
 
-async function handleConnectAccountUpdated(account: any) {
+async function handleConnectAccountUpdated(account: Stripe.Account) {
   const userId = account.metadata?.userId;
   if (!userId) return;
 
@@ -869,7 +882,7 @@ export const createJob = onCall(
       await notifyFreelancersAboutNewJob(jobData);
 
       return { success: true, jobId: jobRef.id };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating job:", error);
 
       if (error instanceof HttpsError) {
@@ -882,12 +895,12 @@ export const createJob = onCall(
 );
 
 // Helper function: Notify freelancers about new job
-async function notifyFreelancersAboutNewJob(job: any) {
+async function notifyFreelancersAboutNewJob(job: Record<string, unknown>) {
   try {
     // Query freelancers with matching skills
     const freelancersSnapshot = await db.collection("users")
       .where("userType", "in", ["freelancer", "both"])
-      .where("skills", "array-contains-any", job.skills.slice(0, 10))
+      .where("skills", "array-contains-any", (job.skills as string[]).slice(0, 10))
       .where("isAvailable", "==", true)
       .limit(50)
       .get();
@@ -1014,7 +1027,7 @@ export const submitProposal = onCall(
       // Trigger will handle notification creation
 
       return { success: true, proposalId: proposalRef.id };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error submitting proposal:", error);
 
       if (error instanceof HttpsError) {
@@ -1078,20 +1091,20 @@ export const sendMessage = onCall(
           participants: [senderId, data.recipientId],
           participantNames: {
             [senderId]: senderData.displayName || "Unknown",
-            [data.recipientId]: recipientData.displayName || "Unknown"
+            [data.recipientId]: recipientData.displayName || "Unknown",
           },
           participantPhotos: {
             [senderId]: senderData.photoURL || "",
-            [data.recipientId]: recipientData.photoURL || ""
+            [data.recipientId]: recipientData.photoURL || "",
           },
           lastMessage: data.text,
           lastMessageTime: now,
           unreadCount: {
             [senderId]: 0,
-            [data.recipientId]: 1
+            [data.recipientId]: 1,
           },
           createdAt: now,
-          updatedAt: now
+          updatedAt: now,
         });
       } else {
         // Update existing conversation
@@ -1099,7 +1112,7 @@ export const sendMessage = onCall(
           lastMessage: data.text,
           lastMessageTime: now,
           [`unreadCount.${data.recipientId}`]: admin.firestore.FieldValue.increment(1),
-          updatedAt: now
+          updatedAt: now,
         });
       }
 
@@ -1114,7 +1127,7 @@ export const sendMessage = onCall(
         text: data.text,
         attachments: data.attachments || [],
         status: "sent",
-        createdAt: now
+        createdAt: now,
       });
 
       // Create notification for recipient
@@ -1125,11 +1138,11 @@ export const sendMessage = onCall(
         type: "message",
         read: false,
         link: "/chat",
-        createdAt: now
+        createdAt: now,
       });
 
       return { success: true, messageId: messageRef.id, conversationId };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error sending message:", error);
 
       if (error instanceof HttpsError) {
@@ -1142,13 +1155,13 @@ export const sendMessage = onCall(
 );
 
 // HTTP Function: Upload file to avoid CORS issues
-export const uploadFile = onCall({cors: true}, async (request) => {
+export const uploadFile = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
 
   const { fileData, fileName, contentType, path } = request.data;
-  
+
   if (!fileData || !fileName || !path) {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
@@ -1156,35 +1169,35 @@ export const uploadFile = onCall({cors: true}, async (request) => {
   try {
     const bucket = storage.bucket();
     const userId = request.auth.uid;
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
     const timestamp = Date.now();
     const fullPath = `${path}/${userId}/${timestamp}_${sanitizedFileName}`;
 
     // Convert base64 to buffer
-    const buffer = Buffer.from(fileData, 'base64');
-    
+    const buffer = Buffer.from(fileData, "base64");
+
     const file = bucket.file(fullPath);
-    
+
     await file.save(buffer, {
       metadata: {
-        contentType: contentType || 'application/octet-stream',
+        contentType: contentType || "application/octet-stream",
         metadata: {
           uploadedBy: userId,
           uploadedAt: new Date().toISOString(),
-          originalName: fileName
-        }
-      }
+          originalName: fileName,
+        },
+      },
     });
 
     // Make file publicly readable
     await file.makePublic();
-    
+
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fullPath}`;
-    
+
     return {
       success: true,
       downloadURL: publicUrl,
-      path: fullPath
+      path: fullPath,
     };
   } catch (error) {
     console.error("Error uploading file:", error);
@@ -1290,13 +1303,13 @@ export const calculateDailyAnalytics = onSchedule("every 24 hours", async (event
       revenue.total += transaction.amount;
 
       switch (transaction.type) {
-      case "subscription":
-        revenue.subscriptions += transaction.amount;
-        break;
-      case "escrow":
-      case "release":
-        revenue.jobFees += transaction.amount * 0.1; // 10% platform fee
-        break;
+        case "subscription":
+          revenue.subscriptions += transaction.amount;
+          break;
+        case "escrow":
+        case "release":
+          revenue.jobFees += transaction.amount * 0.1; // 10% platform fee
+          break;
       }
     });
 
