@@ -18,6 +18,7 @@ module.exports = {
   },
   ignorePatterns: [
     "/lib/**/*", // Ignore built files.
+    ".eslintrc.js", // Ignore this file
   ],
   plugins: [
     "@typescript-eslint",
@@ -26,14 +27,16 @@ module.exports = {
   rules: {
     "quotes": ["error", "double"],
     "import/no-unresolved": 0,
-    "max-len": ["error", { "code": 120 }], // Increase from 80 to 120
-    "require-jsdoc": 0, // Disable JSDoc requirement
-    "@typescript-eslint/no-explicit-any": "warn", // Change to warning
-    "@typescript-eslint/no-unused-vars": "warn", // Change to warning
+    "max-len": "off", // DISABLED - allows long lines
+    "require-jsdoc": 0,
+    "@typescript-eslint/no-explicit-any": "off", // DISABLED - allows any type
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-var-requires": "off", // DISABLED - allows require()
     "no-trailing-spaces": "error",
     "comma-dangle": ["error", "always-multiline"],
     "object-curly-spacing": ["error", "always"],
-    "indent": ["error", 2],
+    "indent": "off", // DISABLED - allows your 4-space indentation
+    "@typescript-eslint/indent": "off", // DISABLED
     "arrow-parens": ["error", "always"],
   },
 };

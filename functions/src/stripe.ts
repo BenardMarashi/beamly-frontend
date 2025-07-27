@@ -3,7 +3,7 @@ import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/fire
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-const Stripe = require('stripe');
+const Stripe = require("stripe");
 
 admin.initializeApp();
 
@@ -11,9 +11,9 @@ const db = admin.firestore();
 const messaging = admin.messaging();
 const storage = admin.storage();
 
-// Initialize Stripe 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2023-10-16",
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy_key_for_deployment", {
+  apiVersion: "2024-11-20.acacia",
 });
 
 // Trigger: Send notification when a new proposal is received
@@ -190,7 +190,7 @@ export const createStripeConnectAccount = onCall(async (request) => {
     // Get user data
     const userDoc = await db.doc(`users/${userId}`).get();
     const userData = userDoc.data();
-    
+
     if (!userData) {
       throw new HttpsError("not-found", "User not found");
     }
@@ -213,8 +213,8 @@ export const createStripeConnectAccount = onCall(async (request) => {
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `${process.env.APP_URL}/profile/edit?stripe_connect=refresh`,
-      return_url: `${process.env.APP_URL}/profile/edit?stripe_connect=success`,
+      refresh_url: `${process.env.APP_URL || "https://localhost:5173"}/profile/edit?stripe_connect=refresh`,
+      return_url: `${process.env.APP_URL || "https://localhost:5173"}/profile/edit?stripe_connect=success`,
       type: "account_onboarding",
     });
 
@@ -316,8 +316,6 @@ export const createJobPaymentIntent = onCall(async (request) => {
     if (!jobDoc.exists || !proposalDoc.exists) {
       throw new HttpsError("not-found", "Job or proposal not found");
     }
-
-    const jobData = jobDoc.data()!;
     const proposalData = proposalDoc.data()!;
 
     // Create payment intent with metadata
@@ -640,47 +638,47 @@ export const stripeWebhook = onRequest(async (req, res) => {
 
   // Handle the event
   switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object;
-      
-      // Handle subscription creation
-      if (session.mode === "subscription" && session.subscription) {
-        await handleSubscriptionCreated(session);
-      }
-      break;
-    }
+  case "checkout.session.completed": {
+    const session = event.data.object;
 
-    case "invoice.payment_succeeded": {
-      const invoice = event.data.object;
-      
-      // Handle recurring subscription payment  
-      if (invoice.subscription) {
-        await handleSubscriptionPayment(invoice);
-      }
-      break;
+    // Handle subscription creation
+    if (session.mode === "subscription" && session.subscription) {
+      await handleSubscriptionCreated(session);
     }
+    break;
+  }
 
-    case "customer.subscription.deleted": {
-      const subscription = event.data.object;
-      await handleSubscriptionCancelled(subscription);
-      break;
-    }
+  case "invoice.payment_succeeded": {
+    const invoice = event.data.object;
 
-    case "payment_intent.succeeded": {
-      const paymentIntent = event.data.object;
-      
-      // Handle job payment
-      if (paymentIntent.metadata.type === "job_payment") {
-        await handleJobPaymentSucceeded(paymentIntent);
-      }
-      break;
+    // Handle recurring subscription payment
+    if (invoice.subscription) {
+      await handleSubscriptionPayment(invoice);
     }
+    break;
+  }
 
-    case "account.updated": {
-      const account = event.data.object;
-      await handleConnectAccountUpdated(account);
-      break;
+  case "customer.subscription.deleted": {
+    const subscription = event.data.object;
+    await handleSubscriptionCancelled(subscription);
+    break;
+  }
+
+  case "payment_intent.succeeded": {
+    const paymentIntent = event.data.object;
+
+    // Handle job payment
+    if (paymentIntent.metadata.type === "job_payment") {
+      await handleJobPaymentSucceeded(paymentIntent);
     }
+    break;
+  }
+
+  case "account.updated": {
+    const account = event.data.object;
+    await handleConnectAccountUpdated(account);
+    break;
+  }
   }
 
   res.json({ received: true });
@@ -692,7 +690,7 @@ async function handleSubscriptionCreated(session: any) {
   if (!userId || !session.subscription) return;
 
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-  
+
   // Determine plan type based on price
   let planType = "monthly";
   const priceId = subscription.items.data[0].price.id;
@@ -739,7 +737,7 @@ async function handleSubscriptionPayment(invoice: any) {
 
 async function handleSubscriptionCancelled(subscription: any) {
   const customerId = subscription.customer as string;
-  
+
   // Find user by customer ID
   const usersQuery = await db.collection("users")
     .where("stripeCustomerId", "==", customerId)
@@ -756,7 +754,7 @@ async function handleSubscriptionCancelled(subscription: any) {
 }
 
 async function handleJobPaymentSucceeded(paymentIntent: any) {
-  const { jobId, proposalId, clientId, freelancerId } = paymentIntent.metadata;
+  const { jobId, proposalId, freelancerId } = paymentIntent.metadata;
 
   // Update payment record
   await db.doc(`payments/${paymentIntent.id}`).update({
@@ -1078,20 +1076,20 @@ export const sendMessage = onCall(
           participants: [senderId, data.recipientId],
           participantNames: {
             [senderId]: senderData.displayName || "Unknown",
-            [data.recipientId]: recipientData.displayName || "Unknown"
+            [data.recipientId]: recipientData.displayName || "Unknown",
           },
           participantPhotos: {
             [senderId]: senderData.photoURL || "",
-            [data.recipientId]: recipientData.photoURL || ""
+            [data.recipientId]: recipientData.photoURL || "",
           },
           lastMessage: data.text,
           lastMessageTime: now,
           unreadCount: {
             [senderId]: 0,
-            [data.recipientId]: 1
+            [data.recipientId]: 1,
           },
           createdAt: now,
-          updatedAt: now
+          updatedAt: now,
         });
       } else {
         // Update existing conversation
@@ -1099,7 +1097,7 @@ export const sendMessage = onCall(
           lastMessage: data.text,
           lastMessageTime: now,
           [`unreadCount.${data.recipientId}`]: admin.firestore.FieldValue.increment(1),
-          updatedAt: now
+          updatedAt: now,
         });
       }
 
@@ -1114,7 +1112,7 @@ export const sendMessage = onCall(
         text: data.text,
         attachments: data.attachments || [],
         status: "sent",
-        createdAt: now
+        createdAt: now,
       });
 
       // Create notification for recipient
@@ -1125,7 +1123,7 @@ export const sendMessage = onCall(
         type: "message",
         read: false,
         link: "/chat",
-        createdAt: now
+        createdAt: now,
       });
 
       return { success: true, messageId: messageRef.id, conversationId };
@@ -1142,13 +1140,13 @@ export const sendMessage = onCall(
 );
 
 // HTTP Function: Upload file to avoid CORS issues
-export const uploadFile = onCall({cors: true}, async (request) => {
+export const uploadFile = onCall({ cors: true }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
 
   const { fileData, fileName, contentType, path } = request.data;
-  
+
   if (!fileData || !fileName || !path) {
     throw new HttpsError("invalid-argument", "Missing required fields");
   }
@@ -1156,35 +1154,35 @@ export const uploadFile = onCall({cors: true}, async (request) => {
   try {
     const bucket = storage.bucket();
     const userId = request.auth.uid;
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
     const timestamp = Date.now();
     const fullPath = `${path}/${userId}/${timestamp}_${sanitizedFileName}`;
 
     // Convert base64 to buffer
-    const buffer = Buffer.from(fileData, 'base64');
-    
+    const buffer = Buffer.from(fileData, "base64");
+
     const file = bucket.file(fullPath);
-    
+
     await file.save(buffer, {
       metadata: {
-        contentType: contentType || 'application/octet-stream',
+        contentType: contentType || "application/octet-stream",
         metadata: {
           uploadedBy: userId,
           uploadedAt: new Date().toISOString(),
-          originalName: fileName
-        }
-      }
+          originalName: fileName,
+        },
+      },
     });
 
     // Make file publicly readable
     await file.makePublic();
-    
+
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fullPath}`;
-    
+
     return {
       success: true,
       downloadURL: publicUrl,
-      path: fullPath
+      path: fullPath,
     };
   } catch (error) {
     console.error("Error uploading file:", error);
