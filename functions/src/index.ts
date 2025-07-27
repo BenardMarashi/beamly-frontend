@@ -1,4 +1,13 @@
 // functions/src/index.ts
+import { setGlobalOptions } from "firebase-functions/v2/options";
+
+setGlobalOptions({
+  maxInstances: 10,
+  timeoutSeconds: 540,
+  memory: "2GiB",
+  region: "us-central1",
+});
+
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
@@ -17,12 +26,12 @@ let stripe: Stripe;
 
 function getStripe(): Stripe {
   if (!stripe) {
-    if (!process.env.STRIPE_SECRET_KEY) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
       throw new Error("Stripe secret key not configured");
     }
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2025-06-30.basil" as Stripe.LatestApiVersion,
-    });
+    // Don't specify apiVersion - Stripe will use the latest stable
+    stripe = new Stripe(secretKey);
   }
   return stripe;
 }
