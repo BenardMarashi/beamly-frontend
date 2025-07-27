@@ -264,43 +264,55 @@ export const ClientDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkMode 
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card 
-          isPressable
-          className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
-          onPress={() => navigate('/browse-freelancers')}
-        >
-          <CardBody className="text-center p-6">
-            <Icon icon="lucide:users" className="text-4xl text-secondary mb-3" />
-            <h4 className="font-semibold">Browse Freelancers</h4>
-            <p className="text-sm text-gray-500 mt-1">Find talent for your projects</p>
-          </CardBody>
-        </Card>
-        
-        <Card 
-          isPressable
-          className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
-          onPress={() => navigate('/messages')}
-        >
-          <CardBody className="text-center p-6">
-            <Icon icon="lucide:message-circle" className="text-4xl text-secondary mb-3" />
-            <h4 className="font-semibold">Messages</h4>
-            <p className="text-sm text-gray-500 mt-1">Chat with freelancers</p>
-          </CardBody>
-        </Card>
-        
-        <Card 
-          isPressable
-          className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
-          onPress={() => navigate('/billing')}
-        >
-          <CardBody className="text-center p-6">
-            <Icon icon="lucide:credit-card" className="text-4xl text-secondary mb-3" />
-            <h4 className="font-semibold">Billing & Payments</h4>
-            <p className="text-sm text-gray-500 mt-1">Manage your transactions</p>
-          </CardBody>
-        </Card>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <Card 
+        isPressable
+        className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+        onPress={() => navigate('/browse-freelancers')}
+      >
+        <CardBody className="text-center p-6">
+          <Icon icon="lucide:users" className="text-4xl text-secondary mb-3" />
+          <h4 className="font-semibold">Browse Freelancers</h4>
+          <p className="text-sm text-gray-500 mt-1">Find talent for your projects</p>
+        </CardBody>
+      </Card>
+      
+      <Card 
+        isPressable
+        className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+        onPress={() => navigate('/client/proposals')}
+      >
+        <CardBody className="text-center p-6">
+          <Icon icon="solar:document-text-bold" className="text-4xl text-warning mb-3" />
+          <h4 className="font-semibold">View Proposals</h4>
+          <p className="text-sm text-gray-500 mt-1">Review applications</p>
+        </CardBody>
+      </Card>
+      
+      <Card 
+        isPressable
+        className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+        onPress={() => navigate('/messages')}
+      >
+        <CardBody className="text-center p-6">
+          <Icon icon="lucide:message-circle" className="text-4xl text-secondary mb-3" />
+          <h4 className="font-semibold">Messages</h4>
+          <p className="text-sm text-gray-500 mt-1">Chat with freelancers</p>
+        </CardBody>
+      </Card>
+      
+      <Card 
+        isPressable
+        className={`${isDarkMode ? 'glass-effect' : ''} hover:scale-105 transition-transform`}
+        onPress={() => navigate('/billing')}
+      >
+        <CardBody className="text-center p-6">
+          <Icon icon="lucide:credit-card" className="text-4xl text-secondary mb-3" />
+          <h4 className="font-semibold">Billing & Payments</h4>
+          <p className="text-sm text-gray-500 mt-1">Manage your transactions</p>
+        </CardBody>
+      </Card>
+    </div>
     </div>
   );
 };

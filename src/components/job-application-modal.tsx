@@ -21,6 +21,7 @@ import { db, storage } from "../lib/firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { ImageCropper } from './ImageCropper';
 
 interface JobApplicationModalProps {
   isOpen: boolean;
@@ -362,6 +363,7 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
         const missingFields = [];
         if (!userData.displayName?.trim()) missingFields.push('Display Name');
         if (!userData.bio?.trim()) missingFields.push('Bio');
+        if (!userData.location?.trim()) missingFields.push('Location');
         if (!userData.skills || userData.skills.length === 0) missingFields.push('Skills');
         if (!userData.hourlyRate || userData.hourlyRate <= 0) missingFields.push('Hourly Rate');
         
@@ -751,17 +753,19 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
           backgroundColor: 'rgba(0, 0, 0, 0.9)'
         }}>
           <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
-            <ImageCropper
-              image={imageToCrop}
-              onCropComplete={handleImageCropped}
-              onCancel={() => {
-                console.log('Cropping cancelled');
-                setShowImageCropper(false);
-                setImageToCrop(null);
-                setCurrentImageFile(null);
-              }}
-              aspectRatio={undefined} // Free aspect ratio for attachments
-            />
+              {showImageCropper && imageToCrop && USE_IMAGE_CROPPER && (
+                <ImageCropper
+                  isOpen={showImageCropper}
+                  imageSrc={imageToCrop}
+                  onClose={() => {
+                    console.log('Cropping cancelled');
+                    setShowImageCropper(false);
+                    setImageToCrop(null);
+                    setCurrentImageFile(null);
+                  }}
+                  onCropComplete={handleImageCropped}
+                />
+              )}
           </div>
         </div>,
         document.body
