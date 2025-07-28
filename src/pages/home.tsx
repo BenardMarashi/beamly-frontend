@@ -469,7 +469,7 @@ export const HomePage: React.FC = () => {
                   <Button
                     size="sm"
                     color="secondary"
-                    className="font-medium text-beamly-third"
+                    className="font-medium text-beamly-third ml-2"
                     onPress={handleSearch}
                   >
                     Search
@@ -517,6 +517,81 @@ export const HomePage: React.FC = () => {
               </Button>
             </motion.div>
           ))}
+        </div>
+      </div>
+
+      {/* Top Freelancers */}
+      <div className="px-4 mt-6 md:mt-8">
+        <div className="flex justify-between items-center mb-3 md:mb-4">
+          <h2 className={`text-lg md:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+            {t('home.topFreelancers')}
+          </h2>
+          <Button
+            variant="light"
+            className="text-beamly-secondary p-0"
+            endContent={<Icon icon="lucide:chevron-right" />}
+            onPress={() => navigate("/browse-freelancers")}
+          >
+            {t('home.seeAll')}
+          </Button>
+        </div>
+        
+        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar cursor-grab active:cursor-grabbing">
+          {topFreelancers.length > 0 ? (
+            topFreelancers.map((freelancer, index) => (
+              <motion.div
+                key={freelancer.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
+                className="min-w-[110px] sm:min-w-[130px]"
+              >
+                <Card 
+                  className={`${index % 2 === 0 ? (isDarkMode ? 'glass-card' : 'bg-white shadow-md') : 'yellow-glass shadow-md'} border-none card-hover h-[200px] w-full overflow-hidden`}
+                  isPressable
+                  onPress={() => navigate(`/freelancer/${freelancer.id}`)}
+                >
+                  <CardBody className="p-3 flex flex-col items-center text-center">
+                    <Avatar 
+                      src={freelancer.photoURL} 
+                      name={freelancer.displayName}
+                      className="w-10 h-10 mb-1"
+                      classNames={{
+                        base: !freelancer.photoURL ? "bg-beamly-secondary/20" : "",
+                        name: "text-beamly-secondary text-xs font-bold"
+                      }}
+                    />
+                    <h3 className={`font-semibold text-xs truncate w-full ${isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}`}>
+                      {freelancer.displayName}
+                    </h3>
+                    <p className={`text-xs truncate w-full ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {freelancer.title || freelancer.skills?.[0] || t('home.freelancer')}
+                    </p>
+                    <div className="flex items-center mt-1 text-xs">
+                      <Icon icon="lucide:star" className="text-beamly-secondary mr-1 w-3 h-3" />
+                      <span className={isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}>
+                        {freelancer.rating || 5.0}
+                      </span>
+                    </div>
+                    <div className="mt-1">
+                      <div className="text-beamly-secondary font-bold text-lg">
+                        {freelancer.completedProjects || 0}
+                      </div>
+                      <div className={`text-xs ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {t('home.projects')}
+                      </div>
+                    </div>
+                  </CardBody>
+                </Card>
+              </motion.div>
+            ))
+          ) : (
+            <div className="w-full text-center py-8">
+              <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+                {t('home.noFreelancersAvailable')}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -591,81 +666,6 @@ export const HomePage: React.FC = () => {
               >
                 {t('home.postJob')}
               </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Top Freelancers */}
-      <div className="px-4 mt-6 md:mt-8">
-        <div className="flex justify-between items-center mb-3 md:mb-4">
-          <h2 className={`text-lg md:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-            {t('home.topFreelancers')}
-          </h2>
-          <Button
-            variant="light"
-            className="text-beamly-secondary p-0"
-            endContent={<Icon icon="lucide:chevron-right" />}
-            onPress={() => navigate("/browse-freelancers")}
-          >
-            {t('home.seeAll')}
-          </Button>
-        </div>
-        
-        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar cursor-grab active:cursor-grabbing">
-          {topFreelancers.length > 0 ? (
-            topFreelancers.map((freelancer, index) => (
-              <motion.div
-                key={freelancer.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
-                className="min-w-[110px] sm:min-w-[130px]"
-              >
-                <Card 
-                  className={`${index % 2 === 0 ? (isDarkMode ? 'glass-card' : 'bg-white shadow-md') : 'yellow-glass shadow-md'} border-none card-hover h-[200px] w-full overflow-hidden`}
-                  isPressable
-                  onPress={() => navigate(`/freelancer/${freelancer.id}`)}
-                >
-                  <CardBody className="p-3 flex flex-col items-center text-center">
-                    <Avatar 
-                      src={freelancer.photoURL} 
-                      name={freelancer.displayName}
-                      className="w-10 h-10 mb-1"
-                      classNames={{
-                        base: !freelancer.photoURL ? "bg-beamly-secondary/20" : "",
-                        name: "text-beamly-secondary text-xs font-bold"
-                      }}
-                    />
-                    <h3 className={`font-semibold text-xs truncate w-full ${isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}`}>
-                      {freelancer.displayName}
-                    </h3>
-                    <p className={`text-xs truncate w-full ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {freelancer.title || freelancer.skills?.[0] || t('home.freelancer')}
-                    </p>
-                    <div className="flex items-center mt-1 text-xs">
-                      <Icon icon="lucide:star" className="text-beamly-secondary mr-1 w-3 h-3" />
-                      <span className={isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}>
-                        {freelancer.rating || 5.0}
-                      </span>
-                    </div>
-                    <div className="mt-1">
-                      <div className="text-beamly-secondary font-bold text-lg">
-                        {freelancer.completedProjects || 0}
-                      </div>
-                      <div className={`text-xs ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {t('home.projects')}
-                      </div>
-                    </div>
-                  </CardBody>
-                </Card>
-              </motion.div>
-            ))
-          ) : (
-            <div className="w-full text-center py-8">
-              <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-                {t('home.noFreelancersAvailable')}
-              </p>
             </div>
           )}
         </div>

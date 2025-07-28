@@ -1,1204 +1,1550 @@
 // functions/src/index.ts
-import { setGlobalOptions } from "firebase-functions/v2/options";
-import { defineSecret } from "firebase-functions/params";
-
-// Define secrets for Stripe
-const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
-const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
-
-// Set global options for all functions
-setGlobalOptions({
-    maxInstances: 10,
-    timeoutSeconds: 540,
-    memory: "2GiB",
-    region: "us-central1",
-});
-
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
-import * as admin from "firebase-admin";
-import Stripe from "stripe";
-import * as functions from "firebase-functions";
+import { defineSecret } from "firebase-functions/params";
 
-// Initialize Firebase Admin
-admin.initializeApp();
+// Define secrets
+const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
+const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
-const db = admin.firestore();
-const messaging = admin.messaging();
+// Lazy-loaded instances
+let adminApp: any;
+let db: any;
+let messaging: any;
+let storage: any;
+let stripe: any;
+let FieldValue: any;
+let Timestamp: any;
 
-// Get configuration
-const config = functions.config();
+// Lazy-loaded modules
+let adminModule: any;
+let stripeModule: any;
 
-// ====================================================================
-// HEALTH CHECK FUNCTION
-// ====================================================================
-
-export const healthCheck = onRequest({ cors: true }, (request, response) => {
-    response.send("OK");
-});
-
-// ====================================================================
-// STRIPE PAYMENT FUNCTIONS
-// ====================================================================
-
-// Create Stripe Checkout Session for Subscriptions
-export const createStripeCheckoutSession = onCall(
-    {
-        secrets: [stripeSecretKey],
-        cors: true,
-    },
-    async (request) => {
-        if (!request.auth) {
-            throw new HttpsError("unauthenticated", "User must be authenticated");
-        }
-
-        const { planId } = request.data;
-        const userId = request.auth.uid;
-
-        try {
-            // Initialize Stripe without specifying apiVersion
-            const stripe = new Stripe(stripeSecretKey.value());
-
-            // Get user data
-            const userDoc = await db.doc(`users/${userId}`).get();
-            const userData = userDoc.data();
-
-            if (!userData) {
-                throw new HttpsError("not-found", "User not found");
-            }
-
-            // Price IDs mapping
-            const priceMap: { [key: string]: string } = {
-                monthly: config.stripe?.monthly_price_id || "price_1RoqOADtB4sjDNJywCzlCHBM",
-                quarterly: config.stripe?.quarterly_price_id || "price_1RoqOADtB4sjDNJytiOCXLZx",
-                yearly: config.stripe?.yearly_price_id || "price_1RoqOADtB4sjDNJyGYFrEVTu",
-            };
-
-            const priceId = priceMap[planId];
-            if (!priceId) {
-                throw new HttpsError("invalid-argument", "Invalid plan ID");
-            }
-
-            // Create or get Stripe customer
-            let customerId = userData.stripeCustomerId;
-
-            if (!customerId) {
-                const customer = await stripe.customers.create({
-                    email: userData.email,
-                    metadata: {
-                        userId: userId,
-                    },
-                });
-                customerId = customer.id;
-
-                // Save customer ID to Firestore
-                await db.doc(`users/${userId}`).update({
-                    stripeCustomerId: customerId,
-                });
-            }
-
-            // Create checkout session
-            const appUrl = config.app?.url || "https://beamly-app.web.app";
-            const session = await stripe.checkout.sessions.create({
-                customer: customerId,
-                payment_method_types: ["card"],
-                line_items: [
-                    {
-                        price: priceId,
-                        quantity: 1,
-                    },
-                ],
-                mode: "subscription",
-                success_url: `${appUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${appUrl}/subscription/cancel`,
-                metadata: {
-                    userId: userId,
-                    planType: planId,
-                },
-            });
-
-            return {
-                sessionId: session.id,
-                url: session.url,
-            };
-        } catch (error: any) {
-            console.error("Error creating checkout session:", error);
-            throw new HttpsError("internal", error.message || "Failed to create checkout session");
-        }
+// Lazy initialization functions
+function getAdmin() {
+  if (!adminApp) {
+    // Lazy load the admin module
+    if (!adminModule) {
+      adminModule = require("firebase-admin");
     }
+    adminApp = adminModule.initializeApp();
+    db = adminApp.firestore();
+    messaging = adminApp.messaging();
+    storage = adminApp.storage();
+    // IMPORTANT: Get FieldValue and Timestamp from admin.firestore
+    FieldValue = adminModule.firestore.FieldValue;
+    Timestamp = adminModule.firestore.Timestamp;
+  }
+  return { admin: adminApp, db, messaging, storage, FieldValue, Timestamp };
+}
+
+function getStripe(): any {
+  if (!stripe) {
+    // Lazy load the stripe module
+    if (!stripeModule) {
+      stripeModule = require("stripe");
+    }
+    const secretKey = stripeSecretKey.value();
+    if (!secretKey) {
+      throw new Error("Stripe secret key not configured");
+    }
+    stripe = new stripeModule(secretKey);
+  }
+  return stripe;
+}
+
+// Trigger: Send notification when a new proposal is received
+export const onNewProposal = onDocumentCreated(
+  {
+    document: "proposals/{proposalId}",
+    region: "us-central1",
+    maxInstances: 10,
+  },
+  async (event) => {
+    const { db, FieldValue } = getAdmin();
+    const proposal = event.data?.data();
+    const proposalId = event.params.proposalId;
+
+    if (!proposal) return;
+
+    try {
+      // Get job details
+      const jobDoc = await db.doc(`jobs/${proposal.jobId}`).get();
+      const job = jobDoc.data();
+
+      if (!job) return;
+
+      // Create notification for client
+      await db.collection("notifications").add({
+        userId: job.clientId,
+        title: "New Proposal Received",
+        body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
+        type: "proposal",
+        actionUrl: `/proposals/${proposalId}`,
+        actionData: {
+          proposalId,
+          jobId: proposal.jobId,
+        },
+        read: false,
+        pushSent: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      // Send push notification if FCM token exists
+      const clientDoc = await db.doc(`users/${job.clientId}`).get();
+      const client = clientDoc.data();
+
+      if (client?.fcmToken) {
+        const { messaging } = getAdmin();
+        await messaging.send({
+          token: client.fcmToken,
+          notification: {
+            title: "New Proposal Received",
+            body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
+          },
+          data: {
+            type: "proposal",
+            proposalId,
+            jobId: proposal.jobId,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error in onNewProposal:", error);
+    }
+  }
 );
 
-// Create Payment Intent for Job Payments
-export const createJobPaymentIntent = onCall(
-    {
-        secrets: [stripeSecretKey],
-        cors: true,
-    },
-    async (request) => {
-        if (!request.auth) {
-            throw new HttpsError("unauthenticated", "User must be authenticated");
+// Trigger: Send notification when a proposal is accepted
+export const onProposalAccepted = onDocumentUpdated(
+  {
+    document: "proposals/{proposalId}",
+    region: "us-central1",
+    maxInstances: 10,
+  },
+  async (event) => {
+    const { db, messaging, FieldValue } = getAdmin();
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    const proposalId = event.params.proposalId;
+
+    if (!before || !after) return;
+
+    // Check if proposal was just accepted
+    if (before.status !== "accepted" && after.status === "accepted") {
+      try {
+        // Create notification for freelancer
+        await db.collection("notifications").add({
+          userId: after.freelancerId,
+          title: "Proposal Accepted!",
+          body: "Your proposal has been accepted. Payment is being processed.",
+          type: "contract",
+          actionUrl: "/dashboard",
+          actionData: {
+            proposalId,
+            jobId: after.jobId,
+          },
+          read: false,
+          pushSent: false,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+
+        // Send push notification
+        const freelancerDoc = await db.doc(`users/${after.freelancerId}`).get();
+        const freelancer = freelancerDoc.data();
+
+        if (freelancer?.fcmToken) {
+          await messaging.send({
+            token: freelancer.fcmToken,
+            notification: {
+              title: "Proposal Accepted!",
+              body: "Your proposal has been accepted. Payment is being processed.",
+            },
+            data: {
+              type: "contract",
+              proposalId,
+              jobId: after.jobId,
+            },
+          });
         }
-
-        const { jobId, proposalId, amount } = request.data;
-        const userId = request.auth.uid;
-
-        try {
-            const stripe = new Stripe(stripeSecretKey.value());
-
-            // Verify job and proposal exist
-            const [jobDoc, proposalDoc] = await Promise.all([
-                db.doc(`jobs/${jobId}`).get(),
-                db.doc(`proposals/${proposalId}`).get(),
-            ]);
-
-            if (!jobDoc.exists || !proposalDoc.exists) {
-                throw new HttpsError("not-found", "Job or proposal not found");
-            }
-
-            const job = jobDoc.data()!;
-            const proposal = proposalDoc.data()!;
-
-            // Verify the user is the client who posted the job
-            if (job.clientId !== userId) {
-                throw new HttpsError("permission-denied", "Only the job client can make payments");
-            }
-
-            // Create payment intent
-            const paymentIntent = await stripe.paymentIntents.create({
-                amount: Math.round(amount * 100), // Convert to cents
-                currency: "usd",
-                metadata: {
-                    jobId,
-                    proposalId,
-                    clientId: userId,
-                    freelancerId: proposal.freelancerId,
-                    type: "job_payment",
-                },
-            });
-
-            // Create payment record in Firestore
-            await db.collection("payments").doc(paymentIntent.id).set({
-                jobId,
-                proposalId,
-                clientId: userId,
-                freelancerId: proposal.freelancerId,
-                amount,
-                currency: "usd",
-                status: "pending",
-                stripePaymentIntentId: paymentIntent.id,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-
-            return {
-                clientSecret: paymentIntent.client_secret,
-                paymentIntentId: paymentIntent.id,
-            };
-        } catch (error: any) {
-            console.error("Error creating payment intent:", error);
-            throw new HttpsError("internal", error.message || "Failed to create payment");
-        }
+      } catch (error) {
+        console.error("Error in onProposalAccepted:", error);
+      }
     }
+  }
+);
+
+// Trigger: Send notification for new messages
+export const onNewMessage = onDocumentCreated(
+  {
+    document: "messages/{messageId}",
+    region: "us-central1",
+    maxInstances: 10,
+  },
+  async (event) => {
+    const { db, messaging, FieldValue } = getAdmin();
+    const message = event.data?.data();
+
+    if (!message) return;
+
+    try {
+      // Determine recipient
+      const conversationParts = message.conversationId.split("_");
+      const recipientId = conversationParts.find(
+        (id: string) => id !== message.senderId
+      );
+
+      if (!recipientId) return;
+
+      // Create notification
+      await db.collection("notifications").add({
+        userId: recipientId,
+        title: "New Message",
+        body: `${message.senderName}: ${message.text?.substring(0, 50)}...`,
+        type: "message",
+        actionUrl: `/messages/${message.conversationId}`,
+        actionData: {
+          conversationId: message.conversationId,
+        },
+        read: false,
+        pushSent: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      // Update unread count in conversation
+      await db.doc(`conversations/${message.conversationId}`).update({
+        [`unreadCount.${recipientId}`]: FieldValue.increment(1),
+      });
+
+      // Send push notification
+      const recipientDoc = await db.doc(`users/${recipientId}`).get();
+      const recipient = recipientDoc.data();
+
+      if (recipient?.fcmToken) {
+        await messaging.send({
+          token: recipient.fcmToken,
+          notification: {
+            title: `New message from ${message.senderName}`,
+            body: message.text?.substring(0, 100) || "Sent an attachment",
+          },
+          data: {
+            type: "message",
+            conversationId: message.conversationId,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error in onNewMessage:", error);
+    }
+  }
 );
 
 // Create Stripe Connect Account for Freelancers
 export const createStripeConnectAccount = onCall(
-    {
-        secrets: [stripeSecretKey],
-        cors: true,
-    },
-    async (request) => {
-        if (!request.auth) {
-            throw new HttpsError("unauthenticated", "User must be authenticated");
-        }
-
-        const userId = request.auth.uid;
-
-        try {
-            const stripe = new Stripe(stripeSecretKey.value());
-
-            // Get user data
-            const userDoc = await db.doc(`users/${userId}`).get();
-            const userData = userDoc.data();
-
-            if (!userData) {
-                throw new HttpsError("not-found", "User not found");
-            }
-
-            // Check if Connect account already exists
-            if (userData.stripeConnectAccountId) {
-                // Return new onboarding link for existing account
-                const accountLink = await stripe.accountLinks.create({
-                    account: userData.stripeConnectAccountId,
-                    refresh_url: `${config.app?.url || "https://beamly-app.web.app"}/settings/payments`,
-                    return_url: `${config.app?.url || "https://beamly-app.web.app"}/settings/payments?success=true`,
-                    type: "account_onboarding",
-                });
-
-                return {
-                    url: accountLink.url,
-                    accountId: userData.stripeConnectAccountId,
-                };
-            }
-
-            // Create new Connect account
-            const account = await stripe.accounts.create({
-                type: "express",
-                country: "US",
-                email: userData.email,
-                metadata: {
-                    userId: userId,
-                },
-                capabilities: {
-                    card_payments: { requested: true },
-                    transfers: { requested: true },
-                },
-            });
-
-            // Save account ID to Firestore
-            await db.doc(`users/${userId}`).update({
-                stripeConnectAccountId: account.id,
-            });
-
-            // Create account onboarding link
-            const accountLink = await stripe.accountLinks.create({
-                account: account.id,
-                refresh_url: `${config.app?.url || "https://beamly-app.web.app"}/settings/payments`,
-                return_url: `${config.app?.url || "https://beamly-app.web.app"}/settings/payments?success=true`,
-                type: "account_onboarding",
-            });
-
-            return {
-                url: accountLink.url,
-                accountId: account.id,
-            };
-        } catch (error: any) {
-            console.error("Error creating Connect account:", error);
-            throw new HttpsError("internal", error.message || "Failed to create payment account");
-        }
+  {
+    region: "us-central1",
+    cors: true,
+    maxInstances: 10,
+    secrets: [stripeSecretKey],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
     }
+
+    const { db, FieldValue } = getAdmin();
+    const { userId } = request.data;
+
+    try {
+      // Get user data
+      const userDoc = await db.doc(`users/${userId}`).get();
+      const userData = userDoc.data();
+
+      if (!userData) {
+        throw new HttpsError("not-found", "User not found");
+      }
+
+      // Create Express account for freelancer
+      const stripe = getStripe();
+      const account = await stripe.accounts.create({
+        type: "express",
+        country: "CZ",
+        email: userData.email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        business_type: "individual",
+        metadata: {
+          userId,
+        },
+      });
+
+      // Create account link for onboarding
+      const accountLink = await stripe.accountLinks.create({
+        account: account.id,
+        refresh_url: "https://beamly-app.web.app/profile/edit?stripe_connect=refresh",
+        return_url: "https://beamly-app.web.app/profile/edit?stripe_connect=success",
+        type: "account_onboarding",
+      });
+
+      // Update user document with Stripe account ID
+      await db.doc(`users/${userId}`).update({
+        stripeConnectAccountId: account.id,
+        stripeConnectStatus: "pending",
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      return {
+        success: true,
+        accountId: account.id,
+        onboardingUrl: accountLink.url,
+      };
+    } catch (error: unknown) {
+      console.error("Error creating Connect account:", error);
+      throw new HttpsError("internal", (error as Error).message);
+    }
+  }
 );
 
-// Release Payment from Escrow to Freelancer
-export const releasePayment = onCall(
-    {
-        secrets: [stripeSecretKey],
-        cors: true,
-    },
-    async (request) => {
-        if (!request.auth) {
-            throw new HttpsError("unauthenticated", "User must be authenticated");
-        }
-
-        const { jobId, paymentId } = request.data;
-        const userId = request.auth.uid;
-
-        try {
-            const stripe = new Stripe(stripeSecretKey.value());
-
-            // Get payment record
-            const paymentDoc = await db.doc(`payments/${paymentId}`).get();
-            const payment = paymentDoc.data();
-
-            if (!payment) {
-                throw new HttpsError("not-found", "Payment not found");
-            }
-
-            // Verify the user is the client
-            if (payment.clientId !== userId) {
-                throw new HttpsError("permission-denied", "Only the client can release payment");
-            }
-
-            // Check payment status
-            if (payment.status !== "held_in_escrow") {
-                throw new HttpsError("failed-precondition", "Payment is not in escrow");
-            }
-
-            // Get freelancer's Connect account
-            const freelancerDoc = await db.doc(`users/${payment.freelancerId}`).get();
-            const freelancer = freelancerDoc.data();
-
-            if (!freelancer?.stripeConnectAccountId) {
-                throw new HttpsError("failed-precondition", "Freelancer has not set up payment account");
-            }
-
-            // Calculate platform fee (10%)
-            const platformFee = Math.round(payment.amount * 0.1 * 100); // in cents
-            const freelancerAmount = Math.round(payment.amount * 100) - platformFee; // in cents
-
-            // Create transfer to freelancer
-            const transfer = await stripe.transfers.create({
-                amount: freelancerAmount,
-                currency: "usd",
-                destination: freelancer.stripeConnectAccountId,
-                metadata: {
-                    jobId,
-                    freelancerId: payment.freelancerId,
-                    paymentId: paymentDoc.id,
-                },
-            });
-
-            // Update payment record
-            const batch = db.batch();
-
-            // Update payment status
-            batch.update(paymentDoc.ref, {
-                status: "released",
-                releasedAt: admin.firestore.FieldValue.serverTimestamp(),
-                stripeTransferId: transfer.id,
-                platformFee: platformFee / 100,
-                freelancerAmount: freelancerAmount / 100,
-            });
-
-            // Update freelancer earnings
-            batch.update(db.doc(`users/${payment.freelancerId}`), {
-                totalEarnings: admin.firestore.FieldValue.increment(freelancerAmount / 100),
-                completedJobs: admin.firestore.FieldValue.increment(1),
-            });
-
-            // Update job status
-            batch.update(db.doc(`jobs/${jobId}`), {
-                status: "completed",
-                paymentStatus: "released",
-                completedAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-
-            await batch.commit();
-
-            // Send notification to freelancer
-            await db.collection("notifications").add({
-                userId: payment.freelancerId,
-                type: "payment",
-                title: "Payment Released!",
-                body: `Payment of $${(freelancerAmount / 100).toFixed(2)} has been released for your completed job.`,
-                actionUrl: "/earnings",
-                read: false,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-
-            return {
-                success: true,
-                transferId: transfer.id,
-                amount: freelancerAmount / 100,
-            };
-        } catch (error: any) {
-            console.error("Error releasing payment:", error);
-            throw new HttpsError("internal", error.message || "Failed to release payment");
-        }
+// Check Stripe Connect Account Status
+export const checkStripeConnectStatus = onCall(
+  {
+    region: "us-central1",
+    cors: true,
+    maxInstances: 10,
+    secrets: [stripeSecretKey],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
     }
+
+    const { db } = getAdmin();
+    const { accountId } = request.data;
+
+    try {
+      const stripe = getStripe();
+      const account = await stripe.accounts.retrieve(accountId);
+
+      await db.doc(`users/${request.auth.uid}`).update({
+        stripeConnectStatus: account.details_submitted ? "active" : "pending",
+        stripeConnectChargesEnabled: account.charges_enabled,
+        stripeConnectPayoutsEnabled: account.payouts_enabled,
+        stripeConnectDetailsSubmitted: account.details_submitted,
+      });
+
+      return {
+        success: true,
+        status: account.details_submitted ? "active" : "pending",
+        detailsSubmitted: account.details_submitted,
+        chargesEnabled: account.charges_enabled,
+        payoutsEnabled: account.payouts_enabled,
+      };
+    } catch (error: unknown) {
+      console.error("Error checking Connect status:", error);
+      throw new HttpsError("internal", (error as Error).message);
+    }
+  }
 );
 
-// Create Payout for Freelancer Withdrawal
-export const createStripePayout = onCall(
-    {
-        secrets: [stripeSecretKey],
-        cors: true,
-    },
-    async (request) => {
-        if (!request.auth) {
-            throw new HttpsError("unauthenticated", "User must be authenticated");
-        }
-
-        const { amount } = request.data;
-        const userId = request.auth.uid;
-
-        try {
-            const stripe = new Stripe(stripeSecretKey.value());
-
-            // Get user's Connect account
-            const userDoc = await db.doc(`users/${userId}`).get();
-            const connectAccountId = userDoc.data()?.stripeConnectAccountId;
-
-            if (!connectAccountId) {
-                throw new HttpsError("failed-precondition", "No payment account found");
-            }
-
-            // Check available balance
-            const balance = await stripe.balance.retrieve({
-                stripeAccount: connectAccountId,
-            });
-
-            const availableBalance = balance.available[0]?.amount || 0;
-
-            if (amount * 100 > availableBalance) {
-                throw new HttpsError(
-                    "failed-precondition",
-                    `Insufficient balance. Available: $${(availableBalance / 100).toFixed(2)}`
-                );
-            }
-
-            // Create payout
-            const payout = await stripe.payouts.create(
-                {
-                    amount: Math.round(amount * 100),
-                    currency: "usd",
-                    metadata: {
-                        userId,
-                    },
-                },
-                {
-                    stripeAccount: connectAccountId,
-                }
-            );
-
-            // Record transaction
-            await db.collection("transactions").add({
-                type: "withdrawal",
-                userId,
-                amount,
-                currency: "usd",
-                status: "pending",
-                stripePayoutId: payout.id,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-
-            return {
-                success: true,
-                payoutId: payout.id,
-                estimatedArrival: payout.arrival_date,
-            };
-        } catch (error: any) {
-            console.error("Error creating payout:", error);
-            throw new HttpsError("internal", error.message || "Failed to create payout");
-        }
+// Create Account Link for Re-onboarding
+export const createStripeAccountLink = onCall(
+  {
+    region: "us-central1",
+    cors: true,
+    maxInstances: 10,
+    secrets: [stripeSecretKey],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
     }
+
+    const { db } = getAdmin();
+    const { userId, returnUrl, refreshUrl } = request.data;
+
+    try {
+      const userDoc = await db.doc(`users/${userId}`).get();
+      const accountId = userDoc.data()?.stripeConnectAccountId;
+
+      if (!accountId) {
+        throw new HttpsError("not-found", "No Connect account found");
+      }
+
+      const stripe = getStripe();
+      const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: refreshUrl || "https://beamly-app.web.app/profile/edit?stripe_connect=refresh",
+        return_url: returnUrl || "https://beamly-app.web.app/profile/edit?stripe_connect=success",
+        type: "account_onboarding",
+      });
+
+      return {
+        success: true,
+        url: accountLink.url,
+      };
+    } catch (error: unknown) {
+      console.error("Error creating account link:", error);
+      throw new HttpsError("internal", (error as Error).message);
+    }
+  }
 );
 
-// Get Stripe Balance for Freelancer
-export const getStripeBalance = onCall(
-    {
-        secrets: [stripeSecretKey],
-        cors: true,
-    },
-    async (request) => {
-        if (!request.auth) {
-            throw new HttpsError("unauthenticated", "User must be authenticated");
-        }
-
-        const userId = request.auth.uid;
-
-        try {
-            const stripe = new Stripe(stripeSecretKey.value());
-
-            const userDoc = await db.doc(`users/${userId}`).get();
-            const connectAccountId = userDoc.data()?.stripeConnectAccountId;
-
-            if (!connectAccountId) {
-                return {
-                    success: true,
-                    available: 0,
-                    pending: 0,
-                };
-            }
-
-            // Get balance from connected account
-            const balance = await stripe.balance.retrieve({
-                stripeAccount: connectAccountId,
-            });
-
-            // Sum available and pending balances across all currencies
-            const available = balance.available.reduce((sum, bal) => sum + bal.amount, 0) / 100;
-            const pending = balance.pending.reduce((sum, bal) => sum + bal.amount, 0) / 100;
-
-            return {
-                success: true,
-                available,
-                pending,
-            };
-        } catch (error: any) {
-            console.error("Error getting balance:", error);
-            throw new HttpsError("internal", error.message || "Failed to get balance");
-        }
+// Create Payment Intent for Job (Escrow)
+export const createJobPaymentIntent = onCall(
+  {
+    region: "us-central1",
+    cors: true,
+    maxInstances: 10,
+    secrets: [stripeSecretKey],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
     }
+
+    const { db, FieldValue } = getAdmin();
+    const { jobId, proposalId, amount } = request.data;
+
+    try {
+      // Get job and proposal details
+      const jobDoc = await db.doc(`jobs/${jobId}`).get();
+      const proposalDoc = await db.doc(`proposals/${proposalId}`).get();
+
+      if (!jobDoc.exists || !proposalDoc.exists) {
+        throw new HttpsError("not-found", "Job or proposal not found");
+      }
+
+      const proposalData = proposalDoc.data();
+      if (!proposalData) {
+        throw new HttpsError("not-found", "Proposal data not found");
+      }
+
+      // Create payment intent with metadata
+      const stripe = getStripe();
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: "usd",
+        metadata: {
+          jobId,
+          proposalId,
+          clientId: request.auth.uid,
+          freelancerId: proposalData.freelancerId,
+          type: "job_payment",
+        },
+        capture_method: "automatic",
+        setup_future_usage: "off_session",
+      });
+
+      // Create payment record in database
+      const paymentRef = db.collection("payments").doc(paymentIntent.id);
+      await paymentRef.set({
+        id: paymentIntent.id,
+        jobId,
+        proposalId,
+        clientId: request.auth.uid,
+        freelancerId: proposalData.freelancerId,
+        amount,
+        currency: "usd",
+        status: "pending",
+        type: "job_payment",
+        stripePaymentIntentId: paymentIntent.id,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return {
+        success: true,
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+      };
+    } catch (error: unknown) {
+      console.error("Error creating payment intent:", error);
+      throw new HttpsError("internal", (error as Error).message);
+    }
+  }
+);
+
+// Release Payment to Freelancer
+export const releasePaymentToFreelancer = onCall(
+  {
+    region: "us-central1",
+    cors: true,
+    maxInstances: 10,
+    secrets: [stripeSecretKey],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { db, FieldValue } = getAdmin();
+    const { jobId, freelancerId } = request.data;
+
+    try {
+      // Get freelancer's Connect account
+      const freelancerDoc = await db.doc(`users/${freelancerId}`).get();
+      const connectAccountId = freelancerDoc.data()?.stripeConnectAccountId;
+
+      if (!connectAccountId) {
+        throw new HttpsError("failed-precondition", "Freelancer has no Connect account");
+      }
+
+      // Get payment details
+      const paymentsQuery = await db.collection("payments")
+        .where("jobId", "==", jobId)
+        .where("status", "==", "held_in_escrow")
+        .limit(1)
+        .get();
+
+      if (paymentsQuery.empty) {
+        throw new HttpsError("not-found", "No payment found for this job");
+      }
+
+      const paymentDoc = paymentsQuery.docs[0];
+      const paymentData = paymentDoc.data();
+
+      // Calculate platform fee (e.g., 10%)
+      const platformFeePercent = 0.10;
+      const amount = paymentData.amount;
+      const platformFee = Math.round(amount * platformFeePercent * 100); // In cents
+      const freelancerAmount = Math.round(amount * 100) - platformFee; // In cents
+
+      // Create transfer to freelancer
+      const stripe = getStripe();
+      const transfer = await stripe.transfers.create({
+        amount: freelancerAmount,
+        currency: "usd",
+        destination: connectAccountId,
+        metadata: {
+          jobId,
+          freelancerId,
+          paymentId: paymentDoc.id,
+        },
+      });
+
+      // Update payment status
+      await paymentDoc.ref.update({
+        status: "released",
+        releasedAt: FieldValue.serverTimestamp(),
+        stripeTransferId: transfer.id,
+        platformFee: platformFee / 100,
+        freelancerAmount: freelancerAmount / 100,
+      });
+
+      // Update freelancer's earnings
+      await db.doc(`users/${freelancerId}`).update({
+        totalEarnings: FieldValue.increment(freelancerAmount / 100),
+        completedJobs: FieldValue.increment(1),
+      });
+
+      // Update job status
+      await db.doc(`jobs/${jobId}`).update({
+        status: "completed",
+        paymentStatus: "released",
+        completedAt: FieldValue.serverTimestamp(),
+      });
+
+      return {
+        success: true,
+        transferId: transfer.id,
+      };
+    } catch (error: unknown) {
+      console.error("Error releasing payment:", error);
+      throw new HttpsError("internal", (error as Error).message);
+    }
+  }
+);
+
+// Create Subscription Checkout Session
+export const createSubscriptionCheckout = onCall(
+  {
+    region: "us-central1",
+    cors: true,
+    maxInstances: 10,
+    secrets: [stripeSecretKey],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { db } = getAdmin();
+    const { userId, priceId, successUrl, cancelUrl } = request.data;
+
+    try {
+      // Check if user already has a Stripe customer ID
+      const userDoc = await db.doc(`users/${userId}`).get();
+      let customerId = userDoc.data()?.stripeCustomerId;
+
+      // Create customer if doesn't exist
+      if (!customerId) {
+        const stripe = getStripe();
+        const customer = await stripe.customers.create({
+          email: userDoc.data()?.email,
+          metadata: {
+            userId,
+          },
+        });
+        customerId = customer.id;
+
+        // Save customer ID
+        await db.doc(`users/${userId}`).update({
+          stripeCustomerId: customerId,
+        });
+      }
+
+      // Create checkout session
+      const stripe = getStripe();
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: "subscription",
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: {
+          userId,
+        },
+      });
+
+      return {
+        success: true,
+        url: session.url,
+      };
+    } catch (error: unknown) {
+      console.error("Error creating subscription checkout:", error);
+      throw new HttpsError("internal", (error as Error).message);
+    }
+  }
 );
 
 // Cancel Subscription
 export const cancelSubscription = onCall(
-    {
-        secrets: [stripeSecretKey],
-        cors: true,
-    },
-    async (request) => {
-        if (!request.auth) {
-            throw new HttpsError("unauthenticated", "User must be authenticated");
-        }
-
-        const userId = request.auth.uid;
-
-        try {
-            const stripe = new Stripe(stripeSecretKey.value());
-
-            const userDoc = await db.doc(`users/${userId}`).get();
-            const userData = userDoc.data();
-            const subscriptionId = userData?.stripeSubscriptionId;
-
-            if (!subscriptionId) {
-                throw new HttpsError("not-found", "No active subscription found");
-            }
-
-            // Cancel at period end
-            const subscription = await stripe.subscriptions.update(subscriptionId, {
-                cancel_at_period_end: true,
-            });
-
-            // Update user document
-            await db.doc(`users/${userId}`).update({
-                subscriptionStatus: "cancelling",
-                subscriptionCancelAt: admin.firestore.Timestamp.fromDate(
-                    new Date(subscription.cancel_at! * 1000)
-                ),
-            });
-
-            return {
-                success: true,
-                endDate: new Date(subscription.cancel_at! * 1000).toISOString(),
-            };
-        } catch (error: any) {
-            console.error("Error cancelling subscription:", error);
-            throw new HttpsError("internal", error.message || "Failed to cancel subscription");
-        }
+  {
+    region: "us-central1",
+    cors: true,
+    maxInstances: 10,
+    secrets: [stripeSecretKey],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
     }
+
+    const { db } = getAdmin();
+    const { userId } = request.data;
+
+    try {
+      const userDoc = await db.doc(`users/${userId}`).get();
+      const subscriptionId = userDoc.data()?.stripeSubscriptionId;
+
+      if (!subscriptionId) {
+        throw new HttpsError("not-found", "No active subscription found");
+      }
+
+      // Cancel at period end (allow access until end of billing period)
+      const stripe = getStripe();
+      const subscription = await stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true,
+      });
+
+      return {
+        success: true,
+        endDate: new Date((subscription as any).current_period_end * 1000),
+      };
+    } catch (error: unknown) {
+      console.error("Error cancelling subscription:", error);
+      throw new HttpsError("internal", (error as Error).message);
+    }
+  }
 );
 
-// ====================================================================
-// STRIPE WEBHOOK HANDLER
-// ====================================================================
+// Create Payout for Freelancer
+export const createStripePayout = onCall(
+  {
+    region: "us-central1",
+    cors: true,
+    maxInstances: 10,
+    secrets: [stripeSecretKey],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
 
-// Complete replacement for the stripeWebhook function
-// This handles all type issues properly
+    const { db, FieldValue } = getAdmin();
+    const { userId, amount } = request.data;
 
+    try {
+      const userDoc = await db.doc(`users/${userId}`).get();
+      const connectAccountId = userDoc.data()?.stripeConnectAccountId;
+
+      if (!connectAccountId) {
+        throw new HttpsError("failed-precondition", "No Connect account found");
+      }
+
+      // Create payout in connected account
+      const stripe = getStripe();
+      const payout = await stripe.payouts.create(
+        {
+          amount: Math.round(amount * 100), // Convert to cents
+          currency: "usd",
+          metadata: {
+            userId,
+          },
+        },
+        {
+          stripeAccount: connectAccountId,
+        }
+      );
+
+      // Record transaction
+      await db.collection("transactions").add({
+        type: "withdrawal",
+        userId,
+        amount,
+        currency: "usd",
+        status: "pending",
+        stripePayoutId: payout.id,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return {
+        success: true,
+        payoutId: payout.id,
+      };
+    } catch (error: unknown) {
+      console.error("Error creating payout:", error);
+      throw new HttpsError("internal", (error as Error).message);
+    }
+  }
+);
+
+// Get Stripe Balance
+export const getStripeBalance = onCall(
+  {
+    region: "us-central1",
+    cors: true,
+    maxInstances: 10,
+    secrets: [stripeSecretKey],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { db } = getAdmin();
+    const { userId } = request.data;
+
+    try {
+      const userDoc = await db.doc(`users/${userId}`).get();
+      const connectAccountId = userDoc.data()?.stripeConnectAccountId;
+
+      if (!connectAccountId) {
+        return {
+          success: true,
+          available: 0,
+          pending: 0,
+        };
+      }
+
+      // Get balance from connected account
+      const stripe = getStripe();
+      const balance = await stripe.balance.retrieve({
+        stripeAccount: connectAccountId,
+      });
+
+      // Sum available balance across all currencies
+      const available = balance.available.reduce((sum: number, bal: any) => sum + bal.amount, 0) / 100;
+      const pending = balance.pending.reduce((sum: number, bal: any) => sum + bal.amount, 0) / 100;
+
+      return {
+        success: true,
+        available,
+        pending,
+      };
+    } catch (error: unknown) {
+      console.error("Error getting balance:", error);
+      throw new HttpsError("internal", (error as Error).message);
+    }
+  }
+);
+
+// Webhook to handle Stripe events
 export const stripeWebhook = onRequest(
-    {
-        secrets: [stripeSecretKey, stripeWebhookSecret],
-        cors: false,
-    },
-    async (req, res) => {
-        const sig = req.headers["stripe-signature"] as string;
+  {
+    region: "us-central1",
+    cors: false,
+    secrets: [stripeSecretKey, stripeWebhookSecret],
+    maxInstances: 10,
+    timeoutSeconds: 60,
+  },
+  async (req, res) => {
+    const sig = req.headers["stripe-signature"] as string;
 
-        if (!sig) {
-            res.status(400).send("No stripe signature");
-            return;
-        }
+    let event: any;
 
-        let event: Stripe.Event;
-
-        try {
-            const stripe = new Stripe(stripeSecretKey.value());
-
-            event = stripe.webhooks.constructEvent(
-                req.rawBody,
-                sig,
-                stripeWebhookSecret.value()
-            );
-        } catch (err: any) {
-            console.error("Webhook signature verification failed:", err);
-            res.status(400).send(`Webhook Error: ${err.message}`);
-            return;
-        }
-
-        try {
-            switch (event.type) {
-                case "checkout.session.completed": {
-                    const session = event.data.object as any; // Use 'any' to bypass type issues
-
-                    if (session.mode === "subscription" && session.subscription) {
-                        const userId = session.metadata?.userId;
-                        const planType = session.metadata?.planType || "monthly";
-
-                        if (userId) {
-                            const stripe = new Stripe(stripeSecretKey.value());
-
-                            // Retrieve the full subscription object
-                            const subscription = await stripe.subscriptions.retrieve(session.subscription);
-
-                            await db.doc(`users/${userId}`).update({
-                                subscriptionStatus: "active",
-                                subscriptionPlan: planType,
-                                stripeSubscriptionId: subscription.id,
-                                stripeCustomerId: session.customer,
-                                subscriptionStartDate: admin.firestore.Timestamp.fromDate(
-                                    new Date((subscription as any).current_period_start * 1000)
-                                ),
-                                subscriptionEndDate: admin.firestore.Timestamp.fromDate(
-                                    new Date((subscription as any).current_period_end * 1000)
-                                ),
-                                isPro: true,
-                                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                            });
-
-                            // Create transaction record
-                            await db.collection("transactions").add({
-                                type: "subscription",
-                                userId,
-                                amount: (session.amount_total || 0) / 100,
-                                currency: session.currency || "usd",
-                                status: "completed",
-                                stripeSessionId: session.id,
-                                description: `${planType} subscription`,
-                                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                            });
-                        }
-                    }
-                    break;
-                }
-
-                case "invoice.payment_succeeded": {
-                    const invoice = event.data.object as any; // Use 'any' to bypass type issues
-
-                    // Check if this is a subscription invoice
-                    if (invoice.subscription) {
-                        try {
-                            const stripe = new Stripe(stripeSecretKey.value());
-
-                            // Handle subscription as string or object
-                            const subscriptionId = typeof invoice.subscription === "string"
-                                ? invoice.subscription
-                                : invoice.subscription.id;
-
-                            // Get subscription to find the user
-                            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-
-                            // Try to get userId from subscription metadata
-                            let userId: string | undefined = (subscription as any).metadata?.userId;
-
-                            // If not found in subscription, try to find by customer
-                            if (!userId && invoice.customer) {
-                                const customerId = typeof invoice.customer === "string"
-                                    ? invoice.customer
-                                    : invoice.customer.id;
-
-                                const usersQuery = await db.collection("users")
-                                    .where("stripeCustomerId", "==", customerId)
-                                    .limit(1)
-                                    .get();
-
-                                if (!usersQuery.empty) {
-                                    userId = usersQuery.docs[0].id;
-                                }
-                            }
-
-                            if (userId) {
-                                await db.collection("transactions").add({
-                                    type: "subscription_renewal",
-                                    userId,
-                                    amount: invoice.amount_paid / 100,
-                                    currency: invoice.currency,
-                                    status: "completed",
-                                    stripeInvoiceId: invoice.id,
-                                    description: "Subscription renewal",
-                                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                                });
-                            }
-                        } catch (error) {
-                            console.error("Error processing subscription invoice:", error);
-                        }
-                    }
-                    break;
-                }
-
-                case "customer.subscription.deleted": {
-                    const subscription = event.data.object as any; // Use 'any' to bypass type issues
-
-                    const customerId = typeof subscription.customer === "string"
-                        ? subscription.customer
-                        : subscription.customer?.id || subscription.customer;
-
-                    if (customerId) {
-                        const usersQuery = await db.collection("users")
-                            .where("stripeCustomerId", "==", customerId)
-                            .limit(1)
-                            .get();
-
-                        if (!usersQuery.empty) {
-                            const userDoc = usersQuery.docs[0];
-                            await userDoc.ref.update({
-                                subscriptionStatus: "cancelled",
-                                isPro: false,
-                                subscriptionEndDate: admin.firestore.Timestamp.now(),
-                                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                            });
-                        }
-                    }
-                    break;
-                }
-
-                case "payment_intent.succeeded": {
-                    const paymentIntent = event.data.object as any; // Use 'any' to bypass type issues
-
-                    if (paymentIntent.metadata?.type === "job_payment") {
-                        const { jobId, proposalId, freelancerId } = paymentIntent.metadata;
-
-                        if (jobId && proposalId && freelancerId) {
-                            // Update payment record
-                            await db.doc(`payments/${paymentIntent.id}`).update({
-                                status: "held_in_escrow",
-                                paidAt: admin.firestore.FieldValue.serverTimestamp(),
-                            });
-
-                            // Update proposal
-                            await db.doc(`proposals/${proposalId}`).update({
-                                status: "accepted",
-                                acceptedAt: admin.firestore.FieldValue.serverTimestamp(),
-                            });
-
-                            // Update job
-                            await db.doc(`jobs/${jobId}`).update({
-                                status: "in_progress",
-                                paymentStatus: "escrow",
-                                assignedFreelancerId: freelancerId,
-                                assignedProposalId: proposalId,
-                                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                            });
-
-                            // Notify freelancer
-                            await db.collection("notifications").add({
-                                userId: freelancerId,
-                                type: "proposal",
-                                title: "Proposal Accepted!",
-                                body: "Your proposal has been accepted and the client has made the payment.",
-                                actionUrl: "/my-jobs",
-                                data: { jobId, proposalId },
-                                read: false,
-                                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                            });
-                        }
-                    }
-                    break;
-                }
-
-                case "account.updated": {
-                    const account = event.data.object as any; // Use 'any' to bypass type issues
-
-                    const userId = account.metadata?.userId;
-
-                    if (userId) {
-                        await db.doc(`users/${userId}`).update({
-                            stripeConnectChargesEnabled: account.charges_enabled || false,
-                            stripeConnectPayoutsEnabled: account.payouts_enabled || false,
-                            stripeConnectDetailsSubmitted: account.details_submitted || false,
-                            stripeConnectStatus: account.details_submitted ? "active" : "pending",
-                            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                        });
-                    }
-                    break;
-                }
-
-                case "payout.paid": {
-                    const payout = event.data.object as any; // Use 'any' to bypass type issues
-
-                    if (payout.id) {
-                        const transactionsQuery = await db.collection("transactions")
-                            .where("stripePayoutId", "==", payout.id)
-                            .limit(1)
-                            .get();
-
-                        if (!transactionsQuery.empty) {
-                            const transactionDoc = transactionsQuery.docs[0];
-                            await transactionDoc.ref.update({
-                                status: "completed",
-                                completedAt: admin.firestore.FieldValue.serverTimestamp(),
-                            });
-                        }
-                    }
-                    break;
-                }
-
-                default: {
-                    console.log(`Unhandled event type: ${event.type}`);
-                }
-            }
-
-            res.json({ received: true });
-        } catch (error: any) {
-            console.error("Error processing webhook:", error);
-            res.status(500).send("Webhook processing error");
-        }
+    try {
+      const stripe = getStripe();
+      event = stripe.webhooks.constructEvent(
+        req.rawBody,
+        sig,
+        stripeWebhookSecret.value()
+      );
+    } catch (err: unknown) {
+      console.error("Webhook signature verification failed:", (err as Error).message);
+      res.status(400).send(`Webhook Error: ${(err as Error).message}`);
+      return;
     }
+
+    // Handle the event
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object;
+        if (session.mode === "subscription" && session.subscription) {
+          await handleSubscriptionCreated(session);
+        }
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object;
+        if ((invoice as any).subscription) {
+          await handleSubscriptionPayment(invoice);
+        }
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object;
+        await handleSubscriptionCancelled(subscription);
+        break;
+      }
+
+      case "payment_intent.succeeded": {
+        const paymentIntent = event.data.object;
+        if (paymentIntent.metadata.type === "job_payment") {
+          await handleJobPaymentSucceeded(paymentIntent);
+        }
+        break;
+      }
+
+      case "account.updated": {
+        const account = event.data.object;
+        await handleConnectAccountUpdated(account);
+        break;
+      }
+    }
+
+    res.json({ received: true });
+  }
 );
 
-// ====================================================================
-// NOTIFICATION TRIGGERS
-// ====================================================================
+// Helper functions for webhook handlers
+async function handleSubscriptionCreated(session: any) {
+  const { db, FieldValue, Timestamp } = getAdmin();
+  const userId = session.metadata?.userId;
+  if (!userId || !session.subscription) return;
 
-// Send notification when a new proposal is received
-export const onNewProposal = onDocumentCreated(
-    {
-        document: "proposals/{proposalId}",
-        region: "us-central1",
-    },
-    async (event) => {
-        const proposal = event.data?.data();
-        const proposalId = event.params.proposalId;
+  const stripe = getStripe();
+  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
 
-        if (!proposal) return;
+  // Determine plan type based on price
+  let planType = "monthly";
+  const priceId = subscription.items.data[0].price.id;
+  if (priceId === process.env.STRIPE_QUARTERLY_PRICE_ID) planType = "quarterly";
+  if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) planType = "yearly";
 
-        try {
-            // Get job details
-            const jobDoc = await db.doc(`jobs/${proposal.jobId}`).get();
-            const job = jobDoc.data();
+  await db.doc(`users/${userId}`).update({
+    subscriptionStatus: "active",
+    subscriptionPlan: planType,
+    stripeSubscriptionId: subscription.id,
+    subscriptionStartDate: Timestamp.fromDate(new Date((subscription as any).current_period_start * 1000)),
+    subscriptionEndDate: Timestamp.fromDate(new Date((subscription as any).current_period_end * 1000)),
+    isPro: true,
+  });
 
-            if (!job) return;
+  // Create transaction record
+  await db.collection("transactions").add({
+    type: "subscription",
+    userId,
+    amount: (session.amount_total || 0) / 100,
+    currency: session.currency || "usd",
+    status: "completed",
+    stripeSessionId: session.id,
+    description: `${planType} subscription`,
+    createdAt: FieldValue.serverTimestamp(),
+    completedAt: FieldValue.serverTimestamp(),
+  });
+}
 
-            // Create notification for client
-            await db.collection("notifications").add({
-                userId: job.clientId,
-                type: "proposal",
-                title: "New Proposal Received",
-                body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
-                actionUrl: `/jobs/${proposal.jobId}/proposals`,
-                actionData: {
-                    proposalId,
-                    jobId: proposal.jobId,
-                },
-                read: false,
-                pushSent: false,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
+async function handleSubscriptionPayment(invoice: any) {
+  const { db, FieldValue } = getAdmin();
+  // Log the payment for records
+  await db.collection("transactions").add({
+    type: "subscription",
+    userId: invoice.metadata?.userId,
+    amount: invoice.amount_paid / 100,
+    currency: invoice.currency,
+    status: "completed",
+    stripeInvoiceId: invoice.id,
+    description: "Subscription renewal",
+    createdAt: FieldValue.serverTimestamp(),
+    completedAt: FieldValue.serverTimestamp(),
+  });
+}
 
-            // Send push notification if FCM token exists
-            const clientDoc = await db.doc(`users/${job.clientId}`).get();
-            const client = clientDoc.data();
+async function handleSubscriptionCancelled(subscription: any) {
+  const { db } = getAdmin();
+  const customerId = subscription.customer as string;
 
-            if (client?.fcmToken) {
-                try {
-                    await messaging.send({
-                        token: client.fcmToken,
-                        notification: {
-                            title: "New Proposal Received",
-                            body: `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
-                        },
-                        data: {
-                            type: "proposal",
-                            proposalId,
-                            jobId: proposal.jobId,
-                        },
-                    });
-                } catch (fcmError) {
-                    console.error("FCM send error:", fcmError);
-                }
-            }
-        } catch (error) {
-            console.error("Error in onNewProposal:", error);
-        }
+  // Find user by customer ID
+  const usersQuery = await db.collection("users")
+    .where("stripeCustomerId", "==", customerId)
+    .limit(1)
+    .get();
+
+  if (!usersQuery.empty) {
+    const userDoc = usersQuery.docs[0];
+    await userDoc.ref.update({
+      subscriptionStatus: "cancelled",
+      isPro: false,
+    });
+  }
+}
+
+async function handleJobPaymentSucceeded(paymentIntent: any) {
+  const { db, FieldValue } = getAdmin();
+  const { jobId, proposalId, freelancerId } = paymentIntent.metadata;
+
+  // Update payment record
+  await db.doc(`payments/${paymentIntent.id}`).update({
+    status: "held_in_escrow",
+    paidAt: FieldValue.serverTimestamp(),
+  });
+
+  // Update proposal status
+  await db.doc(`proposals/${proposalId}`).update({
+    status: "accepted",
+    acceptedAt: FieldValue.serverTimestamp(),
+  });
+
+  // Update job status
+  await db.doc(`jobs/${jobId}`).update({
+    status: "in_progress",
+    paymentStatus: "escrow",
+    assignedFreelancerId: freelancerId,
+    assignedProposalId: proposalId,
+  });
+
+  // Create notification for freelancer
+  await db.collection("notifications").add({
+    userId: freelancerId,
+    type: "proposal",
+    title: "Proposal Accepted!",
+    body: "Your proposal has been accepted and the client has made the payment.",
+    data: { jobId, proposalId },
+    read: false,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+}
+
+async function handleConnectAccountUpdated(account: any) {
+  const { db } = getAdmin();
+  const userId = account.metadata?.userId;
+  if (!userId) return;
+
+  await db.doc(`users/${userId}`).update({
+    stripeConnectChargesEnabled: account.charges_enabled,
+    stripeConnectPayoutsEnabled: account.payouts_enabled,
+    stripeConnectDetailsSubmitted: account.details_submitted,
+    stripeConnectStatus: account.details_submitted ? "active" : "pending",
+  });
+}
+
+// HTTP Function: Create Job
+export const createJob = onCall(
+  {
+    cors: true,
+    maxInstances: 10,
+    region: "us-central1",
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
     }
+
+    const { db, FieldValue } = getAdmin();
+    const { data } = request;
+
+    try {
+      // Validate user is a client
+      const userDoc = await db.doc(`users/${request.auth.uid}`).get();
+      const userData = userDoc.data();
+
+      if (!userData) {
+        throw new HttpsError("not-found", "User profile not found");
+      }
+
+      if (userData.userType !== "client" && userData.userType !== "both") {
+        throw new HttpsError("permission-denied", "Only clients can post jobs");
+      }
+
+      // Create job document
+      const jobRef = db.collection("jobs").doc();
+      const now = FieldValue.serverTimestamp();
+
+      const jobData = {
+        id: jobRef.id,
+        clientId: request.auth.uid,
+        clientName: userData.displayName || "Anonymous",
+        clientPhotoURL: userData.photoURL || "",
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        subcategory: data.subcategory || "",
+        skills: data.skills || [],
+        budgetType: data.budgetType,
+        budgetMin: data.budgetMin || 0,
+        budgetMax: data.budgetMax || 0,
+        fixedPrice: data.fixedPrice || 0,
+        hourlyRateMin: data.hourlyRateMin || 0,
+        hourlyRateMax: data.hourlyRateMax || 0,
+        duration: data.duration,
+        experienceLevel: data.experienceLevel,
+        locationType: data.locationType,
+        location: data.location || "",
+        projectSize: data.projectSize,
+        status: "open",
+        proposalCount: 0,
+        invitesSent: 0,
+        featured: false,
+        viewCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await jobRef.set(jobData);
+
+      // Send notifications to relevant freelancers
+      await notifyFreelancersAboutNewJob(jobData);
+
+      return { success: true, jobId: jobRef.id };
+    } catch (error: unknown) {
+      console.error("Error creating job:", error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError("internal", "Failed to create job");
+    }
+  }
 );
 
-// Send notification when a proposal is accepted
-export const onProposalAccepted = onDocumentUpdated(
-    {
-        document: "proposals/{proposalId}",
-        region: "us-central1",
-    },
-    async (event) => {
-        const before = event.data?.before.data();
-        const after = event.data?.after.data();
-        const proposalId = event.params.proposalId;
+// Helper function: Notify freelancers about new job
+async function notifyFreelancersAboutNewJob(job: Record<string, unknown>) {
+  const { db, FieldValue } = getAdmin();
+  try {
+    // Query freelancers with matching skills
+    const freelancersSnapshot = await db.collection("users")
+      .where("userType", "in", ["freelancer", "both"])
+      .where("skills", "array-contains-any", (job.skills as string[]).slice(0, 10))
+      .where("isAvailable", "==", true)
+      .limit(50)
+      .get();
 
-        if (!before || !after) return;
+    const batch = db.batch();
+    const now = FieldValue.serverTimestamp();
 
-        // Check if proposal was just accepted
-        if (before.status !== "accepted" && after.status === "accepted") {
-            try {
-                // Create notification for freelancer
-                await db.collection("notifications").add({
-                    userId: after.freelancerId,
-                    type: "proposal",
-                    title: "Proposal Accepted!",
-                    body: "Your proposal has been accepted. Payment is being processed.",
-                    actionUrl: "/my-jobs",
-                    actionData: {
-                        proposalId,
-                        jobId: after.jobId,
-                    },
-                    read: false,
-                    pushSent: false,
-                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                });
+    freelancersSnapshot.docs.forEach((doc: any) => {
+      const notificationRef = db.collection("notifications").doc();
+      batch.set(notificationRef, {
+        id: notificationRef.id,
+        userId: doc.id,
+        title: "New Job Match",
+        body: `New ${job.category} job: "${job.title}"`,
+        type: "new-job",
+        actionUrl: `/job/${job.id}`,
+        actionData: { jobId: job.id },
+        read: false,
+        pushSent: false,
+        createdAt: now,
+      });
+    });
 
-                // Send push notification
-                const freelancerDoc = await db.doc(`users/${after.freelancerId}`).get();
-                const freelancer = freelancerDoc.data();
+    await batch.commit();
+  } catch (error) {
+    console.error("Error notifying freelancers:", error);
+    // Don't throw - this is not critical for job creation
+  }
+}
 
-                if (freelancer?.fcmToken) {
-                    try {
-                        await messaging.send({
-                            token: freelancer.fcmToken,
-                            notification: {
-                                title: "Proposal Accepted!",
-                                body: "Your proposal has been accepted. Check your dashboard for details.",
-                            },
-                            data: {
-                                type: "proposal_accepted",
-                                proposalId,
-                                jobId: after.jobId,
-                            },
-                        });
-                    } catch (fcmError) {
-                        console.error("FCM send error:", fcmError);
-                    }
-                }
-            } catch (error) {
-                console.error("Error in onProposalAccepted:", error);
-            }
-        }
+// HTTP Function: Submit Proposal
+export const submitProposal = onCall(
+  {
+    cors: true,
+    maxInstances: 10,
+    region: "us-central1",
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
     }
+
+    const { db, FieldValue } = getAdmin();
+    const { data } = request;
+    const freelancerId = request.auth.uid;
+
+    try {
+      // Validate required fields
+      if (!data.jobId || !data.coverLetter || !data.proposedRate) {
+        throw new HttpsError("invalid-argument", "Missing required fields");
+      }
+
+      // Get freelancer data
+      const freelancerDoc = await db.doc(`users/${freelancerId}`).get();
+      const freelancerData = freelancerDoc.data();
+
+      if (!freelancerData) {
+        throw new HttpsError("not-found", "Freelancer profile not found");
+      }
+
+      if (freelancerData.userType !== "freelancer" && freelancerData.userType !== "both") {
+        throw new HttpsError("permission-denied", "Only freelancers can submit proposals");
+      }
+
+      // Get job data
+      const jobDoc = await db.doc(`jobs/${data.jobId}`).get();
+      const jobData = jobDoc.data();
+
+      if (!jobDoc.exists || !jobData) {
+        throw new HttpsError("not-found", "Job not found");
+      }
+
+      if (jobData.status !== "open" && jobData.status !== "active") {
+        throw new HttpsError("failed-precondition", "Job is not accepting proposals");
+      }
+
+      // Check if freelancer already applied
+      const existingProposal = await db.collection("proposals")
+        .where("jobId", "==", data.jobId)
+        .where("freelancerId", "==", freelancerId)
+        .get();
+
+      if (!existingProposal.empty) {
+        throw new HttpsError("already-exists", "You have already submitted a proposal for this job");
+      }
+
+      // Create proposal
+      const proposalRef = db.collection("proposals").doc();
+      const now = FieldValue.serverTimestamp();
+
+      const proposalData = {
+        id: proposalRef.id,
+        jobId: data.jobId,
+        jobTitle: jobData.title,
+        clientId: jobData.clientId,
+        clientName: jobData.clientName,
+        freelancerId: freelancerId,
+        freelancerName: freelancerData.displayName || "Anonymous",
+        freelancerPhotoURL: freelancerData.photoURL || "",
+        freelancerRating: freelancerData.rating || 0,
+        freelancerCompletedJobs: freelancerData.completedProjects || 0,
+        coverLetter: data.coverLetter,
+        proposedRate: data.proposedRate,
+        estimatedDuration: data.estimatedDuration || "",
+        budgetType: jobData.budgetType,
+        attachments: data.attachments || [],
+        status: "pending",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Use a transaction to ensure consistency
+      await db.runTransaction(async (transaction: any) => {
+        // Create proposal
+        transaction.set(proposalRef, proposalData);
+
+        // Increment proposal count on job
+        const jobRef = db.doc(`jobs/${data.jobId}`);
+        transaction.update(jobRef, {
+          proposalCount: FieldValue.increment(1),
+          updatedAt: now,
+        });
+      });
+
+      // Trigger will handle notification creation
+
+      return { success: true, proposalId: proposalRef.id };
+    } catch (error: unknown) {
+      console.error("Error submitting proposal:", error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError("internal", "Failed to submit proposal");
+    }
+  }
 );
 
-// Send notification when a message is sent
-export const onNewMessage = onDocumentCreated(
-    {
-        document: "conversations/{conversationId}/messages/{messageId}",
-        region: "us-central1",
-    },
-    async (event) => {
-        const message = event.data?.data();
-        const conversationId = event.params.conversationId;
-
-        if (!message) return;
-
-        try {
-            // Get conversation details
-            const conversationDoc = await db.doc(`conversations/${conversationId}`).get();
-            const conversation = conversationDoc.data();
-
-            if (!conversation) return;
-
-            // Determine recipient
-            const recipientId = message.senderId === conversation.freelancerId
-                ? conversation.clientId
-                : conversation.freelancerId;
-
-            // Create notification
-            await db.collection("notifications").add({
-                userId: recipientId,
-                type: "message",
-                title: "New Message",
-                body: message.text.substring(0, 100) + (message.text.length > 100 ? "..." : ""),
-                actionUrl: `/messages/${conversationId}`,
-                actionData: {
-                    conversationId,
-                    messageId: event.params.messageId,
-                },
-                read: false,
-                pushSent: false,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-
-            // Update conversation with last message
-            await conversationDoc.ref.update({
-                lastMessage: message.text,
-                lastMessageAt: message.createdAt,
-                [`unreadCount.${recipientId}`]: admin.firestore.FieldValue.increment(1),
-            });
-        } catch (error) {
-            console.error("Error in onNewMessage:", error);
-        }
+// HTTP Function: Send Message
+export const sendMessage = onCall(
+  {
+    cors: true,
+    maxInstances: 10,
+    region: "us-central1",
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    // Verify user is authenticated
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
     }
+
+    const { db, FieldValue } = getAdmin();
+    const { data } = request;
+    const senderId = request.auth.uid;
+
+    try {
+      // Validate required fields
+      if (!data.recipientId || !data.text) {
+        throw new HttpsError("invalid-argument", "Missing required fields");
+      }
+
+      // Get sender data
+      const senderDoc = await db.doc(`users/${senderId}`).get();
+      const senderData = senderDoc.data();
+
+      if (!senderData) {
+        throw new HttpsError("not-found", "Sender profile not found");
+      }
+
+      // Get recipient data
+      const recipientDoc = await db.doc(`users/${data.recipientId}`).get();
+      const recipientData = recipientDoc.data();
+
+      if (!recipientData) {
+        throw new HttpsError("not-found", "Recipient profile not found");
+      }
+
+      // Create or get conversation
+      const conversationId = data.conversationId || [senderId, data.recipientId].sort().join("_");
+      const conversationRef = db.doc(`conversations/${conversationId}`);
+
+      // Check if conversation exists
+      const conversationDoc = await conversationRef.get();
+      const now = FieldValue.serverTimestamp();
+
+      if (!conversationDoc.exists) {
+        // Create new conversation
+        await conversationRef.set({
+          id: conversationId,
+          participants: [senderId, data.recipientId],
+          participantNames: {
+            [senderId]: senderData.displayName || "Unknown",
+            [data.recipientId]: recipientData.displayName || "Unknown",
+          },
+          participantPhotos: {
+            [senderId]: senderData.photoURL || "",
+            [data.recipientId]: recipientData.photoURL || "",
+          },
+          lastMessage: data.text,
+          lastMessageTime: now,
+          unreadCount: {
+            [senderId]: 0,
+            [data.recipientId]: 1,
+          },
+          createdAt: now,
+          updatedAt: now,
+        });
+      } else {
+        // Update existing conversation
+        await conversationRef.update({
+          lastMessage: data.text,
+          lastMessageTime: now,
+          [`unreadCount.${data.recipientId}`]: FieldValue.increment(1),
+          updatedAt: now,
+        });
+      }
+
+      // Add message to messages subcollection
+      const messageRef = db.collection("messages").doc();
+      await messageRef.set({
+        id: messageRef.id,
+        conversationId: conversationId,
+        senderId: senderId,
+        senderName: senderData.displayName || "Unknown",
+        senderAvatar: senderData.photoURL || "",
+        text: data.text,
+        attachments: data.attachments || [],
+        status: "sent",
+        createdAt: now,
+      });
+
+      // Create notification for recipient
+      await db.collection("notifications").add({
+        userId: data.recipientId,
+        title: "New Message",
+        message: `${senderData.displayName || "Someone"} sent you a message`,
+        type: "message",
+        read: false,
+        link: "/chat",
+        createdAt: now,
+      });
+
+      return { success: true, messageId: messageRef.id, conversationId };
+    } catch (error: unknown) {
+      console.error("Error sending message:", error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError("internal", "Failed to send message");
+    }
+  }
 );
 
-// ====================================================================
-// SCHEDULED FUNCTIONS
-// ====================================================================
-
-// Send reminder when a contract is about to expire
-export const contractExpiryReminder = onSchedule(
-    {
-        schedule: "every day 09:00",
-        timeZone: "UTC",
-        region: "us-central1",
-    },
-    async () => {
-        const threeDaysFromNow = new Date();
-        threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-
-        try {
-            const expiringContracts = await db.collection("contracts")
-                .where("status", "==", "active")
-                .where("endDate", "<=", threeDaysFromNow)
-                .get();
-
-            const batch = db.batch();
-            let notificationCount = 0;
-
-            for (const doc of expiringContracts.docs) {
-                const contract = doc.data();
-
-                // Notify freelancer
-                const freelancerNotif = db.collection("notifications").doc();
-                batch.set(freelancerNotif, {
-                    userId: contract.freelancerId,
-                    type: "contract",
-                    title: "Contract Expiring Soon",
-                    body: `Your contract for "${contract.jobTitle}" expires in 3 days.`,
-                    actionUrl: `/contracts/${doc.id}`,
-                    read: false,
-                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                });
-
-                // Notify client
-                const clientNotif = db.collection("notifications").doc();
-                batch.set(clientNotif, {
-                    userId: contract.clientId,
-                    type: "contract",
-                    title: "Contract Expiring Soon",
-                    body: `The contract for "${contract.jobTitle}" expires in 3 days.`,
-                    actionUrl: `/contracts/${doc.id}`,
-                    read: false,
-                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                });
-
-                notificationCount += 2;
-            }
-
-            await batch.commit();
-            console.log(`Sent ${notificationCount} contract expiry notifications`);
-        } catch (error) {
-            console.error("Error in contractExpiryReminder:", error);
-        }
+// HTTP Function: Upload file to avoid CORS issues
+export const uploadFile = onCall(
+  {
+    cors: true,
+    region: "us-central1",
+    maxInstances: 10,
+    timeoutSeconds: 120,
+    memory: "1GiB",
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
     }
+
+    const { storage } = getAdmin();
+    const { fileData, fileName, contentType, path } = request.data;
+
+    if (!fileData || !fileName || !path) {
+      throw new HttpsError("invalid-argument", "Missing required fields");
+    }
+
+    try {
+      const bucket = storage.bucket();
+      const userId = request.auth.uid;
+      const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
+      const timestamp = Date.now();
+      const fullPath = `${path}/${userId}/${timestamp}_${sanitizedFileName}`;
+
+      // Convert base64 to buffer
+      const buffer = Buffer.from(fileData, "base64");
+
+      const file = bucket.file(fullPath);
+
+      await file.save(buffer, {
+        metadata: {
+          contentType: contentType || "application/octet-stream",
+          metadata: {
+            uploadedBy: userId,
+            uploadedAt: new Date().toISOString(),
+            originalName: fileName,
+          },
+        },
+      });
+
+      // Make file publicly readable
+      await file.makePublic();
+
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fullPath}`;
+
+      return {
+        success: true,
+        downloadURL: publicUrl,
+        path: fullPath,
+      };
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      throw new HttpsError("internal", "Error uploading file");
+    }
+  }
 );
 
-// Clean up old notifications
-export const cleanupOldNotifications = onSchedule(
-    {
-        schedule: "every day 00:00",
-        timeZone: "UTC",
-        region: "us-central1",
-    },
-    async () => {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+// Scheduled Function: Check expired subscriptions
+export const checkExpiredSubscriptions = onSchedule(
+  {
+    schedule: "every 24 hours",
+    region: "us-central1",
+    timeoutSeconds: 540,
+    maxInstances: 1,
+    memory: "512MiB",
+  },
+  async (event) => {
+    const { db, FieldValue, Timestamp } = getAdmin();
+    console.log("Running scheduled function:", event.scheduleTime);
+    const now = Timestamp.now();
 
-        try {
-            const oldNotifications = await db.collection("notifications")
-                .where("createdAt", "<", thirtyDaysAgo)
-                .where("read", "==", true)
-                .limit(500)
-                .get();
+    try {
+      // Find expired subscriptions
+      const expiredSubs = await db.collection("users")
+        .where("subscriptionStatus", "==", "active")
+        .where("subscriptionEndDate", "<=", now)
+        .get();
 
-            const batch = db.batch();
-            let count = 0;
+      const batch = db.batch();
 
-            oldNotifications.forEach((doc) => {
-                batch.delete(doc.ref);
-                count++;
-            });
+      expiredSubs.forEach((doc: any) => {
+        batch.update(doc.ref, {
+          subscriptionStatus: "expired",
+          isPro: false,
+        });
 
-            if (count > 0) {
-                await batch.commit();
-            }
+        // Create notification
+        const notification = db.collection("notifications").doc();
+        batch.set(notification, {
+          userId: doc.id,
+          title: "Subscription Expired",
+          body: "Your subscription has expired. Renew to continue enjoying premium features.",
+          type: "system",
+          actionUrl: "/billing",
+          read: false,
+          pushSent: false,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      });
 
-            console.log(`Deleted ${count} old notifications`);
-        } catch (error) {
-            console.error("Error cleaning up notifications:", error);
-        }
+      await batch.commit();
+
+      console.log(`Updated ${expiredSubs.size} expired subscriptions`);
+    } catch (error) {
+      console.error("Error in checkExpiredSubscriptions:", error);
     }
+  }
 );
 
-// Update platform statistics
-export const updatePlatformStats = onSchedule(
-    {
-        schedule: "every day 02:00",
-        timeZone: "UTC",
-        region: "us-central1",
-    },
-    async () => {
-        try {
-            // Count active jobs
-            const activeJobsSnapshot = await db.collection("jobs")
-                .where("status", "==", "active")
-                .count()
-                .get();
+// Scheduled Function: Calculate daily analytics
+export const calculateDailyAnalytics = onSchedule(
+  {
+    schedule: "every 24 hours",
+    region: "us-central1",
+    timeoutSeconds: 540,
+    maxInstances: 1,
+    memory: "1GiB",
+  },
+  async (event) => {
+    const { db, Timestamp } = getAdmin();
+    console.log("Calculating daily analytics:", event.scheduleTime);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
 
-            // Count completed jobs today
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-            const completedTodaySnapshot = await db.collection("jobs")
-                .where("status", "==", "completed")
-                .where("completedAt", ">=", today)
-                .count()
-                .get();
+    const yesterdayTimestamp = Timestamp.fromDate(yesterday);
+    const todayTimestamp = Timestamp.fromDate(today);
 
-            // Count active freelancers (logged in last 30 days)
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    try {
+      // Count new users
+      const newUsers = await db.collection("users")
+        .where("createdAt", ">=", yesterdayTimestamp)
+        .where("createdAt", "<", todayTimestamp)
+        .get();
 
-            const activeFreelancersSnapshot = await db.collection("users")
-                .where("userType", "in", ["freelancer", "both"])
-                .where("lastLoginAt", ">=", thirtyDaysAgo)
-                .count()
-                .get();
+      // Count active users (users who logged in)
+      const activeUsers = await db.collection("users")
+        .where("lastActive", ">=", yesterdayTimestamp)
+        .where("lastActive", "<", todayTimestamp)
+        .get();
 
-            // Count total transactions this month
-            const firstDayOfMonth = new Date();
-            firstDayOfMonth.setDate(1);
-            firstDayOfMonth.setHours(0, 0, 0, 0);
+      // Count new jobs
+      const newJobs = await db.collection("jobs")
+        .where("createdAt", ">=", yesterdayTimestamp)
+        .where("createdAt", "<", todayTimestamp)
+        .get();
 
-            const monthlyTransactionsSnapshot = await db.collection("transactions")
-                .where("createdAt", ">=", firstDayOfMonth)
-                .where("status", "==", "completed")
-                .get();
+      // Count completed jobs
+      const completedJobs = await db.collection("jobs")
+        .where("completedAt", ">=", yesterdayTimestamp)
+        .where("completedAt", "<", todayTimestamp)
+        .get();
 
-            let monthlyRevenue = 0;
-            monthlyTransactionsSnapshot.forEach((doc) => {
-                const transaction = doc.data();
-                if (transaction.platformFee) {
-                    monthlyRevenue += transaction.platformFee;
-                }
-            });
+      // Calculate revenue
+      const transactions = await db.collection("transactions")
+        .where("completedAt", ">=", yesterdayTimestamp)
+        .where("completedAt", "<", todayTimestamp)
+        .where("status", "==", "completed")
+        .get();
 
-            // Update stats document
-            await db.doc("analytics/platform_stats").set({
-                activeJobs: activeJobsSnapshot.data().count,
-                completedToday: completedTodaySnapshot.data().count,
-                activeFreelancers: activeFreelancersSnapshot.data().count,
-                monthlyRevenue,
-                lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
+      const revenue = {
+        subscriptions: 0,
+        jobFees: 0,
+        total: 0,
+      };
 
-            console.log("Updated platform statistics");
-        } catch (error) {
-            console.error("Error updating platform stats:", error);
+      transactions.forEach((doc: any) => {
+        const transaction = doc.data();
+        revenue.total += transaction.amount;
+
+        switch (transaction.type) {
+          case "subscription":
+            revenue.subscriptions += transaction.amount;
+            break;
+          case "escrow":
+          case "release":
+            revenue.jobFees += transaction.amount * 0.1; // 10% platform fee
+            break;
         }
+      });
+
+      // Save analytics
+      const analyticsId = yesterday.toISOString().split("T")[0]; // YYYY-MM-DD
+      await db.doc(`analytics/${analyticsId}`).set({
+        date: yesterdayTimestamp,
+        newUsers: newUsers.size,
+        activeUsers: activeUsers.size,
+        totalUsers: (await db.collection("users").get()).size,
+        newJobs: newJobs.size,
+        activeJobs: (await db.collection("jobs").where("status", "==", "open").get()).size,
+        completedJobs: completedJobs.size,
+        revenue,
+        proposalsSubmitted: (await db.collection("proposals")
+          .where("createdAt", ">=", yesterdayTimestamp)
+          .where("createdAt", "<", todayTimestamp)
+          .get()).size,
+        messagesSent: (await db.collection("messages")
+          .where("createdAt", ">=", yesterdayTimestamp)
+          .where("createdAt", "<", todayTimestamp)
+          .get()).size,
+      });
+
+      console.log(`Analytics calculated for ${analyticsId}`);
+    } catch (error) {
+      console.error("Error in calculateDailyAnalytics:", error);
     }
+  }
 );
 
-// Check for expired jobs and update status
-export const updateExpiredJobs = onSchedule(
-    {
-        schedule: "every day 01:00",
-        timeZone: "UTC",
-        region: "us-central1",
-    },
-    async () => {
-        try {
-            const now = new Date();
-
-            const expiredJobs = await db.collection("jobs")
-                .where("status", "==", "active")
-                .where("deadline", "<", now)
-                .limit(100)
-                .get();
-
-            const batch = db.batch();
-            let count = 0;
-
-            expiredJobs.forEach((doc) => {
-                batch.update(doc.ref, {
-                    status: "expired",
-                    expiredAt: admin.firestore.FieldValue.serverTimestamp(),
-                });
-                count++;
-            });
-
-            if (count > 0) {
-                await batch.commit();
-            }
-
-            console.log(`Updated ${count} expired jobs`);
-        } catch (error) {
-            console.error("Error updating expired jobs:", error);
-        }
-    }
+// Simple health check for testing
+export const healthCheck = onRequest(
+  {
+    region: "us-central1",
+    cors: true,
+  },
+  (request, response) => {
+    response.json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      version: "2.0.0",
+    });
+  }
 );

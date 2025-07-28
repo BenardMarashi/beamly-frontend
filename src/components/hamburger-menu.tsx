@@ -124,23 +124,33 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
       { name: "Looking for Work", path: "/looking-for-work", icon: "lucide:briefcase" },
       { name: "How it Works", path: "/how-it-works", icon: "lucide:help-circle" },
       { name: "Dashboard", path: "/dashboard", icon: "lucide:layout-dashboard" },
-      { name: "Messages", path: "/messages", icon: "lucide:message-circle" },
-      { name: "Settings", path: "/settings", icon: "lucide:settings" }
+      { name: "Messages", path: "/messages", icon: "lucide:message-circle" }
     ];
 
+    // Add user type specific items
     if (isFreelancer) {
       menuItems.push(
         { name: "Post Project", path: "/post-project", icon: "lucide:folder-plus" },
-        { name: "Portfolio", path: "/portfolio", icon: "lucide:folder" }
+        { name: "Portfolio", path: "/portfolio", icon: "lucide:folder" },
+        { name: "My Proposals", path: "/freelancer/proposals", icon: "lucide:file-text" }
       );
     }
 
     if (isClient) {
       menuItems.push(
         { name: "Post Job", path: "/post-job", icon: "lucide:plus-circle" },
-        { name: "My Jobs", path: "/job/manage", icon: "lucide:briefcase" }
+        { name: "My Jobs", path: "/job/manage", icon: "lucide:briefcase" },
+        { name: "View Proposals", path: "/client/proposals", icon: "lucide:file-text" }
       );
     }
+
+    // Add common items for all logged-in users
+    menuItems.push(
+      { name: "Billing", path: "/billing", icon: "lucide:credit-card" },
+      { name: "Analytics", path: "/analytics", icon: "lucide:bar-chart" },
+      { name: "Notifications", path: "/notifications", icon: "lucide:bell" },
+      { name: "Settings", path: "/settings", icon: "lucide:settings" }
+    );
 
     return menuItems;
   };
@@ -209,7 +219,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
                   <div className="flex-1">
                     <h3 className="font-semibold">{userData?.displayName || 'User'}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                      {userType}
+                      {userType === 'both' ? 'Freelancer & Client' : userType}
                     </p>
                   </div>
                   <Icon icon="lucide:chevron-right" className="w-5 h-5 text-gray-400" />

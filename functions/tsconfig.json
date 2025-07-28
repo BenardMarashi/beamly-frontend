@@ -6,28 +6,19 @@
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
-    "target": "es2022",
+    "target": "es2017",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "lib": ["es2022"],
-    "types": ["node"],
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "alwaysStrict": true
+    "moduleResolution": "node"
   },
   "compileOnSave": true,
   "include": [
-    "src/**/*"
+    "src"
   ],
   "exclude": [
-    "node_modules",
-    "lib"
+    "node_modules"
   ]
 }
