@@ -52,6 +52,7 @@ const ProjectEditPage = lazy(() => import('./pages/portfolio/edit'));
 const ClientProposalsPage = lazy(() => import('./pages/client/proposals'));
 const FreelancerProposalsPage = lazy(() => import('./pages/freelancer/proposals'));
 const ClientPaymentPage = lazy(() => import('./pages/client/payment'));
+const BillingPage = lazy(() => import('./pages/billing'));
 
 
 // Loading component
@@ -233,6 +234,13 @@ const AppRoutes = () => {
           <Route path="/payments" element={
             <ProtectedRoute requiresProfile={true}>
               <PaymentsPage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Billing Route */}
+          <Route path="/billing" element={
+            <ProtectedRoute>
+              <BillingPage />
             </ProtectedRoute>
           } />
           
