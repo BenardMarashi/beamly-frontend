@@ -481,7 +481,7 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </div>
-
+  <div className="max-w-7xl mx-auto">
       {/* Categories */}
       <div className="px-4 mt-6 md:mt-8">
         <div className="flex justify-between items-center mb-3 md:mb-4">
@@ -671,6 +671,7 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
     </div>
+  </div>
   );
 };
 
