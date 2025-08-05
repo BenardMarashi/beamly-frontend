@@ -127,7 +127,7 @@ export const VerificationSection: React.FC<VerificationSectionProps> = ({ userDa
   };
 
   return (
-    <Card className="glass-effect border-none">
+    <Card className="form-section">
       <CardBody className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-white">{t('verification.title')}</h2>
@@ -210,46 +210,44 @@ export const VerificationSection: React.FC<VerificationSectionProps> = ({ userDa
               </div>
             </div>
 
-            <Select
-              label={t('verification.selectDocumentType')}
-              selectedKeys={[documentType]}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as typeof documentType;
-                setDocumentType(selected);
-              }}
-              variant="bordered"
-              classNames={{
-                trigger: "bg-gray-900/50 border-gray-600 text-white",
-                value: "text-white",
-                listbox: "bg-gray-900",
-                popoverContent: "bg-gray-900",
-              }}
-            >
-              {documentTypes.map(type => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </Select>
-
-            <div>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-                id="document-upload"
-              />
-              <label htmlFor="document-upload">
-                <Button
-                  as="span"
-                  variant="bordered"
-                  startContent={<Icon icon="lucide:upload" />}
-                  className="cursor-pointer"
-                >
-                  {t('verification.uploadDocument')}
-                </Button>
+            <div className="form-field">
+              <label className="text-white text-sm font-medium mb-2 block">
+                {t('verification.selectDocumentType')}
               </label>
+              <Select
+                selectedKeys={[documentType]}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as typeof documentType;
+                  setDocumentType(selected);
+                }}
+                classNames={{
+                  trigger: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10",
+                  value: "text-white"
+                }}
+              >
+                {documentTypes.map(type => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+
+            <div className="form-field">
+              <Button
+                variant="flat"
+                color="secondary"
+                startContent={<Icon icon="lucide:upload" />}
+                onPress={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (e: any) => handleFileSelect(e);
+                  input.click();
+                }}
+              >
+                {t('verification.uploadDocument')}
+              </Button>
             </div>
 
             {documentPreview && (
@@ -281,9 +279,10 @@ export const VerificationSection: React.FC<VerificationSectionProps> = ({ userDa
                 size="lg"
                 onPress={handleSubmit}
                 isLoading={loading}
-                startContent={<Icon icon="lucide:send" />}
+                startContent={!loading && <Icon icon="lucide:send" />}
+                className="bg-beamly-secondary text-beamly-primary font-semibold"
               >
-                {t('verification.submit')}
+                {loading ? t('verification.submitting') : t('verification.submit')}
               </Button>
             )}
 

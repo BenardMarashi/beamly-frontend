@@ -1,133 +1,131 @@
 // src/pages/freelancer/proposals.tsx
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  CardBody,
+import { 
+  Card, 
+  CardBody, 
   CardHeader,
-  Button,
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
+  Button, 
+  Chip, 
   Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
   ModalFooter,
-  useDisclosure,
-  Chip,
+  Input,
   Textarea,
-  Input
+  useDisclosure,
+  Spinner,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { firebaseService } from '../../services/firebase-services';
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 
+interface Proposal {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  clientId: string;
+  clientName?: string;
+  freelancerId: string;
+  freelancerName?: string;
+  freelancerAvatar?: string;
+  freelancerRating?: number;
+  coverLetter: string;
+  proposedRate?: number; // This might be the field name in your DB
+  bidAmount: number;
+  deliveryTime: string;
+  estimatedDuration?: string; // This might be the actual field
+  status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+  projectStatus?: 'ongoing' | 'completed';
+  createdAt: any;
+  updatedAt?: any;
+}
+
 export const FreelancerProposalsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, userData } = useAuth();
-  const [proposals, setProposals] = useState<any[]>([]);
-  const [selectedProposal, setSelectedProposal] = useState<any>(null);
+  const { user } = useAuth();
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
+  const [editForm, setEditForm] = useState({
+    coverLetter: '',
+    bidAmount: '',
+    deliveryTime: ''
+  });
   
-  // Edit form state
-  const [editedCoverLetter, setEditedCoverLetter] = useState('');
-  const [editedRate, setEditedRate] = useState('');
-  const [editedDuration, setEditedDuration] = useState('');
-  
-  const { 
-    isOpen: isEditOpen, 
-    onOpen: onEditOpen, 
-    onClose: onEditClose 
-  } = useDisclosure();
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
 
   useEffect(() => {
-    if (!user || (userData?.userType !== 'freelancer' && userData?.userType !== 'both')) {
-      navigate('/dashboard');
+    if (!user) {
+      navigate('/login');
       return;
     }
-    fetchProposals();
-  }, [user, userData]);
 
-  const fetchProposals = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      const result = await firebaseService.ProposalService.getUserProposals(user.uid);
-      
-      if (result.success && result.proposals) {
-        setProposals(result.proposals);
-      }
-    } catch (error) {
-      console.error('Error fetching proposals:', error);
-      toast.error('Failed to load proposals');
-    } finally {
+    const q = query(
+      collection(db, 'proposals'),
+      where('freelancerId', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const proposalsData: Proposal[] = [];
+      snapshot.forEach((doc) => {
+        proposalsData.push({
+          id: doc.id,
+          ...doc.data()
+        } as Proposal);
+      });
+      setProposals(proposalsData);
       setLoading(false);
-    }
-  };
+    });
 
-  const handleEditProposal = (proposal: any) => {
+    return () => unsubscribe();
+  }, [user, navigate]);
+
+  const handleEditProposal = (proposal: Proposal) => {
     setSelectedProposal(proposal);
-    setEditedCoverLetter(proposal.coverLetter);
-    setEditedRate(proposal.proposedRate.toString());
-    setEditedDuration(proposal.estimatedDuration);
+    setEditForm({
+      coverLetter: proposal.coverLetter,
+      bidAmount: proposal.bidAmount.toString(),
+      deliveryTime: proposal.deliveryTime
+    });
     onEditOpen();
   };
 
-  const handleSaveEdit = async () => {
+  const handleUpdateProposal = async () => {
     if (!selectedProposal) return;
-    
-    setActionLoading(true);
+
     try {
-      const result = await firebaseService.ProposalService.updateProposal(selectedProposal.id, {
-        coverLetter: editedCoverLetter,
-        proposedRate: parseFloat(editedRate),
-        estimatedDuration: editedDuration
+      await updateDoc(doc(db, 'proposals', selectedProposal.id), {
+        coverLetter: editForm.coverLetter,
+        bidAmount: parseFloat(editForm.bidAmount),
+        deliveryTime: editForm.deliveryTime,
+        updatedAt: new Date()
       });
       
-      if (result.success) {
-        toast.success('Proposal updated successfully');
-        fetchProposals();
-        onEditClose();
-      } else {
-        toast.error('Failed to update proposal');
-      }
+      toast.success('Proposal updated successfully');
+      onEditClose();
     } catch (error) {
-      toast.error('An error occurred');
-    } finally {
-      setActionLoading(false);
+      console.error('Error updating proposal:', error);
+      toast.error('Failed to update proposal');
     }
   };
 
-  const handleWithdrawProposal = async (proposalId: string) => {
-    if (!window.confirm('Are you sure you want to withdraw this proposal?')) return;
+
+  const getStatusColor = (status: string, projectStatus?: string) => {
+    if (status === 'accepted' && projectStatus === 'ongoing') return 'primary';
+    if (status === 'accepted' && projectStatus === 'completed') return 'success';
     
-    setActionLoading(true);
-    try {
-      const result = await firebaseService.ProposalService.withdrawProposal(proposalId);
-      
-      if (result.success) {
-        toast.success('Proposal withdrawn');
-        fetchProposals();
-      } else {
-        toast.error('Failed to withdraw proposal');
-      }
-    } catch (error) {
-      toast.error('An error occurred');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'warning';
       case 'accepted': return 'success';
@@ -137,198 +135,224 @@ export const FreelancerProposalsPage: React.FC = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(amount);
+  const getStatusText = (status: string, projectStatus?: string) => {
+    if (status === 'accepted' && projectStatus === 'ongoing') return 'In Progress';
+    if (status === 'accepted' && projectStatus === 'completed') return 'Completed';
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-mesh flex items-center justify-center">
-        <div className="text-center">
-          <Icon icon="lucide:loader-2" className="text-4xl animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-400">Loading proposals...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Spinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-mesh">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="container mx-auto px-4 py-8"
-      >
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">My Proposals</h1>
-          <p className="text-gray-400">Track and manage your submitted proposals</p>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">My Proposals</h1>
+        <p className="text-gray-400">Track and manage your job proposals</p>
+      </div>
 
-        {proposals.length === 0 ? (
-          <Card className="glass-effect border-none">
-            <CardBody className="text-center py-12">
-              <Icon icon="lucide:file-text" className="text-6xl text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">You haven't submitted any proposals yet</p>
-              <Button
-                color="primary"
-                onPress={() => navigate('/jobs')}
-                startContent={<Icon icon="lucide:search" />}
-              >
-                Browse Jobs
-              </Button>
-            </CardBody>
-          </Card>
-        ) : (
-          <Card className="glass-effect border-none">
-            <CardBody>
-              <Table
-                aria-label="Proposals table"
-                classNames={{
-                  th: "bg-transparent text-gray-400",
-                  td: "text-gray-300"
-                }}
-              >
-                <TableHeader>
-                  <TableColumn>JOB</TableColumn>
-                  <TableColumn>CLIENT</TableColumn>
-                  <TableColumn>RATE</TableColumn>
-                  <TableColumn>DURATION</TableColumn>
-                  <TableColumn>STATUS</TableColumn>
-                  <TableColumn>SUBMITTED</TableColumn>
-                  <TableColumn>ACTIONS</TableColumn>
-                </TableHeader>
-                <TableBody>
-                  {proposals.map((proposal) => (
-                    <TableRow key={proposal.id}>
-                      <TableCell>
-                        <p className="font-medium">{proposal.jobTitle}</p>
-                      </TableCell>
-                      <TableCell>{proposal.clientName || 'Unknown Client'}</TableCell>
-                      <TableCell>
-                        <p className="font-medium">{formatCurrency(proposal.proposedRate)}</p>
-                        <p className="text-xs text-gray-400">{proposal.budgetType}</p>
-                      </TableCell>
-                      <TableCell>{proposal.estimatedDuration}</TableCell>
-                      <TableCell>
-                        <Chip
-                          size="sm"
-                          variant="flat"
-                          color={getStatusColor(proposal.status)}
-                        >
-                          {proposal.status}
-                        </Chip>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm">
-                          {proposal.createdAt?.toDate ? 
-                            formatDistanceToNow(proposal.createdAt.toDate(), { addSuffix: true }) :
-                            'Recently'}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
+      {proposals.length === 0 ? (
+        <Card className="glass-effect">
+          <CardBody className="text-center py-12">
+            <Icon icon="lucide:file-text" className="text-6xl text-gray-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">No proposals yet</h3>
+            <p className="text-gray-400 mb-6">Start applying to jobs to see your proposals here</p>
+            <Button 
+              color="secondary"
+              onPress={() => navigate('/looking-for-work')}
+              startContent={<Icon icon="lucide:search" />}
+            >
+              Browse Jobs
+            </Button>
+          </CardBody>
+        </Card>
+      ) : (
+        <div className="hidden md:block">
+          <Table 
+            aria-label="Proposals table"
+            classNames={{
+              wrapper: "glass-effect",
+              th: "bg-transparent text-gray-400",
+              td: "text-gray-300"
+            }}
+          >
+            <TableHeader>
+              <TableColumn>JOB TITLE</TableColumn>
+              <TableColumn>CLIENT</TableColumn>
+              <TableColumn>BID AMOUNT</TableColumn>
+              <TableColumn>DELIVERY</TableColumn>
+              <TableColumn>STATUS</TableColumn>
+              <TableColumn>SUBMITTED</TableColumn>
+              <TableColumn>ACTIONS</TableColumn>
+            </TableHeader>
+            <TableBody>
+              {proposals.map((proposal) => (
+                <TableRow key={proposal.id}>
+                  <TableCell>
+                    <div className="max-w-xs">
+                      <p className="font-medium text-white truncate">{proposal.jobTitle}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>{proposal.clientName}</TableCell>
+                  <TableCell>
+                    <span className="font-semibold">${proposal.bidAmount}</span>
+                  </TableCell>
+                  <TableCell>{proposal.deliveryTime}</TableCell>
+                  <TableCell>
+                    <Chip 
+                      size="sm"
+                      color={getStatusColor(proposal.status, proposal.projectStatus)}
+                      variant="flat"
+                    >
+                      {getStatusText(proposal.status, proposal.projectStatus)}
+                    </Chip>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">
+                      {formatDistanceToNow(proposal.createdAt?.toDate?.() || new Date(), { addSuffix: true })}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {proposal.status === 'pending' && (
+                        <>
                           <Button
                             size="sm"
                             variant="flat"
-                            onPress={() => navigate(`/job/${proposal.jobId}`)}
-                            startContent={<Icon icon="lucide:external-link" />}
+                            isIconOnly
+                            onPress={() => handleEditProposal(proposal)}
                           >
-                            View Job
+                            <Icon icon="lucide:edit" />
                           </Button>
-                          {proposal.status === 'pending' && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="flat"
-                                color="primary"
-                                onPress={() => handleEditProposal(proposal)}
-                                startContent={<Icon icon="lucide:edit" />}
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="flat"
-                                color="danger"
-                                onPress={() => handleWithdrawProposal(proposal.id)}
-                                isLoading={actionLoading}
-                              >
-                                Withdraw
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardBody>
-          </Card>
-        )}
+                        </>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="light"
+                        onPress={() => navigate(`/job/${proposal.jobId}`)}
+                      >
+                        View Job
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-        {/* Edit Proposal Modal */}
-        <Modal 
-          isOpen={isEditOpen} 
-          onClose={onEditClose}
-          size="2xl"
-        >
-          <ModalContent>
-            <ModalHeader>Edit Proposal</ModalHeader>
-            <ModalBody>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-400 mb-1 block">Cover Letter</label>
-                  <Textarea
-                    value={editedCoverLetter}
-                    onChange={(e) => setEditedCoverLetter(e.target.value)}
-                    minRows={6}
-                    placeholder="Explain why you're the best fit for this job..."
-                  />
+      {/* Mobile View */}
+      <div className="md:hidden space-y-4">
+        {proposals.map((proposal) => (
+          <Card key={proposal.id} className="glass-card">
+            <CardHeader className="flex justify-between">
+              <div className="flex-1">
+                <h3 className="font-semibold text-white">{proposal.jobTitle}</h3>
+                <p className="text-sm text-gray-400">Client: {proposal.clientName}</p>
+              </div>
+              <Chip 
+                size="sm"
+                color={getStatusColor(proposal.status, proposal.projectStatus)}
+                variant="flat"
+              >
+                {getStatusText(proposal.status, proposal.projectStatus)}
+              </Chip>
+            </CardHeader>
+            <CardBody>
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Bid Amount:</span>
+                  <span className="font-semibold">${proposal.bidAmount}</span>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-gray-400 mb-1 block">Proposed Rate</label>
-                    <Input
-                      type="number"
-                      value={editedRate}
-                      onChange={(e) => setEditedRate(e.target.value)}
-                      startContent={<span className="text-gray-400">€</span>}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm text-gray-400 mb-1 block">Estimated Duration</label>
-                    <Input
-                      value={editedDuration}
-                      onChange={(e) => setEditedDuration(e.target.value)}
-                      placeholder="e.g., 2 weeks"
-                    />
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Delivery:</span>
+                  <span>{proposal.deliveryTime}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Submitted:</span>
+                  <span className="text-sm">
+                    {formatDistanceToNow(proposal.createdAt?.toDate?.() || new Date(), { addSuffix: true })}
+                  </span>
                 </div>
               </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="light" onPress={onEditClose}>
-                Cancel
-              </Button>
-              <Button
-                color="primary"
-                onPress={handleSaveEdit}
-                isLoading={actionLoading}
-              >
-                Save Changes
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-      </motion.div>
+              
+              <div className="flex gap-2">
+                {proposal.status === 'pending' && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      onPress={() => handleEditProposal(proposal)}
+                      startContent={<Icon icon="lucide:edit" />}
+                    >
+                      Edit
+                    </Button>
+                  </>
+                )}
+                <Button
+                  size="sm"
+                  variant="light"
+                  onPress={() => navigate(`/job/${proposal.jobId}`)}
+                >
+                  View Job
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+
+      {/* Edit Modal */}
+      <Modal isOpen={isEditOpen} onClose={onEditClose} size="2xl">
+        <ModalContent>
+          <ModalHeader>Edit Proposal</ModalHeader>
+          <ModalBody>
+            <div className="space-y-4">
+              <Textarea
+                label="Cover Letter"
+                placeholder="Update your cover letter..."
+                value={editForm.coverLetter}
+                onChange={(e) => setEditForm({ ...editForm, coverLetter: e.target.value })}
+                minRows={5}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  type="number"
+                  label="Bid Amount ($)"
+                  placeholder="Enter amount"
+                  value={editForm.bidAmount}
+                  onChange={(e) => setEditForm({ ...editForm, bidAmount: e.target.value })}
+                  startContent={<span className="text-gray-400">$</span>}
+                />
+                <Input
+                  label="Delivery Time"
+                  placeholder="e.g., 3 days"
+                  value={editForm.deliveryTime}
+                  onChange={(e) => setEditForm({ ...editForm, deliveryTime: e.target.value })}
+                />
+              </div>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="light" onPress={onEditClose}>
+              Cancel
+            </Button>
+            <Button 
+              color="primary" 
+              onPress={handleUpdateProposal}
+              isDisabled={!editForm.coverLetter || !editForm.bidAmount || !editForm.deliveryTime}
+            >
+              Update Proposal
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 };
-
-export default FreelancerProposalsPage;

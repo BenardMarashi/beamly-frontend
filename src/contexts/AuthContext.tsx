@@ -148,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isClient = userData?.userType === 'client' || userData?.userType === 'both';
   const canPostJobs = isClient;
   const canApplyToJobs = isFreelancer;
-  const canPostProjects = isClient;
+  const canPostProjects = isFreelancer;
 
   return (
     <AuthContext.Provider value={{

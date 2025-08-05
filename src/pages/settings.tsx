@@ -302,59 +302,6 @@ const SettingsPage: React.FC = () => {
           </CardBody>
         </Card>
         
-        {/* Debug Info (remove in production) */}
-        {process.env.NODE_ENV === 'development' && (
-          <Card className="glass-effect mb-6 border-2 border-yellow-500">
-            <CardBody className="p-4">
-              <h3 className="text-yellow-500 font-bold mb-2">Debug Info:</h3>
-              <p className="text-gray-300 text-sm">Current Language: {i18n.language}</p>
-              <p className="text-gray-300 text-sm">LocalStorage Language: {localStorage.getItem('i18nextLng')}</p>
-              <p className="text-gray-300 text-sm">Available Languages: {Object.keys(i18n.options.resources || {}).join(', ')}</p>
-            </CardBody>
-          </Card>
-        )}
-        
-        {/* Notification Settings */}
-        <Card className="glass-effect mb-6">
-          <CardBody className="p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">{t('nav.notifications') || 'Notifications'}</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-white">Email Notifications</p>
-                  <p className="text-gray-400 text-sm">Receive email notifications</p>
-                </div>
-                <Switch
-                  isSelected={settings.emailNotifications}
-                  onValueChange={(value) => updateSetting('emailNotifications', value)}
-                />
-              </div>
-              <Divider className="my-4" />
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-white">Push Notifications</p>
-                  <p className="text-gray-400 text-sm">Receive push notifications</p>
-                </div>
-                <Switch
-                  isSelected={settings.pushNotifications}
-                  onValueChange={(value) => updateSetting('pushNotifications', value)}
-                />
-              </div>
-              <Divider className="my-4" />
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-white">Marketing Emails</p>
-                  <p className="text-gray-400 text-sm">Receive marketing and promotional emails</p>
-                </div>
-                <Switch
-                  isSelected={settings.marketingEmails}
-                  onValueChange={(value) => updateSetting('marketingEmails', value)}
-                />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-        
         {/* Account Settings */}
         <Card className="glass-effect mb-6">
           <CardBody className="p-6">
@@ -368,6 +315,7 @@ const SettingsPage: React.FC = () => {
                 startContent={<Icon icon="lucide:key" />}
                 onPress={onPasswordOpen}
                 fullWidth
+                className="text-white"
               >
                 Change Password
               </Button>
@@ -389,6 +337,7 @@ const SettingsPage: React.FC = () => {
               variant="flat"
               startContent={<Icon icon="lucide:trash-2" />}
               onPress={onDeleteOpen}
+              className="text-white"
             >
               Delete Account
             </Button>

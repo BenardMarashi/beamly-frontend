@@ -163,11 +163,13 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
-        <Breadcrumbs className="mb-6">
+      <div className="breadcrumb-container" style={{ marginBottom: '3rem' }}>
+        <Breadcrumbs>
           <BreadcrumbItem onPress={() => navigate('/')}>Home</BreadcrumbItem>
           <BreadcrumbItem onPress={() => navigate('/looking-for-work')}>Jobs</BreadcrumbItem>
           <BreadcrumbItem>{job.title}</BreadcrumbItem>
         </Breadcrumbs>
+      </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
@@ -176,20 +178,26 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
                 <h1 className="text-2xl font-bold text-white mb-4">{job.title}</h1>
                 
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <Chip color="secondary" variant="flat">
-                    <Icon icon="lucide:folder" className="mr-1" />
-                    {job.category}
-                  </Chip>
-                  <Chip variant="flat">
-                    <Icon icon="lucide:clock" className="mr-1" />
-                    {formatPostedDate(job.postedAt)}
-                  </Chip>
-                  <Chip variant="flat">
-                    <Icon icon="lucide:map-pin" className="mr-1" />
-                    {job.clientCountry || 'Remote'}
-                  </Chip>
-                </div>
-
+                    <Chip 
+                      color="secondary" 
+                      variant="flat"
+                      className="flex items-center"
+                    >
+                      <div className="flex items-center gap-1">
+                        <Icon icon="lucide:folder" className="w-4 h-4" />
+                        <span>{job.category}</span>
+                      </div>
+                    </Chip>
+                    <Chip 
+                      variant="flat"
+                      className="flex items-center"
+                    >
+                      <div className="flex items-center gap-1">
+                        <Icon icon="lucide:clock" className="w-4 h-4" />
+                        <span>{formatPostedDate(job.postedAt)}</span>
+                      </div>
+                    </Chip>
+                  </div>
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-xl font-semibold text-white mb-3">Description</h2>

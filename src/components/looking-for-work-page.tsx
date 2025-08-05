@@ -241,10 +241,9 @@ export const LookingForWorkPage: React.FC = () => {
       />
 
       {/* Search and Filters */}
-      <Card className="glass-effect mb-8">
-        <CardBody className="p-6">
-          <form onSubmit={handleSearch}>
-            <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <div className="glass-effect p-4 md:p-6 rounded-xl mb-8">
+          <form onSubmit={handleSearch} className="flex flex-col gap-4">
+            <div className="flex flex-row gap-2" style={{ flexWrap: 'nowrap' }}>
               <Input
                 placeholder="Search for jobs by title, skills, or keywords..."
                 value={searchQuery}
@@ -318,8 +317,7 @@ export const LookingForWorkPage: React.FC = () => {
               </Select>
             </div>
           </form>
-        </CardBody>
-      </Card>
+        </div>
 
       {/* Popular Skills */}
       <div className="mb-8">

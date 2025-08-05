@@ -432,21 +432,28 @@ export const HomePage: React.FC = () => {
               </h1>
             </div>
             <div className="ml-auto">
-              <Badge 
-                color="secondary" 
-                content={notificationCount > 0 ? notificationCount.toString() : undefined}
-                shape="circle" 
-                isInvisible={notificationCount === 0}
+            <div className="relative">
+              <Button 
+                isIconOnly 
+                variant="light" 
+                className={isDarkMode ? "text-white" : "text-gray-800"}
+                onPress={() => navigate('/notifications')}
               >
-                <Button 
-                  isIconOnly 
-                  variant="light" 
-                  className={isDarkMode ? "text-white" : "text-gray-800"}
-                  onPress={() => navigate('/notifications')}
+                <Icon icon="lucide:bell" width={24} />
+              </Button>
+              {notificationCount > 0 && (
+                <span 
+                  className="absolute text-sm font-bold"
+                  style={{ 
+                    color: '#FCE90D',
+                    top: '-4px',
+                    right: '8px'
+                  }}
                 >
-                  <Icon icon="lucide:bell" width={24} />
-                </Button>
-              </Badge>
+                  {notificationCount}
+                </span>
+              )}
+            </div>
             </div>
           </div>
           

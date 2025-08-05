@@ -374,21 +374,19 @@ export const PostProjectPage: React.FC = () => {
             <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <Icon icon="solar:info-circle-bold-duotone" className="text-primary" />
                   Basic Information
                 </h2>
                 
                 <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Project Title <span className="text-red-500">*</span>
+                  </label>
                   <Input
-                    label="Project Title"
                     placeholder="Enter your project title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    isRequired
                     isInvalid={!!errors.title}
                     errorMessage={errors.title}
-                    startContent={<Icon icon="solar:pen-bold-duotone" />}
-                    description="Choose a clear, descriptive title for your project"
                     classNames={{
                       input: "text-white",
                       inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
@@ -397,72 +395,70 @@ export const PostProjectPage: React.FC = () => {
                 </div>
                 
                 <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Project Description <span className="text-red-500">*</span>
+                  </label>
                   <Textarea
-                    label="Project Description"
                     placeholder="Describe your project in detail..."
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     minRows={4}
-                    isRequired
                     isInvalid={!!errors.description}
                     errorMessage={errors.description}
-                    description="Explain what the project is about, its goals, and key features"
                     classNames={{
                       input: "text-white",
                       inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
                     }}
                   />
                 </div>
-                
-                <div className="form-grid form-grid-2">
-                  <div className="form-field">
-                    <Select
-                      label="Category"
-                      placeholder="Select a category"
-                      selectedKeys={formData.category ? [formData.category] : []}
-                      onSelectionChange={(keys) => {
-                        setFormData({ ...formData, category: Array.from(keys)[0] as string });
-                        setErrors({ ...errors, category: "" });
-                      }}
-                      isRequired
-                      isInvalid={!!errors.category}
-                      errorMessage={errors.category}
-                      startContent={<Icon icon="solar:widget-bold-duotone" />}
-                      classNames={{
-                        trigger: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10",
-                        value: "text-white"
-                      }}
-                    >
-                      {categories.map((category) => (
-                        <SelectItem key={category.value} value={category.value}>
-                          {category.label}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                  </div>
-                  
-                  <div className="form-field">
-                    <Input
-                      label="Client/Company Name"
-                      placeholder="e.g., ABC Company"
-                      value={formData.client}
-                      onChange={(e) => setFormData({ ...formData, client: e.target.value })}
-                      startContent={<Icon icon="solar:buildings-bold-duotone" />}
-                      classNames={{
-                        input: "text-white",
-                        inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
-                      }}
-                    />
-                  </div>
-                </div>
-                
                 <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    placeholder="Select a category"
+                    selectedKeys={formData.category ? [formData.category] : []}
+                    onSelectionChange={(keys) => {
+                      setFormData({ ...formData, category: Array.from(keys)[0] as string });
+                      setErrors({ ...errors, category: "" });
+                    }}
+                    isInvalid={!!errors.category}
+                    errorMessage={errors.category}
+                    classNames={{
+                      trigger: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10",
+                      value: "text-white"
+                    }}
+                  >
+                    {categories.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        {category.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Client/Company Name
+                  </label>
                   <Input
-                    label="Project Duration"
+                    placeholder="e.g., ABC Company"
+                    value={formData.client}
+                    onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
+                <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Project Duration
+                  </label>
+                  <Input
                     placeholder="e.g., 3 months"
                     value={formData.duration}
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                    startContent={<Icon icon="solar:calendar-bold-duotone" />}
                     classNames={{
                       input: "text-white",
                       inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
@@ -473,22 +469,21 @@ export const PostProjectPage: React.FC = () => {
             </Card>
             
             {/* Skills & Technologies */}
-            <Card className="form-section">
-              <CardBody className="space-y-4">
+            <Card className="form-section overflow-visible mb-6">
+              <CardBody className="space-y-4 overflow-visible pb-6">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <Icon icon="solar:star-bold-duotone" className="text-primary" />
                   Skills & Technologies
                 </h2>
                 
                 <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Add Skills <span className="text-red-500">*</span>
+                  </label>
                   <Input
-                    label="Add Skills"
                     placeholder="Type a skill and press Enter"
                     value={currentSkill}
                     onChange={(e) => setCurrentSkill(e.target.value)}
                     onKeyDown={handleAddSkill}
-                    startContent={<Icon icon="solar:star-bold-duotone" />}
-                    description="Press Enter to add skill"
                     isInvalid={!!errors.skills}
                     errorMessage={errors.skills}
                     classNames={{
@@ -515,14 +510,14 @@ export const PostProjectPage: React.FC = () => {
                 </div>
                 
                 <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Add Technologies
+                  </label>
                   <Input
-                    label="Add Technologies"
                     placeholder="Type a technology and press Enter"
                     value={currentTech}
                     onChange={(e) => setCurrentTech(e.target.value)}
                     onKeyDown={handleAddTechnology}
-                    startContent={<Icon icon="solar:cpu-bolt-bold-duotone" />}
-                    description="Technologies used in this project"
                     classNames={{
                       input: "text-white",
                       inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
@@ -548,12 +543,13 @@ export const PostProjectPage: React.FC = () => {
                 
                 <div className="form-grid form-grid-2">
                   <div className="form-field">
+                    <label className="text-white text-sm font-medium mb-2 block">
+                      Your Role
+                    </label>
                     <Input
-                      label="Your Role"
                       placeholder="e.g., Full Stack Developer"
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                      startContent={<Icon icon="solar:user-bold-duotone" />}
                       classNames={{
                         input: "text-white",
                         inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
@@ -562,13 +558,14 @@ export const PostProjectPage: React.FC = () => {
                   </div>
                   
                   <div className="form-field">
+                    <label className="text-white text-sm font-medium mb-2 block">
+                      Team Size
+                    </label>
                     <Input
-                      label="Team Size"
                       type="number"
                       placeholder="1"
                       value={formData.teamSize.toString()}
                       onChange={(e) => setFormData({ ...formData, teamSize: parseInt(e.target.value) || 1 })}
-                      startContent={<Icon icon="solar:users-group-rounded-bold-duotone" />}
                       classNames={{
                         input: "text-white",
                         inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
@@ -583,13 +580,14 @@ export const PostProjectPage: React.FC = () => {
             <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <Icon icon="solar:document-text-bold-duotone" className="text-primary" />
                   Project Details
                 </h2>
                 
                 <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Challenges
+                  </label>
                   <Textarea
-                    label="Challenges"
                     placeholder="What challenges did you face in this project?"
                     value={formData.challenges}
                     onChange={(e) => setFormData({ ...formData, challenges: e.target.value })}
@@ -602,8 +600,10 @@ export const PostProjectPage: React.FC = () => {
                 </div>
                 
                 <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Solution
+                  </label>
                   <Textarea
-                    label="Solution"
                     placeholder="How did you solve these challenges?"
                     value={formData.solution}
                     onChange={(e) => setFormData({ ...formData, solution: e.target.value })}
@@ -616,8 +616,10 @@ export const PostProjectPage: React.FC = () => {
                 </div>
                 
                 <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Impact/Results
+                  </label>
                   <Textarea
-                    label="Impact/Results"
                     placeholder="What was the impact or results of your project?"
                     value={formData.impact}
                     onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
@@ -630,8 +632,10 @@ export const PostProjectPage: React.FC = () => {
                 </div>
                 
                 <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Client Testimonial
+                  </label>
                   <Textarea
-                    label="Client Testimonial"
                     placeholder="Add a testimonial from your client (optional)"
                     value={formData.testimonial}
                     onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
@@ -649,103 +653,106 @@ export const PostProjectPage: React.FC = () => {
             <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <Icon icon="solar:gallery-bold-duotone" className="text-primary" />
                   Project Images
                 </h2>
                 
-                {errors.images && (
-                  <div className="text-danger text-sm">{errors.images}</div>
-                )}
-                
-                <div className="space-y-4">
-                  <input
-                    type="file"
-                    id="image-upload"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                    disabled={imageFiles.length >= 10}
-                  />
-                  
-                  <label
-                    htmlFor="image-upload"
-                    className={`flex items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-default-100 transition-colors ${
-                      imageFiles.length >= 10 ? 'opacity-50 cursor-not-allowed' : ''
-                    } ${errors.images ? 'border-danger' : 'border-default-300'}`}
-                  >
-                    <div className="text-center">
-                      <Icon icon="solar:upload-bold-duotone" className="text-4xl text-default-400 mx-auto mb-2" />
-                      <p className="text-sm text-default-600">
-                        Click to upload images (max 10)
-                      </p>
-                      <p className="text-xs text-default-400">
-                        PNG, JPG, GIF up to 5MB each
-                      </p>
-                    </div>
+                <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Upload Images <span className="text-red-500">*</span>
                   </label>
                   
-                  {uploadingImages && (
-                    <Progress 
-                      value={uploadProgress} 
-                      color="primary" 
-                      showValueLabel={true}
-                      className="mb-4"
+                  {errors.images && (
+                    <div className="text-danger text-sm mb-2">{errors.images}</div>
+                  )}
+                  
+                  <div className="space-y-4">
+                    <input
+                      type="file"
+                      id="image-upload"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                      disabled={imageFiles.length >= 10}
                     />
-                  )}
-                  
-                  {imagePreviews.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {imagePreviews.map((preview, index) => (
-                        <div key={index} className="relative group">
-                          <Image
-                            src={preview}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                            <Tooltip content="Set as thumbnail">
-                              <Button
-                                isIconOnly
+                    
+                    <label
+                      htmlFor="image-upload"
+                      className={`flex items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-default-100 transition-colors ${
+                        imageFiles.length >= 10 ? 'opacity-50 cursor-not-allowed' : ''
+                      } ${errors.images ? 'border-danger' : 'border-default-300'}`}
+                    >
+                      <div className="text-center">
+                        <div className="text-2xl text-default-400 mx-auto mb-2">📤</div>
+                        <p className="text-sm text-default-600">
+                          Click to upload images (max 10)
+                        </p>
+                        <p className="text-xs text-default-400">
+                          PNG, JPG, GIF up to 5MB each
+                        </p>
+                      </div>
+                    </label>
+                    
+                    {uploadingImages && (
+                      <Progress 
+                        value={uploadProgress} 
+                        color="primary" 
+                        showValueLabel={true}
+                        className="mb-4"
+                      />
+                    )}
+                    
+                    {imagePreviews.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {imagePreviews.map((preview, index) => (
+                          <div key={index} className="relative group">
+                            <Image
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg"
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                              <Tooltip content="Set as thumbnail">
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  color={formData.thumbnailUrl === preview ? "success" : "primary"}
+                                  variant="solid"
+                                  onPress={() => setFormData({ ...formData, thumbnailUrl: preview })}
+                                >
+                                </Button>
+                              </Tooltip>
+                              <Tooltip content="Remove">
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  color="danger"
+                                  variant="solid"
+                                  onPress={() => handleRemoveImage(index)}
+                                >
+                                </Button>
+                              </Tooltip>
+                            </div>
+                            {formData.thumbnailUrl === preview && (
+                              <Chip
                                 size="sm"
-                                color={formData.thumbnailUrl === preview ? "success" : "primary"}
-                                variant="solid"
-                                onClick={() => setFormData({ ...formData, thumbnailUrl: preview })}
+                                color="success"
+                                className="absolute top-2 left-2"
                               >
-                                <Icon icon="solar:star-bold" />
-                              </Button>
-                            </Tooltip>
-                            <Tooltip content="Remove">
-                              <Button
-                                isIconOnly
-                                size="sm"
-                                color="danger"
-                                variant="solid"
-                                onClick={() => handleRemoveImage(index)}
-                              >
-                                <Icon icon="solar:trash-bin-trash-bold" />
-                              </Button>
-                            </Tooltip>
+                                Thumbnail
+                              </Chip>
+                            )}
                           </div>
-                          {formData.thumbnailUrl === preview && (
-                            <Chip
-                              size="sm"
-                              color="success"
-                              className="absolute top-2 left-2"
-                            >
-                              Thumbnail
-                            </Chip>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <p className="text-xs text-default-500">
-                    {imagePreviews.length > 0 && 
-                      `${imagePreviews.length} image${imagePreviews.length > 1 ? 's' : ''} selected. Click the star icon to set thumbnail.`
-                    }
-                  </p>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-default-500">
+                      {imagePreviews.length > 0 && 
+                        `${imagePreviews.length} image${imagePreviews.length > 1 ? 's' : ''} selected. Click the star icon to set thumbnail.`
+                      }
+                    </p>
+                  </div>
                 </div>
               </CardBody>
             </Card>
@@ -766,7 +773,6 @@ export const PostProjectPage: React.FC = () => {
                   type="submit"
                   color="primary"
                   isLoading={loading || uploadingImages}
-                  startContent={!loading && <Icon icon="solar:upload-bold-duotone" />}
                   className="bg-beamly-secondary text-beamly-primary font-semibold"
                 >
                   {uploadingImages ? 'Uploading Images...' : 'Post Project'}

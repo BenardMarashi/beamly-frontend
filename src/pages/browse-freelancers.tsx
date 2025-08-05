@@ -240,7 +240,7 @@ const BrowseFreelancersPage: React.FC = () => {
         {/* Search and Filters */}
         <div className="glass-effect p-4 md:p-6 rounded-xl mb-8">
           <form onSubmit={handleSearch} className="flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-row gap-2" style={{ flexWrap: 'nowrap' }}>
               <Input
                 size="lg"
                 variant="bordered"

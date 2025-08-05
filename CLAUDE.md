@@ -181,6 +181,11 @@ The app uses a sophisticated routing structure in `src/App.tsx`:
 - `src/lib/realtime.ts` - Real-time subscription management
 - `src/config/env.ts` - Environment variable validation and typing
 
+### Path Aliases
+The project uses TypeScript path aliases configured in `tsconfig.json` and `vite.config.ts`:
+- `@/*` maps to `src/*` - Use `import { Component } from '@/components/Component'`
+- This improves import readability and prevents relative path issues
+
 ### Common Code Patterns
 ```typescript
 // Authentication check pattern
@@ -214,3 +219,23 @@ The project has multiple build configurations to handle various issues:
 - Production build: `npm run build:production` (optimized deployment build)
 
 Use the ESBuild fallback if experiencing CSS loading issues or Rollup bundling problems.
+
+### Firestore Collections Reference
+Key collections and their purpose:
+- **users**: User profiles with `userType` ('freelancer' | 'client' | 'both'), profile data, skills, etc.
+- **jobs**: Job postings with status, budget, skills required, proposals count
+- **proposals**: Freelancer applications to jobs with status, bid amount, cover letter
+- **conversations**: Chat threads between users with participant IDs and last message
+- **messages**: Individual messages within conversations
+- **contracts**: Active work agreements with milestones, payment status
+- **notifications**: System notifications for various events
+- **reviews**: Ratings and feedback between clients and freelancers
+- **transactions**: Payment records and history
+- **analytics**: Platform usage statistics
+
+### Common Development Scenarios
+- **Adding a new page**: Create component in `src/pages/`, add lazy-loaded route in `src/App.tsx`
+- **Firebase operations**: Always use `firebaseService` from `src/services/firebase-services.ts`
+- **Real-time features**: Use `RealtimeService` from `src/lib/realtime.ts` for subscriptions
+- **Type definitions**: Add interfaces to appropriate file in `src/types/`
+- **Protected features**: Wrap routes with `ProtectedRoute`, `FreelancerGuard`, or `ClientGuard`

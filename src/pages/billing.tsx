@@ -33,13 +33,7 @@ import { StripeService } from '../services/stripe-service';
 import { ProSubscription } from '../components/payments/ProSubscription';
 import { StripeConnectOnboarding } from '../components/payments/StripeConnectOnboarding';
 
-interface PaymentMethod {
-  id: string;
-  type: 'card' | 'bank' | 'paypal';
-  last4: string;
-  brand?: string;
-  isDefault: boolean;
-}
+
 
 interface Transaction {
   id: string;
@@ -54,7 +48,6 @@ export const BillingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, userData } = useAuth();
   const [balance, setBalance] = useState({ available: 0, pending: 0 });
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -64,17 +57,25 @@ export const BillingPage: React.FC = () => {
   });
   
   const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure();
-  const { isOpen: isAddPaymentOpen, onOpen: onAddPaymentOpen, onClose: onAddPaymentClose } = useDisclosure();
   
+  // Redirect if user is client only
   useEffect(() => {
     if (!user) {
       navigate('/login');
-    } else {
+      return;
+    }
+    
+    // Only allow freelancers and 'both' user types
+    if (userData && userData.userType === 'client') {
+      toast.error('This page is only available for freelancers');
+      navigate('/dashboard');
+      return;
+    }
+    
+    if (userData && (userData.userType === 'freelancer' || userData.userType === 'both')) {
       fetchBillingData();
-      if (userData?.userType === 'freelancer' || userData?.userType === 'both') {
-        checkConnectStatus();
-        fetchBalance();
-      }
+      checkConnectStatus();
+      fetchBalance();
     }
   }, [user, userData, navigate]);
   
@@ -129,16 +130,6 @@ export const BillingPage: React.FC = () => {
       
       setTransactions(transactionsData);
       
-      // Mock payment methods for now
-      setPaymentMethods([
-        {
-          id: '1',
-          type: 'card',
-          last4: '4242',
-          brand: 'Visa',
-          isDefault: true
-        }
-      ]);
     } catch (error) {
       console.error('Error fetching billing data:', error);
       toast.error('Failed to load billing data');
@@ -203,12 +194,15 @@ export const BillingPage: React.FC = () => {
     }).format(amount);
   };
   
-  const isFreelancer = userData?.userType === 'freelancer' || userData?.userType === 'both';
-  
   // Calculate total earnings from transactions
   const totalEarnings = transactions
     .filter(t => (t.type === 'payment' || t.type === 'escrow') && t.status === 'completed')
     .reduce((sum, t) => sum + t.amount, 0);
+  
+  // Don't render anything if not a freelancer
+  if (!userData || userData.userType === 'client') {
+    return null;
+  }
   
   return (
     <div className="min-h-screen bg-mesh">
@@ -224,140 +218,100 @@ export const BillingPage: React.FC = () => {
           </div>
         </div>
         
-        <Tabs aria-label="Billing options" className="mb-8">
-          {isFreelancer && (
-            <Tab key="earnings" title="Earnings">
-              <div className="space-y-6">
-                {/* Balance Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <Card className="glass-effect border-none">
-                    <CardBody className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <Icon icon="lucide:wallet" className="text-green-400" width={32} />
-                      </div>
-                      <h3 className="text-gray-400 text-sm">Available Balance</h3>
-                      <p className="text-3xl font-bold text-white">{formatCurrency(balance.available)}</p>
-                    </CardBody>
-                  </Card>
-                  
-                  <Card className="glass-effect border-none">
-                    <CardBody className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <Icon icon="lucide:clock" className="text-yellow-400" width={32} />
-                      </div>
-                      <h3 className="text-gray-400 text-sm">Pending Balance</h3>
-                      <p className="text-3xl font-bold text-white">{formatCurrency(balance.pending)}</p>
-                    </CardBody>
-                  </Card>
-                  
-                  <Card className="glass-effect border-none">
-                    <CardBody className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <Icon icon="lucide:trending-up" className="text-blue-400" width={32} />
-                      </div>
-                      <h3 className="text-gray-400 text-sm">Total Earnings</h3>
-                      <p className="text-3xl font-bold text-white">{formatCurrency(totalEarnings)}</p>
-                    </CardBody>
-                  </Card>
-                </div>
+        <Tabs 
+          aria-label="Billing options" 
+          className="mb-8"
+          classNames={{
+            tabList: "flex-wrap md:flex-nowrap overflow-x-auto scrollbar-hide",
+            tab: "min-w-fit"
+          }}
+        >
+          <Tab key="earnings" title="Earnings">
+            <div className="space-y-6">
+              {/* Balance Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <Card className="glass-effect border-none">
+                  <CardBody className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <Icon icon="lucide:wallet" className="text-green-400" width={32} />
+                    </div>
+                    <h3 className="text-gray-400 text-sm">Available Balance</h3>
+                    <p className="text-3xl font-bold text-white">{formatCurrency(balance.available)}</p>
+                  </CardBody>
+                </Card>
                 
-                {/* Stripe Connect Setup */}
-                {!connectStatus.isComplete && (
-                  <StripeConnectOnboarding onComplete={() => {
-                    checkConnectStatus();
-                    fetchBalance();
-                  }} />
-                )}
+                <Card className="glass-effect border-none">
+                  <CardBody className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <Icon icon="lucide:clock" className="text-yellow-400" width={32} />
+                    </div>
+                    <h3 className="text-gray-400 text-sm">Pending Balance</h3>
+                    <p className="text-3xl font-bold text-white">{formatCurrency(balance.pending)}</p>
+                  </CardBody>
+                </Card>
                 
-                {/* Withdraw Funds */}
-                {connectStatus.isComplete && balance.available > 0 && (
-                  <Card className="glass-effect border-none">
-                    <CardHeader>
-                      <h2 className="text-xl font-semibold text-white">Withdraw Funds</h2>
-                    </CardHeader>
-                    <CardBody>
-                      <div className="flex gap-4 items-end">
-                        <div className="flex-1">
-                          <label className="text-sm text-gray-400 mb-1 block">
-                            Amount to withdraw
-                          </label>
-                          <Input
-                            type="number"
-                            placeholder="0.00"
-                            value={withdrawAmount}
-                            onChange={(e) => setWithdrawAmount(e.target.value)}
-                            startContent={<span className="text-gray-400">€</span>}
-                            max={balance.available}
-                          />
-                        </div>
-                        <Button
-                          color="primary"
-                          onPress={onWithdrawOpen}
-                          isDisabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0}
-                        >
-                          Withdraw
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Withdrawals typically arrive within 2-7 business days
-                      </p>
-                    </CardBody>
-                  </Card>
-                )}
+                <Card className="glass-effect border-none">
+                  <CardBody className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <Icon icon="lucide:trending-up" className="text-blue-400" width={32} />
+                    </div>
+                    <h3 className="text-gray-400 text-sm">Total Earnings</h3>
+                    <p className="text-3xl font-bold text-white">{formatCurrency(totalEarnings)}</p>
+                  </CardBody>
+                </Card>
               </div>
-            </Tab>
-          )}
+              
+              {/* Stripe Connect Setup */}
+              {!connectStatus.isComplete && (
+                <StripeConnectOnboarding onComplete={() => {
+                  checkConnectStatus();
+                  fetchBalance();
+                }} />
+              )}
+              
+              {/* Withdraw Funds */}
+              {connectStatus.isComplete && balance.available > 0 && (
+                <Card className="glass-effect border-none">
+                  <CardHeader>
+                    <h2 className="text-xl font-semibold text-white">Withdraw Funds</h2>
+                  </CardHeader>
+                  <CardBody>
+                    <div className="flex gap-4 items-end">
+                      <div className="flex-1">
+                        <label className="text-sm text-gray-400 mb-1 block">
+                          Amount to withdraw
+                        </label>
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          startContent={<span className="text-gray-400">€</span>}
+                          max={balance.available}
+                        />
+                      </div>
+                      <Button
+                        color="primary"
+                        onPress={onWithdrawOpen}
+                        isDisabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0}
+                      >
+                        Withdraw
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Withdrawals typically arrive within 2-7 business days
+                    </p>
+                  </CardBody>
+                </Card>
+              )}
+            </div>
+          </Tab>
           
           <Tab key="subscription" title="Pro Subscription">
             <ProSubscription />
           </Tab>
           
-          <Tab key="payment-methods" title="Payment Methods">
-            <Card className="glass-effect border-none">
-              <CardHeader className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-white">Payment Methods</h2>
-                <Button
-                  size="sm"
-                  color="primary"
-                  variant="flat"
-                  onPress={onAddPaymentOpen}
-                >
-                  Add New
-                </Button>
-              </CardHeader>
-              <CardBody>
-                {paymentMethods.length === 0 ? (
-                  <p className="text-gray-400 text-center py-8">No payment methods added</p>
-                ) : (
-                  <div className="space-y-3">
-                    {paymentMethods.map((method) => (
-                      <div key={method.id} className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50">
-                        <div className="flex items-center gap-4">
-                          <Icon 
-                            icon={method.type === 'card' ? 'lucide:credit-card' : 'lucide:building-2'} 
-                            className="text-2xl text-gray-400"
-                          />
-                          <div>
-                            <p className="text-white font-medium">
-                              {method.brand} •••• {method.last4}
-                            </p>
-                            {method.isDefault && (
-                              <p className="text-sm text-gray-400">Default</p>
-                            )}
-                          </div>
-                        </div>
-                        <Button size="sm" variant="light" color="danger">
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          </Tab>
-          
-          <Tab key="transactions" title="Transaction History">
+          <Tab key="transactions" title="Transactions">
             <Card className="glass-effect border-none">
               <CardHeader>
                 <h2 className="text-xl font-semibold text-white">Transaction History</h2>
@@ -366,69 +320,71 @@ export const BillingPage: React.FC = () => {
                 {transactions.length === 0 ? (
                   <p className="text-gray-400 text-center py-8">No transactions yet</p>
                 ) : (
-                  <Table
-                    aria-label="Transaction history"
-                    classNames={{
-                      th: "bg-transparent text-gray-400",
-                      td: "text-gray-300"
-                    }}
-                  >
-                    <TableHeader>
-                      <TableColumn>TYPE</TableColumn>
-                      <TableColumn>DESCRIPTION</TableColumn>
-                      <TableColumn>AMOUNT</TableColumn>
-                      <TableColumn>STATUS</TableColumn>
-                      <TableColumn>DATE</TableColumn>
-                      <TableColumn>ACTION</TableColumn>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell>{getTransactionIcon(transaction.type)}</TableCell>
-                          <TableCell>{transaction.description}</TableCell>
-                          <TableCell>
-                            <span className={
-                              transaction.type === 'payment' || transaction.type === 'escrow' 
-                                ? 'text-green-500' 
-                                : 'text-red-500'
-                            }>
-                              {transaction.type === 'payment' || transaction.type === 'escrow' ? '+' : '-'}
-                              {formatCurrency(transaction.amount)}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              size="sm"
-                              variant="flat"
-                              color={
-                                transaction.status === 'completed' ? 'success' :
-                                transaction.status === 'pending' ? 'warning' :
-                                'danger'
-                              }
-                            >
-                              {transaction.status}
-                            </Chip>
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-sm">
-                              {transaction.createdAt?.toDate ? 
-                                new Date(transaction.createdAt.toDate()).toLocaleDateString() : 
-                                'Recently'}
-                            </p>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              variant="light"
-                              isIconOnly
-                            >
-                              <Icon icon="lucide:download" className="text-gray-400" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="overflow-x-auto">
+                    <Table
+                      aria-label="Transaction history"
+                      classNames={{
+                        th: "bg-transparent text-gray-400",
+                        td: "text-gray-300"
+                      }}
+                    >
+                      <TableHeader>
+                        <TableColumn>TYPE</TableColumn>
+                        <TableColumn>DESCRIPTION</TableColumn>
+                        <TableColumn>AMOUNT</TableColumn>
+                        <TableColumn>STATUS</TableColumn>
+                        <TableColumn>DATE</TableColumn>
+                        <TableColumn>ACTION</TableColumn>
+                      </TableHeader>
+                      <TableBody>
+                        {transactions.map((transaction) => (
+                          <TableRow key={transaction.id}>
+                            <TableCell>{getTransactionIcon(transaction.type)}</TableCell>
+                            <TableCell>{transaction.description}</TableCell>
+                            <TableCell>
+                              <span className={
+                                transaction.type === 'payment' || transaction.type === 'escrow' 
+                                  ? 'text-green-500' 
+                                  : 'text-red-500'
+                              }>
+                                {transaction.type === 'payment' || transaction.type === 'escrow' ? '+' : '-'}
+                                {formatCurrency(transaction.amount)}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Chip 
+                                size="sm"
+                                variant="flat"
+                                color={
+                                  transaction.status === 'completed' ? 'success' :
+                                  transaction.status === 'pending' ? 'warning' :
+                                  'danger'
+                                }
+                              >
+                                {transaction.status}
+                              </Chip>
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm">
+                                {transaction.createdAt?.toDate ? 
+                                  new Date(transaction.createdAt.toDate()).toLocaleDateString() : 
+                                  'Recently'}
+                              </p>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                variant="light"
+                                isIconOnly
+                              >
+                                <Icon icon="lucide:download" className="text-gray-400" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardBody>
             </Card>
@@ -456,22 +412,6 @@ export const BillingPage: React.FC = () => {
                 isLoading={loading}
               >
                 Confirm Withdrawal
-              </Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-        
-        <Modal isOpen={isAddPaymentOpen} onClose={onAddPaymentClose}>
-          <ModalContent>
-            <ModalHeader>Add Payment Method</ModalHeader>
-            <ModalBody>
-              <p className="text-gray-400">
-                Payment method management will be available through your Stripe dashboard.
-              </p>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="light" onPress={onAddPaymentClose}>
-                Close
               </Button>
             </ModalFooter>
           </ModalContent>
