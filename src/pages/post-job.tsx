@@ -182,50 +182,59 @@ export const PostJobPage: React.FC = () => {
               <h2 className="text-xl font-semibold text-white mb-4">Job Details</h2>
               
               <div className="space-y-4">
-                <Input
-                  label="Job Title"
-                  placeholder="e.g. Full Stack Developer needed for E-commerce Site"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  variant="bordered"
-                  className="text-white"
-                  isRequired
-                />
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Job Title <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    placeholder="e.g. Full Stack Developer needed for E-commerce Site"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    variant="bordered"
+                    className="text-white"
+                  />
+                </div>
                 
-                <Textarea
-                  label="Job Description"
-                  placeholder="Describe the job requirements, responsibilities, and any specific skills needed..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  variant="bordered"
-                  className="text-white"
-                  minRows={6}
-                  isRequired
-                />
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Job Description <span className="text-red-500">*</span>
+                  </label>
+                  <Textarea
+                    placeholder="Describe the job requirements, responsibilities, and any specific skills needed..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    variant="bordered"
+                    className="text-white"
+                    minRows={6}
+                  />
+                </div>
                 
-                <Select
-                  label="Category"
-                  placeholder="Select a category"
-                  selectedKeys={formData.category ? [formData.category] : []}
-                  onSelectionChange={(keys) => {
-                    const selected = Array.from(keys)[0] as string;
-                    setFormData({ ...formData, category: selected });
-                  }}
-                  variant="bordered"
-                  classNames={{
-                    trigger: "bg-gray-900/50 border-gray-600 text-white",
-                    value: "text-white",
-                    listbox: "bg-gray-900",
-                    popoverContent: "bg-gray-900",
-                  }}
-                  isRequired
-                >
-                  {categories.map(cat => (
-                    <SelectItem key={cat.value} value={cat.value} className="text-white">
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </Select>
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    placeholder="Select a category"
+                    selectedKeys={formData.category ? [formData.category] : []}
+                    onSelectionChange={(keys) => {
+                      const selected = Array.from(keys)[0] as string;
+                      setFormData({ ...formData, category: selected });
+                    }}
+                    variant="bordered"
+                    classNames={{
+                      trigger: "bg-gray-900/50 border-gray-600 text-white",
+                      value: "text-white",
+                      listbox: "bg-gray-900",
+                      popoverContent: "bg-gray-900",
+                    }}
+                  >
+                    {categories.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value} className="text-white">
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
               </div>
             </CardBody>
           </Card>
@@ -236,7 +245,9 @@ export const PostJobPage: React.FC = () => {
               
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm text-gray-400 mb-2 block">Required Skills</label>
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Required Skills <span className="text-red-500">*</span>
+                  </label>
                   <div className="flex gap-2 mb-2">
                     <Input
                       placeholder="Add a skill"
@@ -271,7 +282,9 @@ export const PostJobPage: React.FC = () => {
                 </div>
                 
                 <div>
-                  <label className="text-sm text-gray-400 mb-2 block">Experience Level *</label>
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Experience Level <span className="text-red-500">*</span>
+                  </label>
                   <RadioGroup
                     value={formData.experienceLevel}
                     onValueChange={(value) => {
@@ -288,9 +301,11 @@ export const PostJobPage: React.FC = () => {
                     ))}
                   </RadioGroup>
                 </div>
-                
+                <div>
+                <label className="text-white text-sm font-medium mb-2 block">
+                  Project Duration <span className="text-red-500">*</span>
+                </label>
                 <Select
-                  label="Project Duration"
                   placeholder="Select duration"
                   selectedKeys={formData.duration ? [formData.duration] : []}
                   onSelectionChange={(keys) => {
@@ -312,6 +327,7 @@ export const PostJobPage: React.FC = () => {
                     </SelectItem>
                   ))}
                 </Select>
+                </div>
               </div>
             </CardBody>
           </Card>
@@ -321,8 +337,11 @@ export const PostJobPage: React.FC = () => {
               <h2 className="text-xl font-semibold text-white mb-4">Budget</h2>
               
               <div className="space-y-4">
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Budget Type
+                  </label>
                 <RadioGroup
-                  label="Budget Type"
                   value={formData.budgetType}
                   onValueChange={(value) => setFormData({ ...formData, budgetType: value })}
                   orientation="horizontal"
@@ -333,43 +352,59 @@ export const PostJobPage: React.FC = () => {
                 </RadioGroup>
                 
                 {formData.budgetType === 'fixed' ? (
-                  <Input
-                    type="number"
-                    label="Fixed Price ($)"
-                    placeholder="Enter amount"
-                    value={formData.fixedPrice.toString()}
-                    onChange={(e) => setFormData({ ...formData, fixedPrice: parseFloat(e.target.value) || 0 })}
-                    variant="bordered"
-                    className="text-white"
-                    startContent={<span className="text-gray-400">$</span>}
-                    isRequired
-                  />
-                ) : (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-white text-sm font-medium mb-2 block">
+                      Fixed Price ($) <span className="text-red-500">*</span>
+                    </label>
                     <Input
                       type="number"
-                      label="Min Hourly Rate ($)"
-                      placeholder="Min"
-                      value={formData.budgetMin.toString()}
-                      onChange={(e) => setFormData({ ...formData, budgetMin: parseFloat(e.target.value) || 0 })}
+                      // Remove this label prop
+                      placeholder="Enter amount"
+                      value={formData.fixedPrice.toString()}
+                      onChange={(e) => setFormData({ ...formData, fixedPrice: parseFloat(e.target.value) || 0 })}
                       variant="bordered"
                       className="text-white"
                       startContent={<span className="text-gray-400">$</span>}
-                      isRequired
-                    />
-                    <Input
-                      type="number"
-                      label="Max Hourly Rate ($)"
-                      placeholder="Max"
-                      value={formData.budgetMax.toString()}
-                      onChange={(e) => setFormData({ ...formData, budgetMax: parseFloat(e.target.value) || 0 })}
-                      variant="bordered"
-                      className="text-white"
-                      startContent={<span className="text-gray-400">$</span>}
-                      isRequired
+                      // Remove isRequired
                     />
                   </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-white text-sm font-medium mb-2 block">
+                        Min Hourly Rate ($) <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="number"
+                        // Remove label prop
+                        placeholder="Min"
+                        value={formData.budgetMin.toString()}
+                        onChange={(e) => setFormData({ ...formData, budgetMin: parseFloat(e.target.value) || 0 })}
+                        variant="bordered"
+                        className="text-white"
+                        startContent={<span className="text-gray-400">$</span>}
+                        // Remove isRequired
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white text-sm font-medium mb-2 block">
+                        Max Hourly Rate ($) <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="number"
+                        // Remove label prop
+                        placeholder="Max"
+                        value={formData.budgetMax.toString()}
+                        onChange={(e) => setFormData({ ...formData, budgetMax: parseFloat(e.target.value) || 0 })}
+                        variant="bordered"
+                        className="text-white"
+                        startContent={<span className="text-gray-400">$</span>}
+                        // Remove isRequired
+                      />
+                    </div>
+                  </div>
                 )}
+                </div>
               </div>
             </CardBody>
           </Card>

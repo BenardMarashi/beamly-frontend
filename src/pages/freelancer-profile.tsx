@@ -226,10 +226,10 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row gap-8">
+    <div className="container mx-auto px-4 py-8 pb-20">
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
         <div className="md:w-1/3">
-          <div className="glass-effect p-6 rounded-xl sticky top-24">
+          <div className="glass-effect p-6 rounded-xl md:sticky md:top-24">
             <div className="flex flex-col items-center text-center">
               <Avatar
                 src={freelancer.photoURL}
@@ -290,14 +290,6 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
               </div>
               
               <div className="w-full mt-6 space-y-3">
-                <Button 
-                  color="secondary" 
-                  className="w-full font-medium text-beamly-third"
-                  onPress={() => navigate(`/post-job`)}
-                  isDisabled={user?.uid === id}
-                >
-                  Hire Me
-                </Button>
                 <Button 
                   variant="bordered" 
                   className="w-full text-white border-white/30"

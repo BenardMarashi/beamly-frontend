@@ -106,7 +106,21 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
   const userType = userData?.userType || 'freelancer';
   const isFreelancer = userType === 'freelancer' || userType === 'both';
   const isClient = userType === 'client' || userType === 'both';
-  
+  const getProposalsLink = () => {
+  if (userData?.userType === 'freelancer') {
+    return { path: '/freelancer/proposals', label: 'My Proposals' };
+  } else if (userData?.userType === 'client') {
+    return { path: '/client/proposals', label: 'View Proposals' };
+  } else if (userData?.userType === 'both') {
+    // For users who are both, you might want to show both links
+    // or have a toggle to switch between views
+    return [
+      { path: '/freelancer/proposals', label: 'My Proposals (Freelancer)' },
+      { path: '/client/proposals', label: 'View Proposals (Client)' }
+    ];
+  }
+  return null;
+};
   // Menu items based on authentication state
   const getMenuItems = () => {
     if (!isLoggedIn || !user) {
@@ -114,7 +128,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
         { name: "Home", path: "/", icon: "lucide:home" },
         { name: "Browse Freelancers", path: "/browse-freelancers", icon: "lucide:users" },
         { name: "Looking for Work", path: "/looking-for-work", icon: "lucide:briefcase" },
-        { name: "How it Works", path: "/how-it-works", icon: "lucide:help-circle" }
+        { name: "How it Works", path: "/how-it-works", icon: "lucide:help-circle" } // KEEP IT HERE for logged out
       ];
     }
 
@@ -122,7 +136,6 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
       { name: "Home", path: "/", icon: "lucide:home" },
       { name: "Browse Freelancers", path: "/browse-freelancers", icon: "lucide:users" },
       { name: "Looking for Work", path: "/looking-for-work", icon: "lucide:briefcase" },
-      { name: "How it Works", path: "/how-it-works", icon: "lucide:help-circle" },
       { name: "Dashboard", path: "/dashboard", icon: "lucide:layout-dashboard" },
       { name: "Messages", path: "/messages", icon: "lucide:message-circle" }
     ];
@@ -132,7 +145,8 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
       menuItems.push(
         { name: "Post Project", path: "/post-project", icon: "lucide:folder-plus" },
         { name: "Portfolio", path: "/portfolio", icon: "lucide:folder" },
-        { name: "My Proposals", path: "/freelancer/proposals", icon: "lucide:file-text" }
+        { name: "My Proposals", path: "/freelancer/proposals", icon: "lucide:file-text" },
+        { name: "Billing", path: "/billing", icon: "lucide:credit-card" }
       );
     }
 
@@ -146,10 +160,10 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
 
     // Add common items for all logged-in users
     menuItems.push(
-      { name: "Billing", path: "/billing", icon: "lucide:credit-card" },
       { name: "Analytics", path: "/analytics", icon: "lucide:bar-chart" },
       { name: "Notifications", path: "/notifications", icon: "lucide:bell" },
-      { name: "Settings", path: "/settings", icon: "lucide:settings" }
+      { name: "Settings", path: "/settings", icon: "lucide:settings" },
+      { name: "How it Works", path: "/how-it-works", icon: "lucide:help-circle" } 
     );
 
     return menuItems;
@@ -228,7 +242,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
             )}
             
             {/* Navigation Items */}
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 250px)' }}>
               <nav className="p-6 space-y-1">
                 {menuItems.map((item) => (
                   <button
@@ -265,14 +279,14 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
                 <Button
                   color="primary"
                   className="w-full"
-                  onClick={() => handleNavigation('/login')}
+                  onPress={() => handleNavigation('/login')}
                 >
                   Sign In
                 </Button>
                 <Button
                   variant="bordered"
                   className="w-full"
-                  onClick={() => handleNavigation('/signup')}
+                  onPress={() => handleNavigation('/signup')}
                 >
                   Sign Up
                 </Button>

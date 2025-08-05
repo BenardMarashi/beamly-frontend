@@ -27,6 +27,8 @@ import { MessagesPage } from './pages/messages';
 import { ConversationsListPage } from './pages/conversations-list';
 import { PostProjectPage } from './pages/post-project';
 import { FreelancerProfilePage } from './pages/freelancer-profile';
+import { FreelancerProposalsPage } from './pages/freelancer/proposals';
+import { ClientProposalsPage } from './pages/client/proposals';
 
 
 // Lazy load less frequently used pages
@@ -49,8 +51,6 @@ const ManageJobsPage = lazy(() => import('./pages/jobs/manage'));
 const PortfolioPage = lazy(() => import('./pages/portfolio/index'));
 const ProjectDetailsPage = lazy(() => import('./pages/portfolio/details'));
 const ProjectEditPage = lazy(() => import('./pages/portfolio/edit'));
-const ClientProposalsPage = lazy(() => import('./pages/client/proposals'));
-const FreelancerProposalsPage = lazy(() => import('./pages/freelancer/proposals'));
 const ClientPaymentPage = lazy(() => import('./pages/client/payment'));
 const BillingPage = lazy(() => import('./pages/billing'));
 
@@ -171,7 +171,8 @@ const AppRoutes = () => {
               <ClientProposalsPage />
             </ProtectedRoute>
           } />
-
+          <Route path="/freelancer/proposals" element={<FreelancerProposalsPage />} />
+          <Route path="/client/proposals" element={<ClientProposalsPage />} />
           <Route path="/client/payment" element={
             <ProtectedRoute requiresProfile={true} allowedUserTypes={['client', 'both']}>
               <ClientPaymentPage />

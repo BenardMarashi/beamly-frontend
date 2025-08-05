@@ -317,7 +317,42 @@ export const StripeService = {
       console.error('Error getting balance:', error);
       return { success: false, error, available: 0, pending: 0 };
     }
+  },
+
+  // Add this after getBalance method (after line 195)
+  
+  // Create payment for accepting a proposal
+  async createProjectPayment(params: {
+    clientId: string;
+    freelancerId: string;
+    proposalId: string;
+    jobId: string;
+    amount: number;
+    description: string;
+  }) {
+    try {
+      // You can actually use your existing createJobPayment method
+      const result = await this.createJobPayment(
+        params.jobId,
+        params.proposalId,
+        params.amount
+      );
+      
+      if (result.success) {
+        // Return checkout URL format for redirect
+        return {
+          success: true,
+          checkoutUrl: `/payment/checkout?client_secret=${result.clientSecret}&proposal=${params.proposalId}`
+        };
+      }
+      
+      return { success: false, error: 'Failed to create payment' };
+    } catch (error) {
+      console.error('Error creating project payment:', error);
+      return { success: false, error: 'Payment creation failed' };
+    }
   }
 };
+
 
 export default StripeService;

@@ -1561,3 +1561,34 @@ body.light-mode .toast {
 body.menu-open footer {
   display: none !important;
 }
+
+.breadcrumb-container {
+  display: block;
+  width: 100%;
+  margin-bottom: 3rem !important;
+}
+
+.breadcrumb-container > * {
+  margin-bottom: 0 !important;
+}
+
+/* Fix for mobile tabs in billing page */
+@media (max-width: 640px) {
+  [role="tablist"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  [role="tablist"]::-webkit-scrollbar {
+    display: none;
+  }
+  
+  [role="tab"] {
+    white-space: nowrap;
+    min-width: fit-content;
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+  }
+}

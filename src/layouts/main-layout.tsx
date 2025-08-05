@@ -20,6 +20,9 @@ export const MainLayout: React.FC = () => {
   const { isDarkMode } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   
+  // Check if we should show footer (only on home and landing page)
+  const showFooter = location.pathname === '/' || location.pathname === '/home';
+  
   // Close menu on route change
   useEffect(() => {
     setMenuOpen(false);
@@ -90,8 +93,8 @@ export const MainLayout: React.FC = () => {
           <Outlet />
         </main>
         
-        {/* Footer */}
-        <Footer />
+        {/* Footer - Only show on home and landing pages */}
+        {showFooter && <Footer />}
       </div>
     </div>
   );

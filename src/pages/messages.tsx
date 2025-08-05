@@ -270,16 +270,21 @@ export const MessagesPage: React.FC = () => {
           <Avatar
             src={otherUser.photoURL || `https://ui-avatars.com/api/?name=${otherUser.displayName}&background=FCE90D&color=011241`}
             name={otherUser.displayName}
-            className="cursor-pointer"
-            onClick={() => navigate(`/freelancer/${otherUser.id}`)}
+            className={otherUser.userType === 'freelancer' ? "cursor-pointer" : ""}
+            onClick={otherUser.userType === 'freelancer' ? () => navigate(`/freelancer/${otherUser.id}`) : undefined}
           />
         </Badge>
         
         <div className="flex-1">
-          <h3 className="font-semibold text-white">{otherUser.displayName}</h3>
+          <h3 
+            className={`font-semibold text-white ${otherUser.userType === 'freelancer' ? 'cursor-pointer hover:underline' : ''}`}
+            onClick={otherUser.userType === 'freelancer' ? () => navigate(`/freelancer/${otherUser.id}`) : undefined}
+          >
+            {otherUser.displayName}
+          </h3>
           <p className="text-sm text-gray-400 capitalize">
             {otherUser.userType === 'freelancer' ? 'Freelancer' : 
-             otherUser.userType === 'client' ? 'Client' : 'User'}
+            otherUser.userType === 'client' ? 'Client' : 'User'}
             {otherUser.isOnline && ' • Online'}
           </p>
         </div>

@@ -281,26 +281,22 @@ export const EditProfilePage: React.FC = () => {
                   className="w-24 h-24"
                 />
                 <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoSelect}
-                    className="hidden"
-                    id="photo-upload"
-                    disabled={uploadingPhoto}
-                  />
-                  <label htmlFor="photo-upload">
-                    <Button
-                      as="span"
-                      color="secondary"
-                      variant="flat"
-                      isLoading={uploadingPhoto}
-                      disabled={uploadingPhoto}
-                      startContent={!uploadingPhoto && <Icon icon="lucide:camera" />}
-                    >
-                      {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
-                    </Button>
-                  </label>
+                <Button
+                  color="secondary"
+                  variant="flat"
+                  isLoading={uploadingPhoto}
+                  disabled={uploadingPhoto}
+                  startContent={!uploadingPhoto && <Icon icon="lucide:camera" />}
+                  onPress={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (e: any) => handlePhotoSelect(e);
+                    input.click();
+                  }}
+                >
+                  {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                </Button>
                   <p className="text-gray-400 text-sm mt-2">
                     JPG, PNG or GIF. Max size 5MB
                   </p>
@@ -310,28 +306,45 @@ export const EditProfilePage: React.FC = () => {
           </Card>
           
           {/* Basic Information */}
-          <Card className="glass-effect border-none">
+          <Card className="form-section">
             <CardBody className="p-6">
               <h2 className="text-xl font-semibold text-white mb-4">Basic Information</h2>
               <div className="space-y-4">
-                <Input
-                  label="Display Name *"
-                  value={profileData.displayName}
-                  onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
-                  variant="bordered"
-                  isRequired
-                />
+                <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Display Name *
+                  </label>
+                  <Input
+                    // Remove the label prop
+                    placeholder="Enter your display name"
+                    value={profileData.displayName}
+                    onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
+                    isRequired
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
                 
-                <Textarea
-                  label="Bio *"
-                  placeholder="Tell others about yourself..."
-                  value={profileData.bio}
-                  onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                  variant="bordered"
-                  minRows={4}
-                  maxRows={8}
-                  isRequired
-                />
+                <div className="form-field">
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Bio *
+                  </label>
+                  <Textarea
+                    // Remove the label prop
+                    placeholder="Tell others about yourself..."
+                    value={profileData.bio}
+                    onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                    minRows={4}
+                    maxRows={8}
+                    isRequired
+                    classNames={{
+                      input: "text-white",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                    }}
+                  />
+                </div>
               </div>
             </CardBody>
           </Card>
@@ -339,13 +352,13 @@ export const EditProfilePage: React.FC = () => {
           {/* Freelancer-specific fields */}
           {showFreelancerFields && (
             <>
-              <Card className="glass-effect border-none">
+              <Card className="form-section">
                 <CardBody className="p-6">
                   <h2 className="text-xl font-semibold text-white mb-4">Professional Details</h2>
                   <div className="space-y-4">
                     {/* Skills */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="text-white text-sm font-medium mb-2 block">
                         Skills * (Max 15)
                       </label>
                       <div className="flex gap-2 mb-2">
@@ -354,8 +367,11 @@ export const EditProfilePage: React.FC = () => {
                           value={skillInput}
                           onChange={(e) => setSkillInput(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
-                          variant="bordered"
                           size="sm"
+                          classNames={{
+                            input: "text-white",
+                            inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                          }}
                         />
                         <Button
                           color="secondary"
@@ -381,51 +397,74 @@ export const EditProfilePage: React.FC = () => {
                     </div>
                     
                     {/* Hourly Rate */}
-                    <Input
-                      type="number"
-                      label="Hourly Rate (USD) *"
-                      value={profileData.hourlyRate.toString()}
-                      onChange={(e) => setProfileData({ ...profileData, hourlyRate: Number(e.target.value) })}
-                      variant="bordered"
-                      startContent="$"
-                      endContent="/hr"
-                      isRequired
-                    />
-                    
+                    <div className="form-field">
+                      <label className="text-white text-sm font-medium mb-2 block">
+                        Hourly Rate (USD) *
+                      </label>
+                      <Input
+                        // Remove the label prop
+                        type="number"
+                        placeholder="Enter hourly rate"
+                        value={profileData.hourlyRate.toString()}
+                        onChange={(e) => setProfileData({ ...profileData, hourlyRate: Number(e.target.value) })}
+                        startContent="$"
+                        endContent="/hr"
+                        isRequired
+                        classNames={{
+                          input: "text-white",
+                          inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                        }}
+                      />
+                    </div>
                     {/* Experience Level */}
-                    <Select
-                      label="Experience Level *"
-                      selectedKeys={profileData.experienceLevel ? new Set([profileData.experienceLevel]) : new Set(['intermediate'])}
-                      onSelectionChange={(keys) => {
-                        const selected = Array.from(keys)[0] as ExperienceLevel;
-                        if (selected) {
-                          setProfileData({ ...profileData, experienceLevel: selected });
-                        }
-                      }}
-                      variant="bordered"
-                      isRequired
-                    >
-                      {experienceLevels.map((level) => (
-                        <SelectItem key={level.value} value={level.value}>
-                          {level.label}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                    
+                    <div className="form-field">
+                      <label className="text-white text-sm font-medium mb-2 block">
+                        Experience Level *
+                      </label>
+                      <Select
+                        // Remove the label prop
+                        selectedKeys={profileData.experienceLevel ? new Set([profileData.experienceLevel]) : new Set(['intermediate'])}
+                        onSelectionChange={(keys) => {
+                          const selected = Array.from(keys)[0] as ExperienceLevel;
+                          if (selected) {
+                            setProfileData({ ...profileData, experienceLevel: selected });
+                          }
+                        }}
+                        isRequired
+                        classNames={{
+                          trigger: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10",
+                          value: "text-white"
+                        }}
+                      >
+                        {experienceLevels.map((level) => (
+                          <SelectItem key={level.value} value={level.value}>
+                            {level.label}
+                          </SelectItem>
+                        ))}
+                      </Select>
+                    </div>   
                     {/* Experience Description */}
-                    <Textarea
-                      label="Experience Summary"
-                      placeholder="Describe your professional experience..."
-                      value={profileData.experience}
-                      onChange={(e) => setProfileData({ ...profileData, experience: e.target.value })}
-                      variant="bordered"
-                      minRows={3}
-                      maxRows={6}
-                    />
+                    <div className="form-field">
+                      <label className="text-white text-sm font-medium mb-2 block">
+                        Experience Summary
+                      </label>
+                      <Textarea
+                        // Remove the label prop
+                        placeholder="Describe your professional experience..."
+                        value={profileData.experience}
+                        onChange={(e) => setProfileData({ ...profileData, experience: e.target.value })}
+                        minRows={3}
+                        maxRows={6}
+                        classNames={{
+                          input: "text-white",
+                          inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                        }}
+                      />
+                    </div>
                     
                     {/* Languages */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="text-white text-sm font-medium mb-2 block">
                         Languages (Max 5)
                       </label>
                       <div className="flex gap-2 mb-2">
@@ -434,8 +473,11 @@ export const EditProfilePage: React.FC = () => {
                           value={languageInput}
                           onChange={(e) => setLanguageInput(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleAddLanguage()}
-                          variant="bordered"
                           size="sm"
+                          classNames={{
+                            input: "text-white",
+                            inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                          }}
                         />
                         <Button
                           color="secondary"
@@ -482,32 +524,48 @@ export const EditProfilePage: React.FC = () => {
           
           {/* Client-specific fields */}
           {showClientFields && (
-            <Card className="glass-effect border-none">
+            <Card className="form-section">
               <CardBody className="p-6">
                 <h2 className="text-xl font-semibold text-white mb-4">Company Information</h2>
                 <div className="space-y-4">
-                  <Input
-                    label="Company Name"
-                    value={profileData.companyName}
-                    onChange={(e) => setProfileData({ ...profileData, companyName: e.target.value })}
-                    variant="bordered"
-                  />
+                  <div className="form-field">
+                    <label className="text-white text-sm font-medium mb-2 block">
+                      Company Name
+                    </label>
+                    <Input
+                      placeholder="Enter company name"
+                      value={profileData.companyName}
+                      onChange={(e) => setProfileData({ ...profileData, companyName: e.target.value })}
+                      classNames={{
+                        input: "text-white",
+                        inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
+                      }}
+                    />
+                  </div>
                   
-                  <Select
-                    label="Industry"
-                    selectedKeys={profileData.industry ? new Set([profileData.industry]) : new Set([])}
-                    onSelectionChange={(keys) => {
-                      const selected = Array.from(keys)[0] as string;
-                      setProfileData({ ...profileData, industry: selected });
-                    }}
-                    variant="bordered"
-                  >
-                    {industries.map((industry) => (
-                      <SelectItem key={industry.value} value={industry.value}>
-                        {industry.label}
-                      </SelectItem>
-                    ))}
-                  </Select>
+                  <div className="form-field">
+                    <label className="text-white text-sm font-medium mb-2 block">
+                      Industry
+                    </label>
+                    <Select
+                      placeholder="Select an industry"
+                      selectedKeys={profileData.industry ? new Set([profileData.industry]) : new Set([])}
+                      onSelectionChange={(keys) => {
+                        const selected = Array.from(keys)[0] as string;
+                        setProfileData({ ...profileData, industry: selected });
+                      }}
+                      classNames={{
+                        trigger: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10",
+                        value: "text-white"
+                      }}
+                    >
+                      {industries.map((industry) => (
+                        <SelectItem key={industry.value} value={industry.value}>
+                          {industry.label}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </div>
                 </div>
               </CardBody>
             </Card>
@@ -518,7 +576,7 @@ export const EditProfilePage: React.FC = () => {
           
           {/* Payment Account Section - Only for Freelancers */}
           {(userData?.userType === 'freelancer' || userData?.userType === 'both') && (
-            <Card className="glass-effect border-none">
+            <Card className="form-section">
               <CardHeader>
                 <h3 className="text-xl font-semibold">Payment Account</h3>
               </CardHeader>

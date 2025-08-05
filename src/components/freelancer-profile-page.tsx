@@ -208,7 +208,7 @@ export const FreelancerProfilePage: React.FC = () => {
       };
 
   return (
-    <div className="min-h-screen bg-[#010b29] pt-4 pb-20">
+    <div className="min-h-screen bg-[#010b29] pt-4 pb-32 freelancer-profile-mobile">
       <div className="px-4 space-y-6">
         {/* Profile Header */}
         <div className="mobile-profile-section">

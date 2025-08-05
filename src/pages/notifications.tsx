@@ -191,47 +191,8 @@ export const NotificationsPage: React.FC = () => {
           )}
         </div>
         
-        {/* Notification Settings */}
-        <Card className="glass-effect border-none mb-6">
-          <CardBody className="p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Notification Settings</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-white">Email Notifications</p>
-                  <p className="text-gray-400 text-sm">Receive notifications via email</p>
-                </div>
-                <Switch
-                  isSelected={notificationSettings.email}
-                  onValueChange={(value) => updateNotificationSettings('email', value)}
-                />
-              </div>
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-white">Push Notifications</p>
-                  <p className="text-gray-400 text-sm">Receive push notifications in browser</p>
-                </div>
-                <Switch
-                  isSelected={notificationSettings.push}
-                  onValueChange={(value) => updateNotificationSettings('push', value)}
-                />
-              </div>
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-white">SMS Notifications</p>
-                  <p className="text-gray-400 text-sm">Receive notifications via SMS</p>
-                </div>
-                <Switch
-                  isSelected={notificationSettings.sms}
-                  onValueChange={(value) => updateNotificationSettings('sms', value)}
-                />
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-        
         {/* Notifications List */}
-        <Card className="glass-effect border-none">
+        <Card className="glass-effect border-none mb-8">
           <CardBody className="p-6">
             <h2 className="text-xl font-semibold text-white mb-4">Recent Notifications</h2>
             
@@ -320,6 +281,44 @@ export const NotificationsPage: React.FC = () => {
                 ))}
               </div>
             )}
+          </CardBody>
+        </Card>
+                {/* Notification Settings */}
+        <Card className="glass-effect border-none">
+          <CardBody className="p-6">
+            <h2 className="text-xl font-semibold text-white mb-4">Notification Settings</h2>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-white">Email Notifications</p>
+                  <p className="text-gray-400 text-sm">Receive notifications via email</p>
+                </div>
+                <Switch
+                  isSelected={notificationSettings.email}
+                  onValueChange={(value) => updateNotificationSettings('email', value)}
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-white">Push Notifications</p>
+                  <p className="text-gray-400 text-sm">Receive push notifications in browser</p>
+                </div>
+                <Switch
+                  isSelected={notificationSettings.push}
+                  onValueChange={(value) => updateNotificationSettings('push', value)}
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-white">SMS Notifications</p>
+                  <p className="text-gray-400 text-sm">Receive notifications via SMS</p>
+                </div>
+                <Switch
+                  isSelected={notificationSettings.sms}
+                  onValueChange={(value) => updateNotificationSettings('sms', value)}
+                />
+              </div>
+            </div>
           </CardBody>
         </Card>
       </motion.div>

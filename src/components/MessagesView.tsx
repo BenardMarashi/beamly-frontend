@@ -214,14 +214,20 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
               badge: "w-3 h-3 border-2 border-[#010b29]"
             }}
           >
-            <Avatar
-              src={otherUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser.displayName)}&background=FCE90D&color=011241`}
-              name={otherUser.displayName}
-              className="w-10 h-10"
-            />
+              <Avatar
+                src={otherUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser.displayName)}&background=FCE90D&color=011241`}
+                name={otherUser.displayName}
+                className={`w-10 h-10 ${otherUser.userType === 'freelancer' ? 'cursor-pointer' : ''}`}
+                onClick={otherUser.userType === 'freelancer' ? () => navigate(`/freelancer/${otherUser.id}`) : undefined}
+              />
           </Badge>
           <div>
-            <h3 className="font-semibold text-white">{otherUser.displayName}</h3>
+            <h3 
+              className={`font-semibold text-white ${otherUser.userType === 'freelancer' ? 'cursor-pointer hover:underline' : ''}`}
+              onClick={otherUser.userType === 'freelancer' ? () => navigate(`/freelancer/${otherUser.id}`) : undefined}
+            >
+              {otherUser.displayName}
+            </h3>
             <p className="text-xs text-gray-400 capitalize">
               {otherUser.userType}
               {otherUser.isOnline && ' • Online'}
