@@ -241,6 +241,40 @@ export const onNewMessage = onDocumentCreated(
 );
 
 // Create Stripe Connect Account for Freelancers
+const STRIPE_SUPPORTED_COUNTRIES = [
+  'AU', 'AT', 'BE', 'BR', 'BG', 'CA', 'HR', 'CY', 'CZ', 'DK',
+  'EE', 'FI', 'FR', 'DE', 'GI', 'GR', 'HK', 'HU', 'IN', 'IE',
+  'IT', 'JP', 'LV', 'LI', 'LT', 'LU', 'MY', 'MT', 'MX', 'NL',
+  'NZ', 'NO', 'PL', 'PT', 'RO', 'SG', 'SK', 'SI', 'ES', 'SE',
+  'CH', 'TH', 'AE', 'GB', 'US'
+];
+
+function isValidCountryCode(country: string): boolean {
+  if (!country || typeof country !== 'string' || country.length !== 2) {
+    return false;
+  }
+  return STRIPE_SUPPORTED_COUNTRIES.includes(country.toUpperCase());
+}
+
+function getDefaultCurrencyForCountry(country: string): string {
+  const currencyMap: Record<string, string> = {
+    'US': 'usd', 'GB': 'gbp', 'AU': 'aud', 'CA': 'cad', 'JP': 'jpy',
+    'IN': 'inr', 'SG': 'sgd', 'HK': 'hkd', 'NZ': 'nzd', 'MX': 'mxn',
+    'BR': 'brl', 'TH': 'thb', 'MY': 'myr', 'AE': 'aed', 'CH': 'chf',
+    'SE': 'sek', 'NO': 'nok', 'DK': 'dkk', 'PL': 'pln', 'CZ': 'czk',
+    'HU': 'huf', 'RO': 'ron', 'BG': 'bgn', 'HR': 'hrk',
+    // EU countries default to EUR
+    'AT': 'eur', 'BE': 'eur', 'CY': 'eur', 'EE': 'eur', 'FI': 'eur',
+    'FR': 'eur', 'DE': 'eur', 'GR': 'eur', 'IE': 'eur', 'IT': 'eur',
+    'LV': 'eur', 'LT': 'eur', 'LU': 'eur', 'MT': 'eur', 'NL': 'eur',
+    'PT': 'eur', 'SK': 'eur', 'SI': 'eur', 'ES': 'eur', 'LI': 'eur',
+    'GI': 'eur',
+  };
+  
+  return currencyMap[country.toUpperCase()] || 'usd';
+}
+
+// REPLACE your existing createStripeConnectAccount function with this:
 export const createStripeConnectAccount = onCall(
   {
     region: "us-central1",
@@ -254,7 +288,17 @@ export const createStripeConnectAccount = onCall(
     }
 
     const { db, FieldValue } = getAdmin();
-    const { userId } = request.data;
+    const { userId, country, businessType = "individual" } = request.data;
+
+    // SECURITY FIX: Verify user can only create their own account
+    if (userId !== request.auth.uid) {
+      throw new HttpsError("permission-denied", "You can only create your own Stripe account");
+    }
+
+    // Validate country code
+    if (!country || !isValidCountryCode(country)) {
+      throw new HttpsError("invalid-argument", "Valid country code is required");
+    }
 
     try {
       // Get user data
@@ -265,34 +309,43 @@ export const createStripeConnectAccount = onCall(
         throw new HttpsError("not-found", "User not found");
       }
 
-      // Create Express account for freelancer
+      // Check if user already has a Stripe account
+      if (userData.stripeConnectAccountId) {
+        throw new HttpsError("already-exists", "You already have a Stripe Connect account");
+      }
+
+      // Create Express account for freelancer with DYNAMIC COUNTRY
       const stripe = getStripe();
       const account = await stripe.accounts.create({
         type: "express",
-        country: "CZ",
+        country: country.toUpperCase(), // Use the country provided by user
         email: userData.email,
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
         },
-        business_type: "individual",
+        business_type: businessType,
+        default_currency: getDefaultCurrencyForCountry(country),
         metadata: {
           userId,
+          country,
         },
       });
 
       // Create account link for onboarding
       const accountLink = await stripe.accountLinks.create({
         account: account.id,
-        refresh_url: "https://beamly-app.web.app/profile/edit?stripe_connect=refresh",
-        return_url: "https://beamly-app.web.app/profile/edit?stripe_connect=success",
+        refresh_url: `https://beamly-app.web.app/profile/edit?stripe_connect=refresh&country=${country}`,
+        return_url: `https://beamly-app.web.app/profile/edit?stripe_connect=success&country=${country}`,
         type: "account_onboarding",
       });
 
-      // Update user document with Stripe account ID
+      // Update user document with Stripe account ID and country
       await db.doc(`users/${userId}`).update({
         stripeConnectAccountId: account.id,
         stripeConnectStatus: "pending",
+        stripeCountry: country.toUpperCase(),
+        businessType: businessType,
         updatedAt: FieldValue.serverTimestamp(),
       });
 
@@ -300,11 +353,59 @@ export const createStripeConnectAccount = onCall(
         success: true,
         accountId: account.id,
         onboardingUrl: accountLink.url,
+        country: country.toUpperCase(),
       };
     } catch (error: unknown) {
       console.error("Error creating Connect account:", error);
+      
+      // Better error handling
+      if ((error as any).type === 'StripeInvalidRequestError') {
+        if ((error as any).message.includes('country')) {
+          throw new HttpsError("invalid-argument", "This country is not supported for Stripe Connect");
+        }
+      }
+      
       throw new HttpsError("internal", (error as Error).message);
     }
+  }
+);
+
+// ADD this new function AFTER createStripeConnectAccount:
+export const getStripeSupportedCountries = onCall(
+  {
+    region: "us-central1",
+    cors: true,
+    maxInstances: 10,
+  },
+  async (request) => {
+    // This doesn't require authentication as it's public information
+    
+    const countryNames: Record<string, string> = {
+      'AU': 'Australia', 'AT': 'Austria', 'BE': 'Belgium', 'BR': 'Brazil',
+      'BG': 'Bulgaria', 'CA': 'Canada', 'HR': 'Croatia', 'CY': 'Cyprus',
+      'CZ': 'Czech Republic', 'DK': 'Denmark', 'EE': 'Estonia', 'FI': 'Finland',
+      'FR': 'France', 'DE': 'Germany', 'GI': 'Gibraltar', 'GR': 'Greece',
+      'HK': 'Hong Kong', 'HU': 'Hungary', 'IN': 'India', 'IE': 'Ireland',
+      'IT': 'Italy', 'JP': 'Japan', 'LV': 'Latvia', 'LI': 'Liechtenstein',
+      'LT': 'Lithuania', 'LU': 'Luxembourg', 'MY': 'Malaysia', 'MT': 'Malta',
+      'MX': 'Mexico', 'NL': 'Netherlands', 'NZ': 'New Zealand', 'NO': 'Norway',
+      'PL': 'Poland', 'PT': 'Portugal', 'RO': 'Romania', 'SG': 'Singapore',
+      'SK': 'Slovakia', 'SI': 'Slovenia', 'ES': 'Spain', 'SE': 'Sweden',
+      'CH': 'Switzerland', 'TH': 'Thailand', 'AE': 'United Arab Emirates',
+      'GB': 'United Kingdom', 'US': 'United States',
+    };
+    
+    const countries = STRIPE_SUPPORTED_COUNTRIES.map(code => ({
+      code,
+      name: countryNames[code] || code,
+      currency: getDefaultCurrencyForCountry(code),
+      supported: true,
+    }));
+    
+    return {
+      success: true,
+      countries: countries.sort((a, b) => a.name.localeCompare(b.name)),
+    };
   }
 );
 
