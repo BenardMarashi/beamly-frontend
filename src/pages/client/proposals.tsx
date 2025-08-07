@@ -149,9 +149,12 @@ export const ClientProposalsPage: React.FC = () => {
   }, [user, navigate]);
 
 const handleAcceptProposal = async (proposal: Proposal) => {
-  // Validate minimum amount (Stripe minimum is usually $0.50)
-  if (!proposal.bidAmount || proposal.bidAmount < 0.50) {
-    toast.error('Bid amount must be at least $0.50');
+  // GET THE FUCKING AMOUNT CORRECTLY
+  const actualAmount = proposal.proposedRate || proposal.bidAmount || 0;
+  
+  // Validate minimum amount
+  if (actualAmount < 0.50) {
+    toast.error(`Invalid amount: $${actualAmount}. Amount must be at least $0.50`);
     return;
   }
   
@@ -165,7 +168,7 @@ const handleAcceptProposal = async (proposal: Proposal) => {
       freelancerId: proposal.freelancerId,
       proposalId: proposal.id,
       jobId: proposal.jobId,
-      amount: proposal.bidAmount,
+      amount: actualAmount,  // USE THE ACTUAL FUCKING AMOUNT
       description: `Payment for: ${proposal.jobTitle}`
     });
     

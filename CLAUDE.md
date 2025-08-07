@@ -37,6 +37,7 @@ npm run deploy              # Build and deploy everything to Firebase
 npm run deploy:hosting      # Deploy only hosting
 npm run deploy:functions    # Deploy only functions
 npm run deploy:rules        # Deploy Firestore and Storage rules
+npm run deploy:simple       # Alternative deployment script
 ```
 
 ### Database Setup
@@ -56,6 +57,25 @@ npm run test:build   # Build and preview to test production build
 npm run emulators:export  # Export emulator data
 npm run emulators:import  # Start emulators with imported data
 npm run postinstall  # Runs automatically after npm install to check env vars
+
+# Claude-specific commands
+npm run claude:setup     # Setup script for Claude Code
+npm run claude:analyze   # Run all analysis commands
+npm run claude:check     # Run type-check and lint
+
+# Analysis commands
+npm run analyze:all      # Run all analysis tools
+npm run analyze:deps     # Check for circular dependencies
+npm run analyze:css      # Count glass-effect usage
+npm run analyze:types    # Count TypeScript files
+npm run analyze:component --name=ComponentName  # Search for component usage
+npm run analyze:imports --name=ModuleName      # Search for import usage
+npm run analyze:firebase # Count firebaseService usage
+
+# Quick fixes for common issues
+npm run fix:cache        # Clear build cache and npm cache
+npm run fix:deps         # Remove and reinstall all dependencies
+npm run fix:all          # Run all fix commands
 ```
 
 ## Architecture Overview
@@ -82,25 +102,41 @@ The platform supports two user types: `freelancer` and `client`. Users can be bo
 - User type management in `UserData.userType` field
 - AuthContext provides computed flags: `isFreelancer`, `isClient`, `canPostJobs`, `canApplyToJobs`
 
+**Pro/Subscription System:**
+- `isPro` flag indicates premium subscription status
+- Subscription plans: monthly, quarterly, yearly
+- Premium features may include: unlimited proposals, priority listing, advanced analytics
+- Subscription status tracked in user profile with start/end dates
+
 ### Collections Structure
-- `users`: User profiles with userType field ('freelancer' | 'client' | 'both')
-- `jobs`: Job postings by clients
+- `users`: User profiles with userType field ('freelancer' | 'client' | 'both'), subscription status, Stripe IDs
+- `jobs`: Job postings by clients with payment status
 - `proposals`: Freelancer proposals for jobs
-- `conversations` & `messages`: Real-time chat system
-- `contracts`: Active work agreements
-- `notifications`: System notifications
+- `conversations` & `messages`: Real-time chat system with unread counts
+- `contracts`: Active work agreements with milestones
+- `notifications`: System notifications with push notification support
 - `reviews`: User feedback system
-- `transactions`: Payment records
-- `analytics`: Platform analytics data
+- `transactions`: Payment records (subscriptions, job payments, withdrawals)
+- `payments`: Job payment records with escrow status
+- `analytics`: Platform analytics data (daily calculations)
 
 ### Environment Configuration
 Environment variables are validated and typed in `src/config/env.ts` with sophisticated error handling:
+
+**Frontend Variables (.env):**
 - **Firebase Config**: All VITE_FIREBASE_* variables with validation
 - **Feature Flags**: VITE_ENABLE_ANALYTICS, VITE_ENABLE_ERROR_REPORTING
 - **Stripe Integration**: VITE_STRIPE_PUBLISHABLE_KEY
 - **Type Safety**: EnvConfig interface ensures all env vars are properly typed
 - **Runtime Validation**: Missing required vars throw EnvironmentError with helpful messages
 - **Development Aid**: `npm run check:env` command to verify all variables are set
+
+**Functions Variables (functions/.env):**
+- **STRIPE_SECRET_KEY**: Stripe secret key for backend operations
+- **STRIPE_WEBHOOK_SECRET**: For validating Stripe webhooks
+- **STRIPE_QUARTERLY_PRICE_ID**: Subscription price IDs
+- **STRIPE_YEARLY_PRICE_ID**: Subscription price IDs
+- **APP_URL**: Application URL for redirects
 
 ### Testing Approach
 - Unit tests with Vitest
@@ -117,6 +153,9 @@ Environment variables are validated and typed in `src/config/env.ts` with sophis
 5. **Real-time Updates**: Use Firebase listeners for live data (chat, notifications)
 6. **Route Guards**: Protect routes based on auth state and user type
 7. **Internationalization**: Use i18next for all user-facing strings
+8. **Payment Operations**: Always use Firebase Functions for Stripe operations
+9. **File Uploads**: Use the `uploadFile` function to handle CORS and permissions
+10. **Pro Features**: Check `isPro` flag before enabling premium features
 
 ### Development Workflow
 1. Use Firebase emulators for local development to avoid production data
@@ -132,10 +171,19 @@ Environment variables are validated and typed in `src/config/env.ts` with sophis
 
 ### Firebase Functions
 - Located in `functions/src/` directory
-- Main entry point: `functions/src/index.ts`
-- Job-related functions: `functions/src/jobs.ts`
+- Main entry point: `functions/src/stripe.ts` (contains all functions)
 - Deploy with `npm run deploy:functions`
 - View logs with `npm run logs`
+
+**Key Functions:**
+- **Triggers**: `onNewProposal`, `onProposalAccepted`, `onNewMessage`
+- **Stripe Connect**: `createStripeConnectAccount`, `checkStripeConnectStatus`, `createStripeAccountLink`
+- **Payments**: `createJobPaymentIntent`, `releasePaymentToFreelancer`, `getStripeBalance`
+- **Subscriptions**: `createSubscriptionCheckout`, `cancelSubscription`
+- **Utilities**: `uploadFile`, `createStripePayout`
+- **Scheduled**: `checkExpiredSubscriptions`, `calculateDailyAnalytics`
+- **Webhooks**: `stripeWebhook` (handles Stripe events)
+- **HTTP Functions**: `createJob`, `submitProposal`, `sendMessage`
 
 ### Component Organization
 - Reusable components in `src/components/`
@@ -217,8 +265,9 @@ The project has multiple build configurations to handle various issues:
 - Debug build: `npm run build:debug` (unminified for debugging)
 - ESBuild fallback: `npm run build:esbuild` (workaround for Rollup issues)
 - Production build: `npm run build:production` (optimized deployment build)
+- Additional builds: `build:correct`, `build:fixed`, `build:final` (alternative build scripts)
 
-Use the ESBuild fallback if experiencing CSS loading issues or Rollup bundling problems.
+Use the ESBuild fallback if experiencing CSS loading issues or Rollup bundling problems. The multiple build scripts exist to handle various edge cases and deployment scenarios.
 
 ### Firestore Collections Reference
 Key collections and their purpose:
@@ -233,9 +282,46 @@ Key collections and their purpose:
 - **transactions**: Payment records and history
 - **analytics**: Platform usage statistics
 
+### Payment System & Stripe Integration
+The platform uses Stripe for all payment processing:
+
+**Freelancer Payments (Stripe Connect):**
+- Freelancers create Connect accounts for receiving payments
+- Escrow system holds client payments until job completion
+- Platform takes 10% fee on job payments
+- Payouts available to freelancer bank accounts
+
+**Client Payments:**
+- Job payments create payment intents
+- Funds held in escrow during job progress
+- Released to freelancer upon job completion
+
+**Subscription System:**
+- Pro subscriptions with monthly/quarterly/yearly plans
+- Managed through Stripe Checkout
+- Automatic renewal and expiration handling
+
+**Payment Flow:**
+1. Client accepts proposal → Payment captured to escrow
+2. Job marked complete → Payment released to freelancer (minus 10% fee)
+3. Freelancer can withdraw available balance
+
+### Push Notifications
+- FCM (Firebase Cloud Messaging) integration
+- Notifications sent for: new proposals, accepted proposals, new messages
+- User FCM tokens stored in user profile
+
+### Analytics System
+- Daily analytics calculated via scheduled function
+- Tracks: new users, active users, revenue, jobs, proposals
+- Revenue breakdown by type (subscriptions, job fees)
+- Stored in `analytics` collection by date
+
 ### Common Development Scenarios
 - **Adding a new page**: Create component in `src/pages/`, add lazy-loaded route in `src/App.tsx`
 - **Firebase operations**: Always use `firebaseService` from `src/services/firebase-services.ts`
 - **Real-time features**: Use `RealtimeService` from `src/lib/realtime.ts` for subscriptions
 - **Type definitions**: Add interfaces to appropriate file in `src/types/`
 - **Protected features**: Wrap routes with `ProtectedRoute`, `FreelancerGuard`, or `ClientGuard`
+- **Payment integration**: Use Firebase Functions for all Stripe operations
+- **File uploads**: Use `uploadFile` function to handle CORS issues
