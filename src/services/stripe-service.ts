@@ -33,24 +33,30 @@ interface PaymentIntent {
 }
 
 export const StripeService = {
-  // Stripe Connect for Freelancers
-  async createConnectAccount(userId: string) {
+  // UPDATED: Add country parameter to createConnectAccount
+  async createConnectAccount(userId: string, country: string = 'US') {
     try {
       const createAccount = httpsCallable(fns, 'createStripeConnectAccount');
-      const result = await createAccount({ userId }) as any;
+      const result = await createAccount({ 
+        userId,
+        country, // NOW PASSING COUNTRY
+        businessType: 'individual'
+      }) as any;
       
       if (result.data.success) {
-        // Save account ID to user profile
+        // Save account ID and country to user profile
         await updateDoc(doc(db, 'users', userId), {
           stripeConnectAccountId: result.data.accountId,
           stripeConnectStatus: 'pending',
+          stripeConnectCountry: result.data.country,
           updatedAt: serverTimestamp()
         });
         
         return {
           success: true,
           accountId: result.data.accountId,
-          onboardingUrl: result.data.onboardingUrl
+          onboardingUrl: result.data.onboardingUrl,
+          country: result.data.country
         };
       }
       
@@ -58,6 +64,73 @@ export const StripeService = {
     } catch (error) {
       console.error('Error creating Connect account:', error);
       return { success: false, error };
+    }
+  },
+
+  // NEW: Get supported countries for Stripe Connect
+  async getSupportedCountries() {
+    try {
+      const getCountries = httpsCallable(fns, 'getStripeSupportedCountries');
+      const result = await getCountries() as any;
+      
+      if (result.data.success) {
+        return {
+          success: true,
+          countries: result.data.countries
+        };
+      }
+      
+      return { success: false, countries: [] };
+    } catch (error) {
+      console.error('Error getting countries:', error);
+      // Return hardcoded list as fallback
+      return {
+        success: true,
+        countries: [
+          { code: 'US', name: 'United States', currency: 'USD' },
+          { code: 'CA', name: 'Canada', currency: 'CAD' },
+          { code: 'GB', name: 'United Kingdom', currency: 'GBP' },
+          { code: 'AU', name: 'Australia', currency: 'AUD' },
+          { code: 'AT', name: 'Austria', currency: 'EUR' },
+          { code: 'BE', name: 'Belgium', currency: 'EUR' },
+          { code: 'BG', name: 'Bulgaria', currency: 'BGN' },
+          { code: 'HR', name: 'Croatia', currency: 'HRK' },
+          { code: 'CY', name: 'Cyprus', currency: 'EUR' },
+          { code: 'CZ', name: 'Czech Republic', currency: 'CZK' },
+          { code: 'DK', name: 'Denmark', currency: 'DKK' },
+          { code: 'EE', name: 'Estonia', currency: 'EUR' },
+          { code: 'FI', name: 'Finland', currency: 'EUR' },
+          { code: 'FR', name: 'France', currency: 'EUR' },
+          { code: 'DE', name: 'Germany', currency: 'EUR' },
+          { code: 'GR', name: 'Greece', currency: 'EUR' },
+          { code: 'HU', name: 'Hungary', currency: 'HUF' },
+          { code: 'IE', name: 'Ireland', currency: 'EUR' },
+          { code: 'IT', name: 'Italy', currency: 'EUR' },
+          { code: 'LV', name: 'Latvia', currency: 'EUR' },
+          { code: 'LT', name: 'Lithuania', currency: 'EUR' },
+          { code: 'LU', name: 'Luxembourg', currency: 'EUR' },
+          { code: 'MT', name: 'Malta', currency: 'EUR' },
+          { code: 'NL', name: 'Netherlands', currency: 'EUR' },
+          { code: 'NO', name: 'Norway', currency: 'NOK' },
+          { code: 'PL', name: 'Poland', currency: 'PLN' },
+          { code: 'PT', name: 'Portugal', currency: 'EUR' },
+          { code: 'RO', name: 'Romania', currency: 'RON' },
+          { code: 'SK', name: 'Slovakia', currency: 'EUR' },
+          { code: 'SI', name: 'Slovenia', currency: 'EUR' },
+          { code: 'ES', name: 'Spain', currency: 'EUR' },
+          { code: 'SE', name: 'Sweden', currency: 'SEK' },
+          { code: 'CH', name: 'Switzerland', currency: 'CHF' },
+          { code: 'NZ', name: 'New Zealand', currency: 'NZD' },
+          { code: 'SG', name: 'Singapore', currency: 'SGD' },
+          { code: 'HK', name: 'Hong Kong', currency: 'HKD' },
+          { code: 'JP', name: 'Japan', currency: 'JPY' },
+          { code: 'MX', name: 'Mexico', currency: 'MXN' },
+          { code: 'MY', name: 'Malaysia', currency: 'MYR' },
+          { code: 'TH', name: 'Thailand', currency: 'THB' },
+          { code: 'BR', name: 'Brazil', currency: 'BRL' },
+          { code: 'IN', name: 'India', currency: 'INR' }
+        ]
+      };
     }
   },
 
@@ -119,16 +192,6 @@ export const StripeService = {
       
       if (result.data.success) {
         // Save payment intent to database
-        await setDoc(doc(db, 'payments', result.data.paymentIntentId), {
-          id: result.data.paymentIntentId,
-          jobId,
-          proposalId,
-          amount,
-          currency: 'usd',
-          status: 'pending',
-          type: 'job_payment',
-          createdAt: serverTimestamp()
-        });
         
         return {
           success: true,
@@ -147,157 +210,16 @@ export const StripeService = {
   async confirmJobPayment(paymentIntentId: string) {
     try {
       const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe not loaded');
       
-      // Get payment intent details
-      const paymentDoc = await getDoc(doc(db, 'payments', paymentIntentId));
-      const paymentData = paymentDoc.data();
-      
-      if (!paymentData) throw new Error('Payment not found');
-      
-      // Update payment status
+      // Update payment status in database
       await updateDoc(doc(db, 'payments', paymentIntentId), {
-        status: 'held_in_escrow',
-        heldAt: serverTimestamp()
-      });
-      
-      // Update job status
-      await updateDoc(doc(db, 'jobs', paymentData.jobId), {
-        status: 'in_progress',
-        paymentStatus: 'escrow',
+        status: 'succeeded',
         updatedAt: serverTimestamp()
       });
       
       return { success: true };
     } catch (error) {
       console.error('Error confirming payment:', error);
-      return { success: false, error };
-    }
-  },
-
-  async releasePaymentToFreelancer(jobId: string, freelancerId: string) {
-    try {
-      const releasePayment = httpsCallable(fns, 'releasePaymentToFreelancer');
-      const result = await releasePayment({
-        jobId,
-        freelancerId
-      }) as any;
-      
-      if (result.data.success) {
-        // Update job status
-        await updateDoc(doc(db, 'jobs', jobId), {
-          status: 'completed',
-          paymentStatus: 'released',
-          completedAt: serverTimestamp()
-        });
-        
-        return { success: true, transferId: result.data.transferId };
-      }
-      
-      return { success: false, error: result.data.error };
-    } catch (error) {
-      console.error('Error releasing payment:', error);
-      return { success: false, error };
-    }
-  },
-
-  // Subscription Management
-  async createSubscriptionCheckout(userId: string, plan: 'monthly' | 'quarterly' | 'yearly') {
-    try {
-      const prices = {
-        monthly: import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID,
-        quarterly: import.meta.env.VITE_STRIPE_QUARTERLY_PRICE_ID,
-        yearly: import.meta.env.VITE_STRIPE_YEARLY_PRICE_ID
-      };
-      
-      const createCheckout = httpsCallable(fns, 'createSubscriptionCheckout');
-      const result = await createCheckout({
-        userId,
-        priceId: prices[plan],
-        successUrl: `${window.location.origin}/dashboard?subscription=success`,
-        cancelUrl: `${window.location.origin}/billing`
-      }) as any;
-      
-      if (result.data.success) {
-        return {
-          success: true,
-          checkoutUrl: result.data.url
-        };
-      }
-      
-      return { success: false, error: result.data.error };
-    } catch (error) {
-      console.error('Error creating subscription checkout:', error);
-      return { success: false, error };
-    }
-  },
-
-  async cancelSubscription(userId: string) {
-    try {
-      const cancel = httpsCallable(fns, 'cancelSubscription');
-      const result = await cancel({ userId }) as any;
-      
-      if (result.data.success) {
-        await updateDoc(doc(db, 'users', userId), {
-          subscriptionStatus: 'cancelled',
-          subscriptionEndDate: result.data.endDate,
-          updatedAt: serverTimestamp()
-        });
-        
-        return { success: true };
-      }
-      
-      return { success: false, error: result.data.error };
-    } catch (error) {
-      console.error('Error cancelling subscription:', error);
-      return { success: false, error };
-    }
-  },
-
-  async getSubscriptionStatus(userId: string) {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      const userData = userDoc.data();
-      
-      return {
-        success: true,
-        isActive: userData?.subscriptionStatus === 'active',
-        plan: userData?.subscriptionPlan,
-        endDate: userData?.subscriptionEndDate
-      };
-    } catch (error) {
-      console.error('Error getting subscription status:', error);
-      return { success: false, error };
-    }
-  },
-
-  // Withdrawal Management
-  async createPayout(userId: string, amount: number) {
-    try {
-      const createPayout = httpsCallable(fns, 'createStripePayout');
-      const result = await createPayout({
-        userId,
-        amount
-      }) as any;
-      
-      if (result.data.success) {
-        // Record transaction
-        await setDoc(doc(collection(db, 'transactions')), {
-          type: 'withdrawal',
-          userId,
-          amount,
-          currency: 'usd',
-          status: 'pending',
-          stripePayoutId: result.data.payoutId,
-          createdAt: serverTimestamp()
-        });
-        
-        return { success: true, payoutId: result.data.payoutId };
-      }
-      
-      return { success: false, error: result.data.error };
-    } catch (error) {
-      console.error('Error creating payout:', error);
       return { success: false, error };
     }
   },
@@ -319,8 +241,34 @@ export const StripeService = {
     }
   },
 
-  // Add this after getBalance method (after line 195)
-  
+  // Create payout
+  async createPayout(userId: string, amount: number) {
+    try {
+      const createPayout = httpsCallable(fns, 'createStripePayout');
+      const result = await createPayout({ userId, amount }) as any;
+      
+      if (result.data.success) {
+        // Create transaction record
+        await setDoc(doc(collection(db, 'transactions')), {
+          type: 'withdrawal',
+          userId,
+          amount,
+          currency: 'usd',
+          status: 'pending',
+          stripePayoutId: result.data.payoutId,
+          createdAt: serverTimestamp()
+        });
+        
+        return { success: true, payoutId: result.data.payoutId };
+      }
+      
+      return { success: false, error: result.data.error };
+    } catch (error) {
+      console.error('Error creating payout:', error);
+      return { success: false, error };
+    }
+  },
+
   // Create payment for accepting a proposal
   async createProjectPayment(params: {
     clientId: string;
@@ -331,7 +279,7 @@ export const StripeService = {
     description: string;
   }) {
     try {
-      // You can actually use your existing createJobPayment method
+      // Use the existing createJobPayment method
       const result = await this.createJobPayment(
         params.jobId,
         params.proposalId,
@@ -339,10 +287,10 @@ export const StripeService = {
       );
       
       if (result.success) {
-        // Return checkout URL format for redirect
         return {
           success: true,
-          checkoutUrl: `/payment/checkout?client_secret=${result.clientSecret}&proposal=${params.proposalId}`
+          clientSecret: result.clientSecret,
+          paymentIntentId: result.paymentIntentId
         };
       }
       
@@ -353,6 +301,5 @@ export const StripeService = {
     }
   }
 };
-
 
 export default StripeService;

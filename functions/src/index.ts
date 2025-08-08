@@ -39,17 +39,26 @@ function getAdmin() {
   return { admin: adminApp, db, messaging, storage, FieldValue, Timestamp };
 }
 
-function getStripe(): any {
+// Make getStripe async and only access secret when called
+async function getStripe(): Promise<any> {
   if (!stripe) {
     // Lazy load the stripe module
     if (!stripeModule) {
       stripeModule = require("stripe");
     }
-    const secretKey = stripeSecretKey.value();
-    if (!secretKey) {
-      throw new Error("Stripe secret key not configured");
+
+    // Only access the secret when this function is actually called
+    // NOT during module initialization
+    try {
+      const secretKey = stripeSecretKey.value();
+      if (!secretKey) {
+        throw new Error("Stripe secret key not configured");
+      }
+      stripe = new stripeModule(secretKey);
+    } catch (error) {
+      console.error("Failed to initialize Stripe:", error);
+      throw new HttpsError("failed-precondition", "Stripe configuration not available");
     }
-    stripe = new stripeModule(secretKey);
   }
   return stripe;
 }
@@ -242,15 +251,15 @@ export const onNewMessage = onDocumentCreated(
 
 // Create Stripe Connect Account for Freelancers
 const STRIPE_SUPPORTED_COUNTRIES = [
-  'AU', 'AT', 'BE', 'BR', 'BG', 'CA', 'HR', 'CY', 'CZ', 'DK',
-  'EE', 'FI', 'FR', 'DE', 'GI', 'GR', 'HK', 'HU', 'IN', 'IE',
-  'IT', 'JP', 'LV', 'LI', 'LT', 'LU', 'MY', 'MT', 'MX', 'NL',
-  'NZ', 'NO', 'PL', 'PT', 'RO', 'SG', 'SK', 'SI', 'ES', 'SE',
-  'CH', 'TH', 'AE', 'GB', 'US'
+  "AU", "AT", "BE", "BR", "BG", "CA", "HR", "CY", "CZ", "DK",
+  "EE", "FI", "FR", "DE", "GI", "GR", "HK", "HU", "IN", "IE",
+  "IT", "JP", "LV", "LI", "LT", "LU", "MY", "MT", "MX", "NL",
+  "NZ", "NO", "PL", "PT", "RO", "SG", "SK", "SI", "ES", "SE",
+  "CH", "TH", "AE", "GB", "US",
 ];
 
 function isValidCountryCode(country: string): boolean {
-  if (!country || typeof country !== 'string' || country.length !== 2) {
+  if (!country || typeof country !== "string" || country.length !== 2) {
     return false;
   }
   return STRIPE_SUPPORTED_COUNTRIES.includes(country.toUpperCase());
@@ -258,20 +267,20 @@ function isValidCountryCode(country: string): boolean {
 
 function getDefaultCurrencyForCountry(country: string): string {
   const currencyMap: Record<string, string> = {
-    'US': 'usd', 'GB': 'gbp', 'AU': 'aud', 'CA': 'cad', 'JP': 'jpy',
-    'IN': 'inr', 'SG': 'sgd', 'HK': 'hkd', 'NZ': 'nzd', 'MX': 'mxn',
-    'BR': 'brl', 'TH': 'thb', 'MY': 'myr', 'AE': 'aed', 'CH': 'chf',
-    'SE': 'sek', 'NO': 'nok', 'DK': 'dkk', 'PL': 'pln', 'CZ': 'czk',
-    'HU': 'huf', 'RO': 'ron', 'BG': 'bgn', 'HR': 'hrk',
+    "US": "usd", "GB": "gbp", "AU": "aud", "CA": "cad", "JP": "jpy",
+    "IN": "inr", "SG": "sgd", "HK": "hkd", "NZ": "nzd", "MX": "mxn",
+    "BR": "brl", "TH": "thb", "MY": "myr", "AE": "aed", "CH": "chf",
+    "SE": "sek", "NO": "nok", "DK": "dkk", "PL": "pln", "CZ": "czk",
+    "HU": "huf", "RO": "ron", "BG": "bgn", "HR": "hrk",
     // EU countries default to EUR
-    'AT': 'eur', 'BE': 'eur', 'CY': 'eur', 'EE': 'eur', 'FI': 'eur',
-    'FR': 'eur', 'DE': 'eur', 'GR': 'eur', 'IE': 'eur', 'IT': 'eur',
-    'LV': 'eur', 'LT': 'eur', 'LU': 'eur', 'MT': 'eur', 'NL': 'eur',
-    'PT': 'eur', 'SK': 'eur', 'SI': 'eur', 'ES': 'eur', 'LI': 'eur',
-    'GI': 'eur',
+    "AT": "eur", "BE": "eur", "CY": "eur", "EE": "eur", "FI": "eur",
+    "FR": "eur", "DE": "eur", "GR": "eur", "IE": "eur", "IT": "eur",
+    "LV": "eur", "LT": "eur", "LU": "eur", "MT": "eur", "NL": "eur",
+    "PT": "eur", "SK": "eur", "SI": "eur", "ES": "eur", "LI": "eur",
+    "GI": "eur",
   };
-  
-  return currencyMap[country.toUpperCase()] || 'usd';
+
+  return currencyMap[country.toUpperCase()] || "usd";
 }
 
 // REPLACE your existing createStripeConnectAccount function with this:
@@ -315,7 +324,8 @@ export const createStripeConnectAccount = onCall(
       }
 
       // Create Express account for freelancer with DYNAMIC COUNTRY
-      const stripe = getStripe();
+
+      const stripe = await getStripe();
       const account = await stripe.accounts.create({
         type: "express",
         country: country.toUpperCase(), // Use the country provided by user
@@ -357,14 +367,14 @@ export const createStripeConnectAccount = onCall(
       };
     } catch (error: unknown) {
       console.error("Error creating Connect account:", error);
-      
+
       // Better error handling
-      if ((error as any).type === 'StripeInvalidRequestError') {
-        if ((error as any).message.includes('country')) {
+      if ((error as any).type === "StripeInvalidRequestError") {
+        if ((error as any).message.includes("country")) {
           throw new HttpsError("invalid-argument", "This country is not supported for Stripe Connect");
         }
       }
-      
+
       throw new HttpsError("internal", (error as Error).message);
     }
   }
@@ -377,31 +387,31 @@ export const getStripeSupportedCountries = onCall(
     cors: true,
     maxInstances: 10,
   },
-  async (request) => {
+  async () => {
     // This doesn't require authentication as it's public information
-    
+
     const countryNames: Record<string, string> = {
-      'AU': 'Australia', 'AT': 'Austria', 'BE': 'Belgium', 'BR': 'Brazil',
-      'BG': 'Bulgaria', 'CA': 'Canada', 'HR': 'Croatia', 'CY': 'Cyprus',
-      'CZ': 'Czech Republic', 'DK': 'Denmark', 'EE': 'Estonia', 'FI': 'Finland',
-      'FR': 'France', 'DE': 'Germany', 'GI': 'Gibraltar', 'GR': 'Greece',
-      'HK': 'Hong Kong', 'HU': 'Hungary', 'IN': 'India', 'IE': 'Ireland',
-      'IT': 'Italy', 'JP': 'Japan', 'LV': 'Latvia', 'LI': 'Liechtenstein',
-      'LT': 'Lithuania', 'LU': 'Luxembourg', 'MY': 'Malaysia', 'MT': 'Malta',
-      'MX': 'Mexico', 'NL': 'Netherlands', 'NZ': 'New Zealand', 'NO': 'Norway',
-      'PL': 'Poland', 'PT': 'Portugal', 'RO': 'Romania', 'SG': 'Singapore',
-      'SK': 'Slovakia', 'SI': 'Slovenia', 'ES': 'Spain', 'SE': 'Sweden',
-      'CH': 'Switzerland', 'TH': 'Thailand', 'AE': 'United Arab Emirates',
-      'GB': 'United Kingdom', 'US': 'United States',
+      "AU": "Australia", "AT": "Austria", "BE": "Belgium", "BR": "Brazil",
+      "BG": "Bulgaria", "CA": "Canada", "HR": "Croatia", "CY": "Cyprus",
+      "CZ": "Czech Republic", "DK": "Denmark", "EE": "Estonia", "FI": "Finland",
+      "FR": "France", "DE": "Germany", "GI": "Gibraltar", "GR": "Greece",
+      "HK": "Hong Kong", "HU": "Hungary", "IN": "India", "IE": "Ireland",
+      "IT": "Italy", "JP": "Japan", "LV": "Latvia", "LI": "Liechtenstein",
+      "LT": "Lithuania", "LU": "Luxembourg", "MY": "Malaysia", "MT": "Malta",
+      "MX": "Mexico", "NL": "Netherlands", "NZ": "New Zealand", "NO": "Norway",
+      "PL": "Poland", "PT": "Portugal", "RO": "Romania", "SG": "Singapore",
+      "SK": "Slovakia", "SI": "Slovenia", "ES": "Spain", "SE": "Sweden",
+      "CH": "Switzerland", "TH": "Thailand", "AE": "United Arab Emirates",
+      "GB": "United Kingdom", "US": "United States",
     };
-    
-    const countries = STRIPE_SUPPORTED_COUNTRIES.map(code => ({
+
+    const countries = STRIPE_SUPPORTED_COUNTRIES.map((code) => ({
       code,
       name: countryNames[code] || code,
       currency: getDefaultCurrencyForCountry(code),
       supported: true,
     }));
-    
+
     return {
       success: true,
       countries: countries.sort((a, b) => a.name.localeCompare(b.name)),
@@ -426,7 +436,7 @@ export const checkStripeConnectStatus = onCall(
     const { accountId } = request.data;
 
     try {
-      const stripe = getStripe();
+      const stripe = await getStripe();
       const account = await stripe.accounts.retrieve(accountId);
 
       await db.doc(`users/${request.auth.uid}`).update({
@@ -474,7 +484,7 @@ export const createStripeAccountLink = onCall(
         throw new HttpsError("not-found", "No Connect account found");
       }
 
-      const stripe = getStripe();
+      const stripe = await getStripe();
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
         refresh_url: refreshUrl || "https://beamly-app.web.app/profile/edit?stripe_connect=refresh",
@@ -509,6 +519,19 @@ export const createJobPaymentIntent = onCall(
     const { db, FieldValue } = getAdmin();
     const { jobId, proposalId, amount } = request.data;
 
+    // ADD VALIDATION HERE
+    console.log("Received payment request:", { jobId, proposalId, amount });
+
+    // Validate amount
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount < 0.50) {
+      console.error("Invalid amount:", amount, "Parsed:", numericAmount);
+      throw new HttpsError(
+        "invalid-argument",
+        `Amount must be at least $0.50. Received: ${amount}`
+      );
+    }
+
     try {
       // Get job and proposal details
       const jobDoc = await db.doc(`jobs/${jobId}`).get();
@@ -523,10 +546,24 @@ export const createJobPaymentIntent = onCall(
         throw new HttpsError("not-found", "Proposal data not found");
       }
 
-      // Create payment intent with metadata
-      const stripe = getStripe();
+      // Create payment intent with validated amount
+      const stripe = await getStripe();
+
+      // Ensure we're sending cents (Stripe expects smallest currency unit)
+      const amountInCents = Math.round(numericAmount * 100);
+
+      console.log("Creating payment intent for cents:", amountInCents);
+
+      // Double-check the amount in cents
+      if (amountInCents < 50) { // 50 cents minimum
+        throw new HttpsError(
+          "invalid-argument",
+          `Amount too small. Minimum is $0.50 (50 cents). Got ${amountInCents} cents`
+        );
+      }
+
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
+        amount: amountInCents, // This must be >= 50 for USD
         currency: "usd",
         metadata: {
           jobId,
@@ -547,7 +584,7 @@ export const createJobPaymentIntent = onCall(
         proposalId,
         clientId: request.auth.uid,
         freelancerId: proposalData.freelancerId,
-        amount,
+        amount: numericAmount, // Store in dollars
         currency: "usd",
         status: "pending",
         type: "job_payment",
@@ -613,7 +650,7 @@ export const releasePaymentToFreelancer = onCall(
       const freelancerAmount = Math.round(amount * 100) - platformFee; // In cents
 
       // Create transfer to freelancer
-      const stripe = getStripe();
+      const stripe = await getStripe();
       const transfer = await stripe.transfers.create({
         amount: freelancerAmount,
         currency: "usd",
@@ -681,7 +718,7 @@ export const createSubscriptionCheckout = onCall(
 
       // Create customer if doesn't exist
       if (!customerId) {
-        const stripe = getStripe();
+        const stripe = await getStripe();
         const customer = await stripe.customers.create({
           email: userDoc.data()?.email,
           metadata: {
@@ -697,7 +734,7 @@ export const createSubscriptionCheckout = onCall(
       }
 
       // Create checkout session
-      const stripe = getStripe();
+      const stripe = await getStripe();
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         payment_method_types: ["card"],
@@ -751,7 +788,7 @@ export const cancelSubscription = onCall(
       }
 
       // Cancel at period end (allow access until end of billing period)
-      const stripe = getStripe();
+      const stripe = await getStripe();
       const subscription = await stripe.subscriptions.update(subscriptionId, {
         cancel_at_period_end: true,
       });
@@ -792,7 +829,7 @@ export const createStripePayout = onCall(
       }
 
       // Create payout in connected account
-      const stripe = getStripe();
+      const stripe = await getStripe();
       const payout = await stripe.payouts.create(
         {
           amount: Math.round(amount * 100), // Convert to cents
@@ -857,7 +894,7 @@ export const getStripeBalance = onCall(
       }
 
       // Get balance from connected account
-      const stripe = getStripe();
+      const stripe = await getStripe();
       const balance = await stripe.balance.retrieve({
         stripeAccount: connectAccountId,
       });
@@ -893,11 +930,12 @@ export const stripeWebhook = onRequest(
     let event: any;
 
     try {
-      const stripe = getStripe();
+      const stripe = await getStripe();  // Make it await
+      const webhookSecret = stripeWebhookSecret.value();  // This is OK here since it's inside the function
       event = stripe.webhooks.constructEvent(
         req.rawBody,
         sig,
-        stripeWebhookSecret.value()
+        webhookSecret
       );
     } catch (err: unknown) {
       console.error("Webhook signature verification failed:", (err as Error).message);
@@ -954,7 +992,7 @@ async function handleSubscriptionCreated(session: any) {
   const userId = session.metadata?.userId;
   if (!userId || !session.subscription) return;
 
-  const stripe = getStripe();
+  const stripe = await getStripe();
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
 
   // Determine plan type based on price
@@ -1641,7 +1679,7 @@ export const healthCheck = onRequest(
     region: "us-central1",
     cors: true,
   },
-  (request, response) => {
+  (_, response) => {
     response.json({
       status: "healthy",
       timestamp: new Date().toISOString(),

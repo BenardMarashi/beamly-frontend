@@ -40,6 +40,8 @@ export interface UserData {
   stripeConnectChargesEnabled?: boolean;
   stripeConnectPayoutsEnabled?: boolean;
   stripeConnectDetailsSubmitted?: boolean;
+  stripeConnectOnboarded?: boolean;
+  stripeConnectCountry?: string;
   totalEarnings?: number;
   availableBalance?: number;
   pendingBalance?: number;

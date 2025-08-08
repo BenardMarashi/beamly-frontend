@@ -363,7 +363,6 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
         const missingFields = [];
         if (!userData.displayName?.trim()) missingFields.push('Display Name');
         if (!userData.bio?.trim()) missingFields.push('Bio');
-        if (!userData.location?.trim()) missingFields.push('Location');
         if (!userData.skills || userData.skills.length === 0) missingFields.push('Skills');
         if (!userData.hourlyRate || userData.hourlyRate <= 0) missingFields.push('Hourly Rate');
         

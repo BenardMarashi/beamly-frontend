@@ -1,6 +1,6 @@
 // src/components/payments/StripeConnectOnboarding.tsx
 import React, { useState, useEffect } from 'react';
-import { Card, CardBody, CardHeader, Button, Chip, Progress } from '@nextui-org/react';
+import { Card, CardBody, CardHeader, Button, Chip, Progress, Select, SelectItem } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../../contexts/AuthContext';
 import { StripeService } from '../../services/stripe-service';
@@ -10,9 +10,17 @@ interface StripeConnectOnboardingProps {
   onComplete?: () => void;
 }
 
+interface Country {
+  code: string;
+  name: string;
+  currency: string;
+}
+
 export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = ({ onComplete }) => {
   const { user, userData } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState('US');
   const [accountStatus, setAccountStatus] = useState<{
     exists: boolean;
     detailsSubmitted: boolean;
@@ -27,10 +35,32 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
 
   useEffect(() => {
     checkAccountStatus();
+    fetchCountries();
   }, [user?.uid]);
 
+  // Check for success return from Stripe
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('stripe_connect') === 'success') {
+      toast.success('Payment setup completed successfully!');
+      checkAccountStatus();
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      if (onComplete) {
+        onComplete();
+      }
+    }
+  }, []);
+
+  const fetchCountries = async () => {
+    const result = await StripeService.getSupportedCountries();
+    if (result.success && result.countries) {
+      setCountries(result.countries);
+    }
+  };
+
   const checkAccountStatus = async () => {
-    if (!user?.uid) return;
+    if (!user?.uid || !userData?.stripeConnectAccountId) return;
     
     setLoading(true);
     try {
@@ -63,16 +93,20 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
       
       // Create account if doesn't exist
       if (!accountId) {
-        const result = await StripeService.createConnectAccount(user.uid);
+        const result = await StripeService.createConnectAccount(user.uid, selectedCountry);
         if (result.success && result.onboardingUrl) {
           window.location.href = result.onboardingUrl;
+          return;
+        } else if (!result.success) {
+          toast.error(result.error?.message || 'Failed to create payment account');
+          setLoading(false);
           return;
         }
       }
       
       // Create account link for existing account
-      const returnUrl = `${window.location.origin}/billing?stripe_connect=success`;
-      const refreshUrl = `${window.location.origin}/billing?stripe_connect=refresh`;
+      const returnUrl = `${window.location.origin}/profile/edit?stripe_connect=success`;
+      const refreshUrl = `${window.location.origin}/profile/edit?stripe_connect=refresh`;
       
       const result = await StripeService.createConnectAccountLink(
         user.uid,
@@ -95,105 +129,155 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
     return (
       <Chip
         startContent={<Icon icon={enabled ? "lucide:check" : "lucide:x"} />}
+        color={enabled ? "success" : "default"}
         variant="flat"
-        color={enabled ? "success" : "warning"}
+        size="sm"
       >
         {label}
       </Chip>
     );
   };
 
-  const getProgress = () => {
-    let progress = 0;
-    if (accountStatus.exists) progress += 25;
-    if (accountStatus.detailsSubmitted) progress += 25;
-    if (accountStatus.chargesEnabled) progress += 25;
-    if (accountStatus.payoutsEnabled) progress += 25;
-    return progress;
-  };
-
-  return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader className="flex gap-3">
-        <div className="bg-primary/10 p-3 rounded-full">
-          <Icon icon="lucide:credit-card" className="text-2xl text-primary" />
-        </div>
-        <div className="flex flex-col">
-          <p className="text-lg font-semibold">Payment Account Setup</p>
-          <p className="text-sm text-gray-500">Set up your account to receive payments</p>
-        </div>
-      </CardHeader>
-      <CardBody className="gap-4">
-        <div className="space-y-4">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-500">Setup Progress</span>
-              <span className="text-sm font-medium">{getProgress()}%</span>
-            </div>
-            <Progress 
-              value={getProgress()} 
-              color={getProgress() === 100 ? "success" : "primary"}
-              className="mb-4"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {getStatusChip(accountStatus.exists, "Account Created")}
-            {getStatusChip(accountStatus.detailsSubmitted, "Details Submitted")}
-            {getStatusChip(accountStatus.chargesEnabled, "Payments Enabled")}
-            {getStatusChip(accountStatus.payoutsEnabled, "Payouts Enabled")}
-          </div>
-
-          {getProgress() < 100 && (
-            <>
-              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
-                <h4 className="font-medium mb-2">Why set up payments?</h4>
-                <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                  <li className="flex gap-2">
-                    <Icon icon="lucide:check" className="text-green-500 mt-0.5" />
-                    <span>Receive payments directly to your bank account</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <Icon icon="lucide:check" className="text-green-500 mt-0.5" />
-                    <span>Automatic invoicing and tax documentation</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <Icon icon="lucide:check" className="text-green-500 mt-0.5" />
-                    <span>Secure payment processing with Stripe</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <Icon icon="lucide:check" className="text-green-500 mt-0.5" />
-                    <span>Fast payouts (usually within 2-7 days)</span>
-                  </li>
-                </ul>
+  // If account already exists and is active
+  if (userData?.stripeConnectAccountId && accountStatus.chargesEnabled) {
+    return (
+      <Card className="glass-effect border-none">
+        <CardBody>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-500/10 rounded-lg">
+                <Icon icon="lucide:check-circle" className="text-2xl text-green-500" />
               </div>
+              <div>
+                <h4 className="font-semibold">Payment Account Active</h4>
+                <p className="text-sm text-gray-400">
+                  You can receive payments for your work
+                  {userData.stripeConnectCountry && ` • Country: ${userData.stripeConnectCountry}`}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              {getStatusChip(accountStatus.chargesEnabled, "Charges Enabled")}
+              {getStatusChip(accountStatus.payoutsEnabled, "Payouts Enabled")}
+              {getStatusChip(accountStatus.detailsSubmitted, "Details Submitted")}
+            </div>
+            
+            <Button
+              variant="light"
+              onPress={() => window.location.href = '/profile/payment-settings'}
+              endContent={<Icon icon="lucide:arrow-right" />}
+            >
+              Manage Payment Settings
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
 
+  // If account exists but onboarding incomplete
+  if (userData?.stripeConnectAccountId && !accountStatus.chargesEnabled) {
+    return (
+      <Card className="glass-effect border-none">
+        <CardBody>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-yellow-500/10 rounded-lg">
+                <Icon icon="lucide:alert-circle" className="text-2xl text-yellow-500" />
+              </div>
+              <div>
+                <h4 className="font-semibold">Complete Your Payment Setup</h4>
+                <p className="text-sm text-gray-400">
+                  Your account needs additional information to receive payments
+                </p>
+              </div>
+            </div>
+            
+            {loading ? (
+              <Progress size="sm" isIndeterminate className="max-w-md" />
+            ) : (
               <Button
                 color="primary"
-                size="lg"
-                className="w-full"
                 onPress={handleStartOnboarding}
-                isLoading={loading}
-                startContent={!loading && <Icon icon="lucide:arrow-right" />}
+                startContent={<Icon icon="lucide:external-link" />}
               >
-                {accountStatus.exists ? 'Complete Setup' : 'Start Setup'}
+                Continue Setup
               </Button>
-            </>
-          )}
+            )}
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
 
-          {getProgress() === 100 && (
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
-              <Icon icon="lucide:check-circle" className="text-4xl text-green-500 mb-2" />
-              <h4 className="font-medium text-green-700 dark:text-green-300">
-                Payment account fully set up!
-              </h4>
-              <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                You can now receive payments for your work.
+  // Initial setup - no account yet
+  return (
+    <Card className="glass-effect border-none">
+      <CardBody>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Icon icon="lucide:credit-card" className="text-2xl text-primary" />
+            </div>
+            <div>
+              <h4 className="font-semibold">Set Up Payment Account</h4>
+              <p className="text-sm text-gray-400">
+                Required to receive payments for your work
               </p>
             </div>
-          )}
+          </div>
+          
+          <div className="bg-white/5 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Icon icon="lucide:check" className="text-green-500" />
+              <span>Secure payments powered by Stripe</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Icon icon="lucide:check" className="text-green-500" />
+              <span>Get paid directly to your bank account</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Icon icon="lucide:check" className="text-green-500" />
+              <span>10% platform fee on completed projects</span>
+            </div>
+          </div>
+
+          <Select
+            label="Select Your Country"
+            placeholder="Choose your country"
+            selectedKeys={[selectedCountry]}
+            onSelectionChange={(keys) => setSelectedCountry(Array.from(keys)[0] as string)}
+            className="max-w-md"
+            classNames={{
+              trigger: "bg-white/5 border-white/20 hover:border-white/30",
+              value: "text-white"
+            }}
+          >
+            {countries.map((country) => (
+              <SelectItem key={country.code} value={country.code}>
+                <div className="flex items-center justify-between w-full">
+                  <span>{country.name}</span>
+                  <span className="text-sm text-gray-400">{country.currency}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </Select>
+          
+          <Button
+            color="primary"
+            size="lg"
+            onPress={handleStartOnboarding}
+            isLoading={loading}
+            startContent={<Icon icon="lucide:arrow-right" />}
+            className="w-full sm:w-auto"
+          >
+            Start Setup
+          </Button>
         </div>
       </CardBody>
     </Card>
   );
 };
+
+export default StripeConnectOnboarding;

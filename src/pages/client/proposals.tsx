@@ -148,13 +148,28 @@ export const ClientProposalsPage: React.FC = () => {
     };
   }, [user, navigate]);
 
-const handleAcceptProposal = async (proposal: Proposal) => {
-  // GET THE FUCKING AMOUNT CORRECTLY
-  const actualAmount = proposal.proposedRate || proposal.bidAmount || 0;
+// In handleAcceptProposal function, replace with:
+const handleAcceptProposal = async (proposal: any) => {
+  // Debug and validate amount
+  console.log('Full proposal data:', proposal);
   
-  // Validate minimum amount
-  if (actualAmount < 0.50) {
-    toast.error(`Invalid amount: $${actualAmount}. Amount must be at least $0.50`);
+  // Try multiple fields to get the amount
+  let amount = 0;
+  
+  // Check different possible field names
+  if (proposal.bidAmount !== undefined && proposal.bidAmount !== null) {
+    amount = parseFloat(proposal.bidAmount.toString());
+  } else if (proposal.proposedRate !== undefined && proposal.proposedRate !== null) {
+    amount = parseFloat(proposal.proposedRate.toString());
+  } else if (proposal.amount !== undefined && proposal.amount !== null) {
+    amount = parseFloat(proposal.amount.toString());
+  }
+  
+  console.log('Parsed amount:', amount);
+
+  // Validate amount - Stripe minimum is $0.50
+  if (isNaN(amount) || amount < 0.50) {
+    toast.error(`Invalid amount. Must be at least $0.50. Current: $${amount || 0}`);
     return;
   }
   
@@ -162,31 +177,20 @@ const handleAcceptProposal = async (proposal: Proposal) => {
   setProcessingPayment(true);
   
   try {
-    // Create Stripe checkout for project payment
-    const result = await StripeService.createProjectPayment({
-      clientId: user!.uid,
-      freelancerId: proposal.freelancerId,
-      proposalId: proposal.id,
-      jobId: proposal.jobId,
-      amount: actualAmount,  // USE THE ACTUAL FUCKING AMOUNT
-      description: `Payment for: ${proposal.jobTitle}`
+    // Navigate to payment page with validated amount
+    navigate('/client/payment', {
+      state: {
+        proposalId: proposal.id,
+        jobId: proposal.jobId,
+        jobTitle: proposal.jobTitle,
+        freelancerId: proposal.freelancerId,
+        freelancerName: proposal.freelancerName,
+        amount: amount, // This is now guaranteed to be a valid number >= 0.50
+        budgetType: proposal.budgetType || 'fixed'
+      }
     });
-    
-    if (result.success && result.checkoutUrl) {
-      // Update proposal status to accepted
-      await updateDoc(doc(db, 'proposals', proposal.id), {
-        status: 'accepted',
-        projectStatus: 'ongoing',
-        acceptedAt: new Date()
-      });
-      
-      // Redirect to Stripe checkout
-      window.location.href = result.checkoutUrl;
-    } else {
-      toast.error('Failed to create payment session');
-    }
   } catch (error) {
-    console.error('Error accepting proposal:', error);
+    console.error('Error:', error);
     toast.error('Failed to process payment');
   } finally {
     setProcessingPayment(false);
