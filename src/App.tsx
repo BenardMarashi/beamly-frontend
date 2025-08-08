@@ -173,6 +173,7 @@ const AppRoutes = () => {
           } />
           <Route path="/freelancer/proposals" element={<FreelancerProposalsPage />} />
           <Route path="/client/proposals" element={<ClientProposalsPage />} />
+          
           <Route path="/client/payment" element={
             <ProtectedRoute requiresProfile={true} allowedUserTypes={['client', 'both']}>
               <ClientPaymentPage />

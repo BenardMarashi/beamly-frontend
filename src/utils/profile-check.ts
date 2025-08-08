@@ -24,7 +24,6 @@ export const checkUserProfile = async (userId: string) => {
     const missingFields = [];
     if (!data.displayName?.trim()) missingFields.push("Display Name");
     if (!data.bio?.trim()) missingFields.push("Bio");
-    if (!data.location?.trim()) missingFields.push("Location");
     if (!data.userType) missingFields.push("User Type");
     
     // Additional checks for freelancers
