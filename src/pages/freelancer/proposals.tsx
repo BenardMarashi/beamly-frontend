@@ -49,6 +49,7 @@ interface Proposal {
   projectStatus?: 'ongoing' | 'completed';
   createdAt: any;
   updatedAt?: any;
+  paymentStatus?: 'pending' | 'escrow' | 'released';
 }
 
 export const FreelancerProposalsPage: React.FC = () => {
@@ -135,9 +136,18 @@ export const FreelancerProposalsPage: React.FC = () => {
     }
   };
 
-  const getStatusText = (status: string, projectStatus?: string) => {
+  const getStatusText = (status: string, projectStatus?: string, paymentStatus?: string) => {
+    if (status === 'accepted' && projectStatus === 'completed' && paymentStatus === 'released') {
+      return 'Completed - Paid';
+    }
+    if (status === 'accepted' && projectStatus === 'completed') {
+      return 'Completed - Awaiting Payment';
+    }
+    if (status === 'accepted' && paymentStatus === 'escrow') {
+      return 'In Progress - Payment Secured';
+    }
     if (status === 'accepted' && projectStatus === 'ongoing') return 'In Progress';
-    if (status === 'accepted' && projectStatus === 'completed') return 'Completed';
+    if (status === 'accepted') return 'Accepted';
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
@@ -209,7 +219,7 @@ export const FreelancerProposalsPage: React.FC = () => {
                       color={getStatusColor(proposal.status, proposal.projectStatus)}
                       variant="flat"
                     >
-                      {getStatusText(proposal.status, proposal.projectStatus)}
+                      {getStatusText(proposal.status, proposal.projectStatus, proposal.paymentStatus)}
                     </Chip>
                   </TableCell>
                   <TableCell>
@@ -224,12 +234,23 @@ export const FreelancerProposalsPage: React.FC = () => {
                           <Button
                             size="sm"
                             variant="flat"
-                            isIconOnly
                             onPress={() => handleEditProposal(proposal)}
+                            startContent={<Icon icon="lucide:edit" />}
                           >
-                            <Icon icon="lucide:edit" />
+                            Edit
                           </Button>
                         </>
+                      )}
+                      {proposal.status === 'accepted' && (
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          color="primary"
+                          onPress={() => navigate(`/messages?user=${proposal.clientId}`)}
+                          startContent={<Icon icon="lucide:message-circle" />}
+                        >
+                          Message Client
+                        </Button>
                       )}
                       <Button
                         size="sm"
@@ -261,7 +282,7 @@ export const FreelancerProposalsPage: React.FC = () => {
                 color={getStatusColor(proposal.status, proposal.projectStatus)}
                 variant="flat"
               >
-                {getStatusText(proposal.status, proposal.projectStatus)}
+                {getStatusText(proposal.status, proposal.projectStatus, proposal.paymentStatus)}
               </Chip>
             </CardHeader>
             <CardBody>
@@ -294,6 +315,17 @@ export const FreelancerProposalsPage: React.FC = () => {
                       Edit
                     </Button>
                   </>
+                )}
+                {proposal.status === 'accepted' && (
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    color="primary"
+                    onPress={() => navigate(`/messages?user=${proposal.clientId}`)}
+                    startContent={<Icon icon="lucide:message-circle" />}
+                  >
+                    Message Client
+                  </Button>
                 )}
                 <Button
                   size="sm"
