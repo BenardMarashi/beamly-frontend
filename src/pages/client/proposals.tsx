@@ -27,6 +27,8 @@ import { db } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { StripeService } from '../../services/stripe-service';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../lib/firebase';
 
 interface Proposal {
   id: string;
@@ -47,6 +49,7 @@ interface Proposal {
   projectStatus?: 'ongoing' | 'completed';
   createdAt: any;
   updatedAt?: any;
+  paymentStatus?: 'pending' | 'escrow' | 'released';
 }
 
 interface Job {
@@ -212,6 +215,54 @@ const handleAcceptProposal = async (proposal: any) => {
     }
   };
 
+  const handleMarkAsFinished = async (proposalId: string) => {
+    if (!window.confirm('Mark this project as completed? This will release the payment to the freelancer.')) {
+      return;
+    }
+
+    try {
+      // First, release the payment
+      const proposal = proposals.find(p => p.id === proposalId);
+      if (!proposal) {
+        toast.error('Proposal not found');
+        return;
+      }
+
+      // Call the release payment function
+      const releasePayment = httpsCallable(functions, 'releasePaymentToFreelancer');
+      const result = await releasePayment({
+        jobId: proposal.jobId,
+        freelancerId: proposal.freelancerId
+      });
+
+      if ((result.data as any).success) {
+        // Update proposal status
+        await updateDoc(doc(db, 'proposals', proposalId), {
+          projectStatus: 'completed',
+          completedAt: new Date(),
+          paymentStatus: 'released'
+        });
+
+        // Update job status
+        await updateDoc(doc(db, 'jobs', proposal.jobId), {
+          status: 'completed',
+          completedAt: new Date()
+        });
+
+        toast.success('Project completed and payment released!');
+        
+        // Open rating modal
+        setSelectedProposal(proposal);
+        onRatingOpen();
+      } else {
+        throw new Error('Failed to release payment');
+      }
+    } catch (error) {
+      console.error('Error completing project:', error);
+      toast.error('Failed to complete project. Please try again.');
+    }
+  };
+
   const handleCompleteProject = async (proposalId: string) => {
     if (!window.confirm('Mark this project as completed? You will be able to rate the freelancer.')) return;
 
@@ -365,16 +416,18 @@ const handleAcceptProposal = async (proposal: any) => {
                       <Chip 
                         size="sm"
                         color={
+                          proposal.status === 'accepted' && proposal.projectStatus === 'completed' && proposal.paymentStatus === 'released' ? 'success' :
                           proposal.status === 'accepted' && proposal.projectStatus === 'ongoing' ? 'primary' :
-                          proposal.status === 'accepted' && proposal.projectStatus === 'completed' ? 'success' :
+                          proposal.status === 'accepted' && proposal.projectStatus === 'completed' ? 'warning' :
                           proposal.status === 'pending' ? 'warning' :
                           proposal.status === 'rejected' ? 'danger' : 'default'
                         }
                         variant="flat"
                       >
-                        {proposal.status === 'accepted' && proposal.projectStatus === 'ongoing' ? 'In Progress' :
-                         proposal.status === 'accepted' && proposal.projectStatus === 'completed' ? 'Completed' :
-                         proposal.status.charAt(0).toUpperCase() + proposal.status.slice(1)}
+                        {proposal.status === 'accepted' && proposal.projectStatus === 'completed' && proposal.paymentStatus === 'released' ? 'Completed & Paid' :
+                        proposal.status === 'accepted' && proposal.projectStatus === 'ongoing' ? 'In Progress' :
+                        proposal.status === 'accepted' && proposal.projectStatus === 'completed' ? 'Completed - Payment Pending' :
+                        proposal.status.charAt(0).toUpperCase() + proposal.status.slice(1)}
                       </Chip>
                     </div>
                     
@@ -398,59 +451,71 @@ const handleAcceptProposal = async (proposal: any) => {
                     <p className="text-gray-300 mb-4 line-clamp-2">{proposal.coverLetter}</p>
                     
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="light"
-                        onPress={() => viewProposalDetails(proposal)}
-                      >
-                        View Details
-                      </Button>
-                      
-                      {proposal.status === 'pending' && (
-                        <>
-                          <Button
-                            size="sm"
-                            color="secondary"
-                            onPress={() => handleAcceptProposal(proposal)}
-                            isLoading={processingPayment}
-                          >
-                            Accept & Pay
-                          </Button>
-                          <Button
-                            size="sm"
-                            color="danger"
-                            variant="flat"
-                            onPress={() => handleRejectProposal(proposal.id)}
-                          >
-                            Reject
-                          </Button>
-                        </>
-                      )}
-                      
-                      {proposal.status === 'accepted' && proposal.projectStatus === 'ongoing' && (
+                    <Button
+                      size="sm"
+                      variant="light"
+                      onPress={() => viewProposalDetails(proposal)}
+                    >
+                      View Details
+                    </Button>
+                    
+                    {proposal.status === 'pending' && (
+                      <>
                         <Button
                           size="sm"
-                          color="success"
-                          onPress={() => handleCompleteProject(proposal.id)}
+                          color="secondary"
+                          onPress={() => handleAcceptProposal(proposal)}
+                          isLoading={processingPayment}
                         >
-                          Mark as Complete
+                          Accept & Pay
                         </Button>
-                      )}
-                      
-                      {proposal.status === 'accepted' && proposal.projectStatus === 'completed' && (
+                        <Button
+                          size="sm"
+                          color="danger"
+                          variant="flat"
+                          onPress={() => handleRejectProposal(proposal.id)}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                    
+                    {proposal.status === 'accepted' && proposal.projectStatus !== 'completed' && (
+                      <>
                         <Button
                           size="sm"
                           variant="flat"
-                          startContent={<Icon icon="lucide:star" />}
-                          onPress={() => {
-                            setSelectedProposal(proposal);
-                            onRatingOpen();
-                          }}
+                          color="primary"
+                          startContent={<Icon icon="lucide:message-circle" />}
+                          onPress={() => navigate(`/messages?user=${proposal.freelancerId}`)}
                         >
-                          Rate Freelancer
+                          Message
                         </Button>
-                      )}
-                    </div>
+                        <Button
+                          size="sm"
+                          color="success"
+                          startContent={<Icon icon="lucide:check-circle" />}
+                          onPress={() => handleMarkAsFinished(proposal.id)}
+                        >
+                          Mark as Finished
+                        </Button>
+                      </>
+                    )}
+                    
+                    {proposal.status === 'accepted' && proposal.projectStatus === 'completed' && (
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        startContent={<Icon icon="lucide:star" />}
+                        onPress={() => {
+                          setSelectedProposal(proposal);
+                          onRatingOpen();
+                        }}
+                      >
+                        Rate Freelancer
+                      </Button>
+                    )}
+                  </div>
                   </div>
                 </div>
               </CardBody>
