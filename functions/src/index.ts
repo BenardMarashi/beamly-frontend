@@ -604,7 +604,7 @@ export const createJobPaymentIntent = onCall(
   }
 );
 
-// Release Payment to Freelancer
+// In functions/src/index.ts, around line 625
 export const releasePaymentToFreelancer = onCall(
   {
     region: "us-central1",
@@ -694,7 +694,6 @@ export const releasePaymentToFreelancer = onCall(
     }
   }
 );
-
 // Create Subscription Checkout Session
 export const createSubscriptionCheckout = onCall(
   {
@@ -1069,10 +1068,12 @@ async function handleJobPaymentSucceeded(paymentIntent: any) {
     paidAt: FieldValue.serverTimestamp(),
   });
 
-  // Update proposal status
+  // Update proposal status WITH paymentStatus field
   await db.doc(`proposals/${proposalId}`).update({
     status: "accepted",
     acceptedAt: FieldValue.serverTimestamp(),
+    paymentStatus: "escrow",  // ADD THIS LINE - THIS IS WHAT'S MISSING!
+    projectStatus: "ongoing",   // ADD THIS LINE TOO!
   });
 
   // Update job status
@@ -1088,7 +1089,7 @@ async function handleJobPaymentSucceeded(paymentIntent: any) {
     userId: freelancerId,
     type: "proposal",
     title: "Proposal Accepted!",
-    body: "Your proposal has been accepted and the client has made the payment.",
+    body: "Your proposal has been accepted and the payment is secured in escrow.",
     data: { jobId, proposalId },
     read: false,
     createdAt: FieldValue.serverTimestamp(),
