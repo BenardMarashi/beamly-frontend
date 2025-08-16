@@ -34,7 +34,7 @@ interface PaymentIntent {
 
 export const StripeService = {
   // UPDATED: Add country parameter to createConnectAccount
-  async createConnectAccount(userId: string, country: string = 'US') {
+  async createConnectAccount(userId: string, country: string = 'CZ') {
     try {
       const createAccount = httpsCallable(fns, 'createStripeConnectAccount');
       const result = await createAccount({ 

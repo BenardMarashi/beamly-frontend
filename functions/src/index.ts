@@ -2,7 +2,20 @@
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
-import { defineSecret } from "firebase-functions/params";
+import { defineSecret, defineString } from "firebase-functions/params";
+
+
+// One source of truth for your site URL.
+const APP_URL = defineString("APP_URL");
+
+
+// Optional: strict CORS allowlist for callable functions (keep dev + prod)
+const ALLOWED_ORIGINS = [
+  "https://beamlyapp.com",
+  "https://www.beamlyapp.com",
+  "https://beamly-app.web.app",
+  "http://localhost:5173",
+];
 
 // Define secrets
 const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
@@ -287,7 +300,6 @@ function getDefaultCurrencyForCountry(country: string): string {
 export const createStripeConnectAccount = onCall(
   {
     region: "us-central1",
-    cors: true,
     maxInstances: 10,
     secrets: [stripeSecretKey],
   },
@@ -297,7 +309,7 @@ export const createStripeConnectAccount = onCall(
     }
 
     const { db, FieldValue } = getAdmin();
-    const { userId, country, businessType = "individual" } = request.data;
+    const { userId, businessType = "individual" } = request.data;
 
     // SECURITY FIX: Verify user can only create their own account
     if (userId !== request.auth.uid) {
@@ -305,8 +317,9 @@ export const createStripeConnectAccount = onCall(
     }
 
     // Validate country code
-    if (!country || !isValidCountryCode(country)) {
-      throw new HttpsError("invalid-argument", "Valid country code is required");
+    const country = "CZ";
+    if (!isValidCountryCode(country)) {
+      throw new HttpsError("invalid-argument", "Configured country is invalid");
     }
 
     try {
@@ -341,14 +354,49 @@ export const createStripeConnectAccount = onCall(
           country,
         },
       });
-
+      /**
+       * Prefill address so hosted onboarding shows it by default.
+       * IMPORTANT: Only prefill if these details are accurate for the specific freelancer.
+       * Stripe will still allow/require the user to edit to their real address if needed.
+       */
+      if (businessType === "individual") {
+        await stripe.accounts.update(account.id, {
+          individual: {
+            address: {
+              line1: "U Jam",
+              line2: "1340/11",
+              postal_code: "32300",
+              city: "Plzen",
+              country: "CZ",
+            },
+          },
+        });
+      } else {
+        // For company-type accounts:
+        await stripe.accounts.update(account.id, {
+          company: {
+            address: {
+              line1: "U Jam",
+              line2: "1340/11",
+              postal_code: "32300",
+              city: "Plzen",
+              country: "CZ",
+            },
+          },
+        });
+      }
       // Create account link for onboarding
+      // Build a safe base URL (client can optionally pass baseUrl for previews/dev)
+      const base =
+        (request.data?.baseUrl as string) || APP_URL.value() || "https://beamlyapp.com";
+
       const accountLink = await stripe.accountLinks.create({
         account: account.id,
-        refresh_url: `https://beamly-app.web.app/profile/edit?stripe_connect=refresh&country=${country}`,
-        return_url: `https://beamly-app.web.app/profile/edit?stripe_connect=success&country=${country}`,
+        refresh_url: `${base}/profile/edit?stripe_connect=refresh&country=${country}`,
+        return_url:  `${base}/profile/edit?stripe_connect=success&country=${country}`,
         type: "account_onboarding",
       });
+
 
       // Update user document with Stripe account ID and country
       await db.doc(`users/${userId}`).update({
@@ -384,7 +432,6 @@ export const createStripeConnectAccount = onCall(
 export const getStripeSupportedCountries = onCall(
   {
     region: "us-central1",
-    cors: true,
     maxInstances: 10,
   },
   async () => {
@@ -423,7 +470,6 @@ export const getStripeSupportedCountries = onCall(
 export const checkStripeConnectStatus = onCall(
   {
     region: "us-central1",
-    cors: true,
     maxInstances: 10,
     secrets: [stripeSecretKey],
   },
@@ -464,7 +510,6 @@ export const checkStripeConnectStatus = onCall(
 export const createStripeAccountLink = onCall(
   {
     region: "us-central1",
-    cors: true,
     maxInstances: 10,
     secrets: [stripeSecretKey],
   },
@@ -485,10 +530,13 @@ export const createStripeAccountLink = onCall(
       }
 
       const stripe = await getStripe();
+      const base =
+        (request.data?.baseUrl as string) || APP_URL.value() || "https://beamlyapp.com";
+
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: refreshUrl || "https://beamly-app.web.app/profile/edit?stripe_connect=refresh",
-        return_url: returnUrl || "https://beamly-app.web.app/profile/edit?stripe_connect=success",
+        refresh_url: refreshUrl || `${base}/profile/edit?stripe_connect=refresh`,
+        return_url:  returnUrl  || `${base}/profile/edit?stripe_connect=success`,
         type: "account_onboarding",
       });
 
@@ -507,7 +555,6 @@ export const createStripeAccountLink = onCall(
 export const createJobPaymentIntent = onCall(
   {
     region: "us-central1",
-    cors: true,
     maxInstances: 10,
     secrets: [stripeSecretKey],
   },
@@ -608,7 +655,6 @@ export const createJobPaymentIntent = onCall(
 export const releasePaymentToFreelancer = onCall(
   {
     region: "us-central1",
-    cors: true,
     maxInstances: 10,
     secrets: [stripeSecretKey],
   },
@@ -698,7 +744,6 @@ export const releasePaymentToFreelancer = onCall(
 export const createSubscriptionCheckout = onCall(
   {
     region: "us-central1",
-    cors: true,
     maxInstances: 10,
     secrets: [stripeSecretKey],
   },
@@ -766,7 +811,6 @@ export const createSubscriptionCheckout = onCall(
 export const cancelSubscription = onCall(
   {
     region: "us-central1",
-    cors: true,
     maxInstances: 10,
     secrets: [stripeSecretKey],
   },
@@ -807,7 +851,6 @@ export const cancelSubscription = onCall(
 export const createStripePayout = onCall(
   {
     region: "us-central1",
-    cors: true,
     maxInstances: 10,
     secrets: [stripeSecretKey],
   },
@@ -868,7 +911,6 @@ export const createStripePayout = onCall(
 export const getStripeBalance = onCall(
   {
     region: "us-central1",
-    cors: true,
     maxInstances: 10,
     secrets: [stripeSecretKey],
   },
@@ -1112,7 +1154,6 @@ async function handleConnectAccountUpdated(account: any) {
 // HTTP Function: Create Job
 export const createJob = onCall(
   {
-    cors: true,
     maxInstances: 10,
     region: "us-central1",
     timeoutSeconds: 60,
@@ -1232,7 +1273,6 @@ async function notifyFreelancersAboutNewJob(job: Record<string, unknown>) {
 // HTTP Function: Submit Proposal
 export const submitProposal = onCall(
   {
-    cors: true,
     maxInstances: 10,
     region: "us-central1",
     timeoutSeconds: 60,
@@ -1343,7 +1383,6 @@ export const submitProposal = onCall(
 // HTTP Function: Send Message
 export const sendMessage = onCall(
   {
-    cors: true,
     maxInstances: 10,
     region: "us-central1",
     timeoutSeconds: 60,
@@ -1461,7 +1500,6 @@ export const sendMessage = onCall(
 // HTTP Function: Upload file to avoid CORS issues
 export const uploadFile = onCall(
   {
-    cors: true,
     region: "us-central1",
     maxInstances: 10,
     timeoutSeconds: 120,
@@ -1678,7 +1716,7 @@ export const calculateDailyAnalytics = onSchedule(
 export const healthCheck = onRequest(
   {
     region: "us-central1",
-    cors: true,
+    cors: ALLOWED_ORIGINS,
   },
   (_, response) => {
     response.json({

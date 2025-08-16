@@ -142,7 +142,11 @@ const AppRoutes = () => {
           <Route path="/projects/manage" element={<Navigate to="/portfolio" replace />} />
           <Route path="/chat" element={<Navigate to="/messages" replace />} />
           <Route path="/home" element={<ProtectedRoute ><HomePage /></ProtectedRoute>} />
-          <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetailsPage /></ProtectedRoute>} />
+          <Route path="/projects/:id" element={
+              <ProtectedRoute requiresProfile={false}>
+                <ProjectDetailsPage />
+              </ProtectedRoute>
+            } />
           <Route path="/projects/:id/edit" element={<ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
         </Route>
 

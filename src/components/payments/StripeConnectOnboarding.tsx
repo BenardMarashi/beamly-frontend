@@ -20,7 +20,7 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
   const { user, userData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState<Country[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState('US');
+  const [selectedCountry, setSelectedCountry] = useState('CZ');
   const [accountStatus, setAccountStatus] = useState<{
     exists: boolean;
     detailsSubmitted: boolean;

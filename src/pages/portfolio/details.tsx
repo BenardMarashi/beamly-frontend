@@ -16,6 +16,7 @@ export const ProjectDetailsPage: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [freelancerName, setFreelancerName] = useState<string>('');
 
   useEffect(() => {
     if (id) {
@@ -30,21 +31,37 @@ export const ProjectDetailsPage: React.FC = () => {
       const projectDoc = await getDoc(doc(db, 'projects', id));
       
       if (projectDoc.exists()) {
+        const data = projectDoc.data();
         const projectData = {
           id: projectDoc.id,
-          ...projectDoc.data(),
-          createdAt: projectDoc.data().createdAt?.toDate?.() || new Date(),
-          updatedAt: projectDoc.data().updatedAt?.toDate?.() || new Date()
+          ...data,
+          freelancerId: data.freelancerId || data.userId,
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+          updatedAt: data.updatedAt?.toDate?.() || new Date()
         } as Project;
         
         setProject(projectData);
+        
+        // Fetch freelancer name for better UX (only if not the owner)
+        if (projectData.freelancerId && projectData.freelancerId !== user?.uid) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', projectData.freelancerId));
+            if (userDoc.exists()) {
+              setFreelancerName(userDoc.data().displayName || 'Freelancer');
+            }
+          } catch (error) {
+            console.error('Error fetching freelancer info:', error);
+          }
+        }
       } else {
         toast.error('Project not found');
-        navigate('/portfolio');
+        // Go back to previous page if project not found
+        navigate(-1);
       }
     } catch (error) {
       console.error('Error fetching project:', error);
       toast.error('Failed to load project');
+      navigate(-1);
     } finally {
       setLoading(false);
     }
@@ -57,6 +74,8 @@ export const ProjectDetailsPage: React.FC = () => {
     try {
       await deleteDoc(doc(db, 'projects', project.id));
       toast.success('Project deleted successfully');
+      
+      // Navigate back to portfolio after deletion
       navigate('/portfolio');
     } catch (error) {
       console.error('Error deleting project:', error);
@@ -76,8 +95,11 @@ export const ProjectDetailsPage: React.FC = () => {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <h1 className="text-2xl text-white mb-4">Project not found</h1>
-        <Button color="secondary" onPress={() => navigate('/portfolio')}>
-          Back to Portfolio
+        <Button 
+          color="secondary" 
+          onPress={() => navigate(-1)}
+        >
+          Go Back
         </Button>
       </div>
     );
@@ -92,14 +114,28 @@ export const ProjectDetailsPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        {/* Header */}
+        {/* Header with Conditional Navigation */}
         <div className="flex justify-between items-center mb-6">
           <Button
             variant="flat"
             startContent={<Icon icon="lucide:arrow-left" />}
-            onPress={() => navigate('/portfolio')}
+            onPress={() => {
+              if (isOwner) {
+                // Owner goes back to their portfolio management page
+                navigate('/portfolio');
+              } else if (project.freelancerId) {
+                // Visitors go back to the freelancer's profile
+                navigate(`/freelancer/${project.freelancerId}`);
+              } else {
+                // Fallback - go back to previous page
+                navigate(-1);
+              }
+            }}
           >
-            Back to Portfolio
+            {isOwner 
+              ? 'Back to Portfolio' 
+              : `Back to ${freelancerName ? `${freelancerName}'s` : ''} Profile`
+            }
           </Button>
           
           {isOwner && (
@@ -128,9 +164,11 @@ export const ProjectDetailsPage: React.FC = () => {
             {/* Title and Category */}
             <div className="flex justify-between items-start mb-6">
               <h1 className="text-3xl font-bold text-white">{project.title}</h1>
-              <Chip size="lg" variant="flat" className="bg-primary/20 text-primary">
-                {project.category}
-              </Chip>
+              {project.category && (
+                <Chip size="lg" variant="flat" className="bg-primary/20 text-primary">
+                  {project.category}
+                </Chip>
+              )}
             </div>
 
             {/* Images Gallery */}
@@ -166,13 +204,13 @@ export const ProjectDetailsPage: React.FC = () => {
                   )}
                 </div>
                 
-                {/* Image Thumbnails */}
+                {/* Thumbnail strip */}
                 {project.images.length > 1 && (
-                  <div className="flex gap-2 justify-center">
+                  <div className="flex gap-2 overflow-x-auto pb-2">
                     {project.images.map((image, index) => (
                       <button
                         key={index}
-                        className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
+                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
                           index === currentImageIndex 
                             ? 'border-primary' 
                             : 'border-transparent opacity-70 hover:opacity-100'
@@ -198,22 +236,80 @@ export const ProjectDetailsPage: React.FC = () => {
             </div>
 
             {/* Technologies */}
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold text-white mb-3">Technologies Used</h2>
-              <div className="flex flex-wrap gap-2">
-                {project.skills.map((skill, index) => (
-                  <Chip key={index} size="md" variant="flat" className="bg-white/10">
-                    {skill}
-                  </Chip>
-                ))}
+            {project.skills && project.skills.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-white mb-3">Technologies Used</h2>
+                <div className="flex flex-wrap gap-2">
+                  {project.skills.map((skill, index) => (
+                    <Chip key={index} size="md" variant="flat" className="bg-white/10">
+                      {skill}
+                    </Chip>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Additional Details (if available) */}
+            {(project.client || project.duration || project.role) && (
+              <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {project.client && (
+                  <div>
+                    <h3 className="text-sm text-gray-400 mb-1">Client</h3>
+                    <p className="text-white">{project.client}</p>
+                  </div>
+                )}
+                {project.duration && (
+                  <div>
+                    <h3 className="text-sm text-gray-400 mb-1">Duration</h3>
+                    <p className="text-white">{project.duration}</p>
+                  </div>
+                )}
+                {project.role && (
+                  <div>
+                    <h3 className="text-sm text-gray-400 mb-1">Role</h3>
+                    <p className="text-white">{project.role}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Challenges & Solutions (if available) */}
+            {(project.challenges || project.solution || project.impact) && (
+              <div className="mb-8 space-y-4">
+                {project.challenges && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Challenges</h3>
+                    <p className="text-gray-300">{project.challenges}</p>
+                  </div>
+                )}
+                {project.solution && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Solution</h3>
+                    <p className="text-gray-300">{project.solution}</p>
+                  </div>
+                )}
+                {project.impact && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Impact</h3>
+                    <p className="text-gray-300">{project.impact}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Client Testimonial (if available) */}
+            {project.testimonial && (
+              <div className="mb-8 p-4 bg-white/5 rounded-lg border-l-4 border-primary">
+                <h3 className="text-lg font-semibold text-white mb-2">Client Testimonial</h3>
+                <p className="text-gray-300 italic">"{project.testimonial}"</p>
+              </div>
+            )}
 
             {/* Links */}
-            {(project.liveUrl || project.githubUrl) && (
+            {(project.liveUrl || project.githubUrl || project.demoUrl) && (
               <div className="mb-8">
                 <h2 className="text-xl font-semibold text-white mb-3">Links</h2>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4">
                   {project.liveUrl && (
                     <Button
                       color="primary"
@@ -233,14 +329,26 @@ export const ProjectDetailsPage: React.FC = () => {
                       View Source Code
                     </Button>
                   )}
+                  {project.demoUrl && (
+                    <Button
+                      color="secondary"
+                      variant="flat"
+                      startContent={<Icon icon="lucide:play-circle" />}
+                      onPress={() => window.open(project.demoUrl, '_blank')}
+                    >
+                      Watch Demo
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
 
             {/* Metadata */}
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 border-t border-white/10 pt-4">
               <p>Created: {project.createdAt?.toLocaleDateString()}</p>
-              <p>Last updated: {project.updatedAt?.toLocaleDateString()}</p>
+              {project.updatedAt && (
+                <p>Last updated: {project.updatedAt.toLocaleDateString()}</p>
+              )}
             </div>
           </CardBody>
         </Card>

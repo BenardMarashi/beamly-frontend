@@ -20,6 +20,7 @@ import {
   Radio
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
+import { increment } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, getDoc, addDoc } from 'firebase/firestore';
@@ -249,6 +250,10 @@ const handleAcceptProposal = async (proposal: any) => {
           completedAt: new Date()
         });
 
+        await updateDoc(doc(db, 'users', proposal.freelancerId), {
+          completedProjects: increment(1)
+        });
+
         toast.success('Project completed and payment released!');
         
         // Open rating modal
@@ -263,26 +268,37 @@ const handleAcceptProposal = async (proposal: any) => {
     }
   };
 
-  const handleCompleteProject = async (proposalId: string) => {
-    if (!window.confirm('Mark this project as completed? You will be able to rate the freelancer.')) return;
+    const handleCompleteProject = async (proposalId: string) => {
+      if (!window.confirm('Mark this project as completed? You will be able to rate the freelancer.')) return;
 
-    try {
-      await updateDoc(doc(db, 'proposals', proposalId), {
-        projectStatus: 'completed',
-        completedAt: new Date()
-      });
-      
-      // Open rating modal
-      const proposal = proposals.find(p => p.id === proposalId);
-      if (proposal) {
-        setSelectedProposal(proposal);
-        onRatingOpen();
+      try {
+        // Get the proposal first
+        const proposal = proposals.find(p => p.id === proposalId);
+        if (!proposal) {
+          toast.error('Proposal not found');
+          return;
+        }
+
+        await updateDoc(doc(db, 'proposals', proposalId), {
+          projectStatus: 'completed',
+          completedAt: new Date()
+        });
+        
+        // ADD THIS HERE - Increment freelancer's completed projects
+        await updateDoc(doc(db, 'users', proposal.freelancerId), {
+          completedProjects: increment(1)
+        });
+        
+        // Open rating modal
+        if (proposal) {
+          setSelectedProposal(proposal);
+          onRatingOpen();
+        }
+      } catch (error) {
+        console.error('Error completing project:', error);
+        toast.error('Failed to complete project');
       }
-    } catch (error) {
-      console.error('Error completing project:', error);
-      toast.error('Failed to complete project');
-    }
-  };
+    };
 
   const handleSubmitRating = async () => {
     if (!selectedProposal || !rating) return;
