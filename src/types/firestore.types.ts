@@ -385,38 +385,36 @@ export interface Analytics {
 // Collection: projects (freelancer portfolios)
 export interface Project {
   id: string;
-  
-  // Freelancer Info
   freelancerId: string;
-  freelancerName: string;
+  freelancerName?: string;
   freelancerPhotoURL?: string;
-  
-  // Project Details
   title: string;
   description: string;
   category: string;
   skills: string[];
-  
-  // Images
-  images: string[]; // URLs to project images
-  thumbnailUrl?: string; // Main thumbnail image
-  
-  // Links
+  images: string[];
+  thumbnailUrl?: string;
   liveUrl?: string;
   githubUrl?: string;
-  
-  // Metrics
-  viewCount: number;
-  likeCount: number;
-  
-  // Status
-  isPublished: boolean;
-  isFeatured: boolean;
-  
-  // Timestamps
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt?: Date;
+  demoUrl?: string;
+  client?: string;
+  duration?: string;
+  teamSize?: number;
+  role?: string;
+  technologies?: string[];
+  challenges?: string;
+  solution?: string;
+  impact?: string;
+  testimonial?: string;
+  viewCount?: number;
+  likeCount?: number;
+  shareCount?: number;
+  savedBy?: string[];
+  isPublished?: boolean;
+  isFeatured?: boolean;
+  isArchived?: boolean;
+  createdAt: any;
+  updatedAt: any;
 }
 
 // Collection: verifications (ID verification requests)

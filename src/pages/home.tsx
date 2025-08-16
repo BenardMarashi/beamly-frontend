@@ -27,6 +27,7 @@ interface Freelancer {
   title?: string;
   photoURL?: string;
   rating?: number;
+  ratingCount?: number;
   completedProjects?: number;
   skills?: string[];
 }
@@ -197,7 +198,7 @@ export const HomePage: React.FC = () => {
                   displayName: data.displayName || t('home.unknownUser'),
                   title: data.title || '',
                   photoURL: data.photoURL || '',
-                  rating: data.rating || 5.0,
+                  rating: data.rating || 0,
                   completedProjects: data.completedProjects || 0,
                   skills: data.skills || []
                 } as Freelancer;
@@ -221,7 +222,8 @@ export const HomePage: React.FC = () => {
                       displayName: data.displayName || t('home.unknownUser'),
                       title: data.title || '',
                       photoURL: data.photoURL || '',
-                      rating: data.rating || 5.0,
+                      rating: data.rating || 0,  // Change from 5.0 to 0
+                      ratingCount: data.ratingCount || data.reviewCount || 0,  // Add this
                       completedProjects: data.completedProjects || 0,
                       skills: data.skills || []
                     } as Freelancer;
@@ -251,7 +253,8 @@ export const HomePage: React.FC = () => {
                   displayName: data.displayName || t('home.unknownUser'),
                   title: data.title || '',
                   photoURL: data.photoURL || '',
-                  rating: data.rating || 5.0,
+                  rating: data.rating || 0,  // Change from 5.0 to 0
+                  ratingCount: data.ratingCount || data.reviewCount || 0,  // Add this
                   completedProjects: data.completedProjects || 0,
                   skills: data.skills || []
                 } as Freelancer;
@@ -574,18 +577,31 @@ export const HomePage: React.FC = () => {
                     <p className={`text-xs truncate w-full ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>
                       {freelancer.title || freelancer.skills?.[0] || t('home.freelancer')}
                     </p>
-                    <div className="flex items-center mt-1 text-xs">
-                      <Icon icon="lucide:star" className="text-beamly-secondary mr-1 w-3 h-3" />
-                      <span className={isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}>
-                        {freelancer.rating || 5.0}
-                      </span>
+                    
+                    {/* Updated Rating Display */}
+                    <div className="mt-1">
+                      <div className="flex items-center justify-center">
+                        {/* Display stars based on actual rating */}
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Icon 
+                            key={star}
+                            icon={star <= Math.round(freelancer.rating || 0) ? "lucide:star" : "lucide:star"} 
+                            className={`w-3 h-3 ${star <= Math.round(freelancer.rating || 0) ? 'text-beamly-secondary' : 'text-gray-400'}`}
+                          />
+                        ))}
+                      </div>
+                      <div className={`text-xs mt-1 ${isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}`}>
+                        {freelancer.rating ? freelancer.rating.toFixed(1) : '0.0'}
+                      </div>
                     </div>
+                    
+                    {/* Reviews Count */}
                     <div className="mt-1">
                       <div className="text-beamly-secondary font-bold text-lg">
-                        {freelancer.completedProjects || 0}
+                        {freelancer.ratingCount || 0}
                       </div>
                       <div className={`text-xs ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {t('home.projects')}
+                        {t('home.reviews')}
                       </div>
                     </div>
                   </CardBody>

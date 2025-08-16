@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardBody, Input, Button, RadioGroup, Radio, Checkbox, Tabs, Tab } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useSignUp, useSignIn } from '../hooks/use-auth';
 import { toast } from 'react-hot-toast';
@@ -13,12 +13,14 @@ export const SignupPage: React.FC = () => {
   const { signUp, loading: signupLoading } = useSignUp();
   const { signInWithGoogle, loading: googleLoading } = useSignIn();
   
+const [searchParams] = useSearchParams();
+const initialType = searchParams.get("type") === "company" ? "client" : "freelancer";
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     password: "",
-    accountType: "freelancer",
-    // Add freelancer/company fields to state
+    accountType: initialType,   // <-- init from URL
     skills: "",
     experience: "",
     companyName: "",

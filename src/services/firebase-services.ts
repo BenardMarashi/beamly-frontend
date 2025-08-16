@@ -1664,14 +1664,14 @@ export const ReviewService = {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           const currentRating = userData.rating || 0;
-          const reviewCount = userData.reviewCount || 0;
+          const ratingCount = userData.ratingCount || 0;
           
           // Calculate new average rating
-          const newRating = ((currentRating * reviewCount) + reviewData.rating) / (reviewCount + 1);
+          const newRating = ((currentRating * ratingCount) + reviewData.rating) / (ratingCount + 1);
           
           await updateDoc(userRef, {
             rating: newRating,
-            reviewCount: increment(1)
+            ratingCount: increment(1)
           });
         }
       }

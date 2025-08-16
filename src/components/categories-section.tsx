@@ -81,26 +81,27 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({ setCurrent
           </p>
         </motion.div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 auto-rows-[1fr] items-stretch">
           {categories.map((category, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="h-full"
             >
-              <Card 
-                className="glass-effect border-none cursor-pointer hover:shadow-xl transition-all"
-                isPressable
-                onPress={() => setCurrentPage(category.page)}
-              >
-                <CardBody className="p-6 text-center">
+                <Card
+                  className="glass-effect border-none cursor-pointer hover:shadow-xl transition-all h-full w-full min-w-0 overflow-hidden"
+                  isPressable
+                  onPress={() => setCurrentPage(category.page)}
+                >
+                <CardBody className="h-40 md:h-52 flex flex-col items-center justify-center p-6 text-center overflow-hidden">
                   <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r ${category.color} flex items-center justify-center`}>
                     <Icon icon={category.icon} className="text-white text-2xl" />
                   </div>
-                  <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                  <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'} leading-tight break-words`}>
                     {category.name}
                   </h3>
                 </CardBody>
@@ -119,7 +120,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({ setCurrent
             size="lg"
             variant="bordered"
             className={`${isDarkMode ? 'border-white/20 text-white' : 'border-gray-300 text-gray-900'}`}
-            onPress={() => setCurrentPage('all-categories')}
+            onPress={() => setCurrentPage('browse-freelancers')}
             endContent={<Icon icon="lucide:arrow-right" />}
           >
             {t('categories.viewAll')}

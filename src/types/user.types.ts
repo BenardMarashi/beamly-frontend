@@ -12,7 +12,7 @@ export interface UserData {
   photoURL?: string;
   userType: 'freelancer' | 'client' | 'both';
   profileCompleted?: boolean;
-  
+  category?: string;
   // Basic Info
   bio?: string;
   

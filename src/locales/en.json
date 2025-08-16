@@ -1,4 +1,5 @@
 {
+
   "common": {
     "login": "Login",
     "signup": "Sign Up",
@@ -714,7 +715,7 @@
     "titleEnd": "services for your business",
     "subtitle": "Connect with talented freelancers and get your projects done quickly and efficiently on Beamly.",
     "searchPlaceholder": "Search for services...",
-    "search": "Search",
+    "searchButton": "Search",
     "popular": "Popular",
     "trustedBy": "Trusted by leading brands",
     "categories": {
@@ -734,16 +735,20 @@
       "browseFreelancers": "Browse Freelancers",
       "howItWorks": "See How It Works",
       "startFreelancing": "Start Freelancing"
-    }
+    },
+    "joinAsFreelancer": "Join as a Freelancer",
+    "hireFreelancers": "Hire Freelancers"
   },
   "categories": {
     "explore": "Explore Popular",
     "title": "Categories",
+    "viewAll": "View All",
     "subtitle": "Find services in top categories to help you achieve your goals",
     "browseAll": "Browse All Categories",
     "findTalented": "Find talented freelancers",
     "items": {
       "graphicDesign": "Graphic Design",
+      "ai":"AI/Machine Learning",
       "webDevelopment": "Web Development",
       "digitalMarketing": "Digital Marketing",
       "writingTranslation": "Writing & Translation",

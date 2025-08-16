@@ -16,7 +16,7 @@ interface FreelancerData {
   photoURL: string;
   hourlyRate: number;
   rating: number;
-  reviewCount: number;
+  ratingCount: number;
   completedProjects: number;
   skills: string[];
   experience: string;
@@ -46,7 +46,11 @@ interface Review {
   clientName: string;
   clientPhotoURL: string;
   rating: number;
+  text?: string;      // Add alternative field names
+  content?: string;   // that might be in Firestore
   comment: string;
+  review?: string;
+  message?: string;
   projectId?: string;
   createdAt: any;
 }
@@ -96,7 +100,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
           photoURL: userData.photoURL || `https://ui-avatars.com/api/?name=${userData.displayName || 'User'}&background=FCE90D&color=011241`,
           hourlyRate: userData.hourlyRate || 0,
           rating: userData.rating || 0,
-          reviewCount: userData.reviewCount || 0,
+          ratingCount: userData.ratingCount || 0,
           completedProjects: userData.completedProjects || 0,
           skills: userData.skills || [],
           experience: userData.experience || '',
@@ -130,10 +134,16 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
           limit(5)
         );
         const reviewsSnapshot = await getDocs(reviewsQuery);
-        const reviewsData = reviewsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Review));
+        const reviewsData = reviewsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          console.log('Review data:', data); // Debug log to see field names
+          return {
+            id: doc.id,
+            ...data,
+            // Ensure we get the comment from various possible field names
+            comment: data.comment || data.text || data.content || data.message || data.review || ''
+          } as Review;
+        });
         setReviews(reviewsData);
         
       } else {
@@ -260,7 +270,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   ))}
                 </div>
                 <span className="text-gray-300 text-sm ml-2">
-                  {freelancer.rating.toFixed(1)} ({freelancer.reviewCount} reviews)
+                  {freelancer.rating.toFixed(1)}
                 </span>
               </div>
               
@@ -349,7 +359,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   <Card 
                     key={project.id}
                     isPressable
-                    onPress={() => navigate(`/project/${project.id}`)}
+                    onPress={() => navigate(`/projects/${project.id}`)}
                     className="glass-card hover:scale-105 transition-transform cursor-pointer"
                   >
                     <CardBody className="p-0">
@@ -460,7 +470,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
             <div className="glass-effect p-6 rounded-xl">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Reviews</h2>
-                <div className="flex items-center">
+                <div className="flex items-center gap-2">
                   <div className="flex">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Icon 
@@ -470,24 +480,31 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                       />
                     ))}
                   </div>
-                  <span className="text-gray-300 text-sm ml-2">
-                    {freelancer.rating.toFixed(1)} ({freelancer.reviewCount} reviews)
+                  <span className="text-white font-semibold">
+                    {freelancer.rating.toFixed(1)}
+                  </span>
+                  <span className="text-gray-400 text-sm">
+                    ({freelancer.ratingCount} {freelancer.ratingCount === 1 ? 'review' : 'reviews'})
                   </span>
                 </div>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {reviews.map((review) => (
-                  <div key={review.id} className="border-t border-white/10 pt-4">
-                    <div className="flex justify-between">
-                      <div className="flex items-center">
+                  <div key={review.id} className="border-b border-white/10 pb-4 last:border-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-start gap-3">
                         <Avatar
                           src={review.clientPhotoURL || `https://ui-avatars.com/api/?name=${review.clientName}&background=FCE90D&color=011241`}
-                          className="w-10 h-10 mr-3"
+                          className="w-10 h-10"
                         />
-                        <div>
-                          <h3 className="font-semibold text-white">{review.clientName}</h3>
-                          <div className="flex">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-white">{review.clientName}</h3>
+                            <span className="text-gray-400 text-sm">•</span>
+                            <span className="text-gray-400 text-sm">{formatReviewDate(review.createdAt)}</span>
+                          </div>
+                          <div className="flex mb-2">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Icon 
                                 key={star} 
@@ -496,25 +513,26 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                               />
                             ))}
                           </div>
+                          {/* Display the review comment with proper styling */}
+                          <p className="text-gray-300 text-sm leading-relaxed">
+                            {review.comment || review.text || review.content || review.message || review.review || 
+                            <span className="italic text-gray-500">No comment provided</span>}
+                          </p>
                         </div>
                       </div>
-                      <span className="text-gray-400 text-sm">{formatReviewDate(review.createdAt)}</span>
                     </div>
-                    <p className="text-gray-300 mt-2">
-                      {review.comment}
-                    </p>
                   </div>
                 ))}
               </div>
               
-              {freelancer.reviewCount > 5 && (
-                <div className="mt-6 text-center">
-                  <Button 
-                    variant="light" 
-                    className="text-white"
+              {freelancer.ratingCount > reviews.length && (
+                <div className="mt-4 text-center">
+                  <Button
+                    variant="light"
+                    className="text-beamly-secondary"
                     onPress={() => navigate(`/freelancer/${id}/reviews`)}
                   >
-                    See All Reviews ({freelancer.reviewCount})
+                    View all {freelancer.ratingCount} reviews
                   </Button>
                 </div>
               )}

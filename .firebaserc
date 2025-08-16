@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "beamly-app"
-  }
+  },
+  "targets": {
+    "beamly-app": {
+      "hosting": {
+        "dev": [
+          "beamly-app"
+        ],
+        "prod": [
+          "beamlyapp-prod"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
