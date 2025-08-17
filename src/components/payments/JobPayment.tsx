@@ -93,13 +93,13 @@ const PaymentForm: React.FC<JobPaymentProps> = ({
               <span className="font-medium text-lg">${amount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Platform Fee (10%):</span>
-              <span className="font-medium">${(amount * 0.1).toFixed(2)}</span>
+              <span className="text-gray-600">Platform Fee (5%):</span>
+              <span className="font-medium">${(amount * 0.05).toFixed(2)}</span>
             </div>
             <Divider />
             <div className="flex justify-between">
               <span className="text-gray-600 font-semibold">Total:</span>
-              <span className="font-bold text-xl">${(amount * 1.1).toFixed(2)}</span>
+              <span className="font-bold text-xl">${(amount * 1.05).toFixed(2)}</span>
             </div>
           </div>
 
@@ -152,7 +152,7 @@ const PaymentForm: React.FC<JobPaymentProps> = ({
               isDisabled={!stripe || loading}
               className="flex-1"
             >
-              Pay ${(amount * 1.1).toFixed(2)}
+              Pay ${(amount * 1.05).toFixed(2)}
             </Button>
           </div>
 

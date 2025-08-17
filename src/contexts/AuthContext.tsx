@@ -88,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             languages: data.languages || [],
             savedProfiles: data.savedProfiles || [],
             viewCount: data.viewCount || 0,
+            category: data.category || '',
             
             // Stripe Connect fields
             stripeConnectAccountId: data.stripeConnectAccountId,

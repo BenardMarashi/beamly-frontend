@@ -52,6 +52,8 @@ interface UserData {
   experience?: string;
   portfolio?: string[];
   certifications?: string[];
+  isPro: false, // ADD THIS LINE
+  subscriptionPlan: null, // ADD THIS LINE
   education?: string;
   languages?: string[];
   createdAt: Timestamp | FieldValue;

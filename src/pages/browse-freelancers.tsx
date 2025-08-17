@@ -35,6 +35,7 @@ interface Freelancer {
   email?: string;
   location?: string;
   profileCompleted?: boolean;
+  isPro?: boolean;
 }
 
 const BrowseFreelancersPage: React.FC = () => {
@@ -62,15 +63,15 @@ const BrowseFreelancersPage: React.FC = () => {
   const categories = [
     { value: 'all', label: 'All Categories' },
     { value: 'design', label: 'Design & Creative' },
-    { value: 'development', label: 'Development' },
-    { value: 'writing', label: 'Writing' },
-    { value: 'marketing', label: 'Marketing' },
+    { value: 'development', label: 'Web & Software Development' },
+    { value: 'writing', label: 'Writing & Translation' },
+    { value: 'marketing', label: 'Digital Marketing' },
     { value: 'video', label: 'Video & Animation' },
     { value: 'music', label: 'Music & Audio' },
-    { value: 'business', label: 'Business' },
-    { value: 'data', label: 'Data Science' },
+    { value: 'business', label: 'Business & Consulting' },
+    { value: 'data', label: 'Data Science & Analytics' },
     { value: 'photography', label: 'Photography' },
-    { value: 'translation', label: 'Translation' }
+    { value: 'translation', label: 'Translation & Languages' }
   ];
 
   const budgetRanges = [
@@ -98,13 +99,12 @@ const BrowseFreelancersPage: React.FC = () => {
     return skillsMap[category] || [];
   };
   
+
 const fetchFreelancers = React.useCallback(async (reset = false) => {
-  // Remove the loading check that blocks subsequent calls
-  // if (!reset && loading) return; // REMOVE THIS LINE
+  const scrollPosition = window.scrollY;
   
   setLoading(true);
   try {
-    // If reset, clear the last document reference
     if (reset) {
       lastDocRef.current = null;
     }
@@ -115,36 +115,12 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
     
     // Add category filter if not 'all'
     if (selectedCategory !== 'all') {
-      // Filter by category field directly
       constraints.push(where('category', '==', selectedCategory));
-      
-      // Optional: Also include skills-based filtering as a fallback
-      // This will catch users who have relevant skills but haven't set category yet
-      /*
-      const categorySkills = getCategorySkills(selectedCategory);
-      if (categorySkills.length > 0) {
-        // Note: You can't use both == and array-contains-any in same query
-        // So choose one approach or do client-side filtering
-      }
-      */
     }
     
-    // Add sorting
-    switch (sortBy) {
-      case 'rating':
-        constraints.push(orderBy('rating', 'desc'));
-        break;
-      case 'completedJobs':
-        constraints.push(orderBy('completedJobs', 'desc'));
-        break;
-      case 'hourlyRate':
-        constraints.push(orderBy('hourlyRate', 'asc'));
-        break;
-      default:
-        constraints.push(orderBy('createdAt', 'desc'));
-    }
+    // Always use createdAt for ordering to avoid errors
+    constraints.push(orderBy('createdAt', 'desc'));
     
-    // Only add startAfter if we're loading more (not resetting) and have a reference
     if (!reset && lastDocRef.current) {
       constraints.push(startAfter(lastDocRef.current));
     }
@@ -152,19 +128,30 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
     constraints.push(limit(12));
     
     const q = query(collection(db, 'users'), ...constraints);
-    const querySnapshot = await getDocs(q);
     
-    // Store the last document BEFORE filtering for correct pagination
+    const querySnapshot = await getDocs(q);
+    console.log('Query returned', querySnapshot.docs.length, 'documents');
+    
     if (querySnapshot.docs.length > 0) {
       lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
     }
     
-    let newFreelancers = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Freelancer));
+    let newFreelancers = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log(`User ${doc.id}: isPro=${data.isPro}, name=${data.displayName}`);
+      
+      return {
+        id: doc.id,
+        ...data,
+        isPro: data.isPro === true,
+        rating: data.rating || 0,
+        completedJobs: data.completedJobs || 0,
+        hourlyRate: data.hourlyRate || '0',
+        createdAt: data.createdAt || { seconds: 0 }
+      } as Freelancer;
+    });
     
-    // Apply budget filter in memory
+    // Apply budget filter
     if (budgetFilter !== 'all') {
       const [min, max] = budgetFilter.split('-').map(v => v === '100+' ? '100' : v);
       const minValue = parseInt(min);
@@ -178,8 +165,8 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
     }
     
     // Apply search filter
-    if (searchQuery) {
-      const searchLower = searchQuery.toLowerCase();
+    if (searchQuery && searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase().trim();
       newFreelancers = newFreelancers.filter(freelancer => 
         freelancer.displayName?.toLowerCase().includes(searchLower) ||
         freelancer.bio?.toLowerCase().includes(searchLower) ||
@@ -189,16 +176,90 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
       );
     }
     
-    // Set freelancers based on reset flag
+    // COMPLETELY REWRITTEN SORT FUNCTION
+    const sortFreelancers = (list: Freelancer[]): Freelancer[] => {
+      // Separate Pro and non-Pro users
+      const proUsers: Freelancer[] = [];
+      const regularUsers: Freelancer[] = [];
+      
+      list.forEach(user => {
+        if (user.isPro === true) {
+          proUsers.push(user);
+        } else {
+          regularUsers.push(user);
+        }
+      });
+      
+      console.log(`Found ${proUsers.length} Pro users and ${regularUsers.length} regular users`);
+      
+      // Sort function for each group
+      const compareFunction = (a: Freelancer, b: Freelancer): number => {
+        switch (sortBy) {
+          case 'rating':
+            return (b.rating || 0) - (a.rating || 0);
+          case 'completedJobs':
+            return (b.completedJobs || 0) - (a.completedJobs || 0);
+          case 'hourlyRate':
+            const aRate = parseInt(a.hourlyRate || '0');
+            const bRate = parseInt(b.hourlyRate || '0');
+            return aRate - bRate;
+          case 'newest':
+          default:
+            const aTime = a.createdAt?.seconds || 0;
+            const bTime = b.createdAt?.seconds || 0;
+            return bTime - aTime;
+        }
+      };
+      
+      // Sort each group WITHOUT MUTATION
+      const sortedProUsers = [...proUsers].sort(compareFunction);
+      const sortedRegularUsers = [...regularUsers].sort(compareFunction);
+      
+      // Combine with Pro users FIRST
+      const result = [...sortedProUsers, ...sortedRegularUsers];
+      
+      console.log('First 3 after sorting:', result.slice(0, 3).map(f => ({
+        name: f.displayName,
+        isPro: f.isPro
+      })));
+      
+      return result;
+    };
+    
+    // Apply sorting and set state
     if (reset) {
-      setFreelancers(newFreelancers);
+      // Initial load or filter change
+      const sorted = sortFreelancers(newFreelancers);
+      setFreelancers(sorted);
     } else {
-      // Append to existing freelancers when loading more
-      setFreelancers(prev => [...prev, ...newFreelancers]);
+      // Load more
+      setFreelancers(prev => {
+        const combined = [...prev, ...newFreelancers];
+        const sorted = sortFreelancers(combined);
+        
+        // Restore scroll position
+        requestAnimationFrame(() => {
+          window.scrollTo({
+            top: scrollPosition,
+            behavior: 'instant'
+          });
+        });
+        
+        return sorted;
+      });
     }
     
-    // Update hasMore based on the original query results (not filtered results)
     setHasMore(querySnapshot.docs.length === 12);
+    
+    if (!reset && querySnapshot.docs.length > 0) {
+      setTimeout(() => {
+        window.scrollTo({
+          top: scrollPosition,
+          behavior: 'instant'
+        });
+      }, 50);
+    }
+    
   } catch (error) {
     console.error('Error fetching freelancers:', error);
     if (reset) {
@@ -208,7 +269,7 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
   } finally {
     setLoading(false);
   }
-}, [selectedCategory, sortBy, searchQuery, budgetFilter]); // REMOVE 'loading' from dependencies
+}, [selectedCategory, sortBy, searchQuery, budgetFilter]);
 
   useEffect(() => {
     setFreelancers([]);
@@ -294,58 +355,79 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Select
-                label="Category"
-                selectedKeys={[selectedCategory]}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full"
-                classNames={{
-                  trigger: "bg-white/10 border-white/20 text-white",
-                  value: "text-white",
-                  label: "text-gray-400"
-                }}
-              >
-                {categories.map((category) => (
-                  <SelectItem key={category.value} value={category.value}>
-                    {category.label}
-                  </SelectItem>
-                ))}
-              </Select>
-              
-              <Select
-                label="Budget Range"
-                selectedKeys={[budgetFilter]}
-                onChange={(e) => setBudgetFilter(e.target.value)}
-                className="w-full"
-                classNames={{
-                  trigger: "bg-white/10 border-white/20 text-white",
-                  value: "text-white",
-                  label: "text-gray-400"
-                }}
-              >
-                {budgetRanges.map((range) => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </Select>
-              
-              <Select
-                label="Sort By"
-                selectedKeys={[sortBy]}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full"
-                classNames={{
-                  trigger: "bg-white/10 border-white/20 text-white",
-                  value: "text-white",
-                  label: "text-gray-400"
-                }}
-              >
-                <SelectItem key="rating" value="rating">Highest Rated</SelectItem>
-                <SelectItem key="completedJobs" value="completedJobs">Most Projects</SelectItem>
-                <SelectItem key="hourlyRate" value="hourlyRate">Lowest Price</SelectItem>
-                <SelectItem key="newest" value="newest">Newest</SelectItem>
-              </Select>
+              {/* Category Select */}
+            <Select
+              label="Category"
+              selectedKeys={[selectedCategory]}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string;
+                if (selected) {
+                  setSelectedCategory(selected);
+                }
+              }}
+              className="w-full"
+              classNames={{
+                trigger: "bg-white/10 border-white/20 text-white",
+                value: "text-white",
+                label: "text-gray-400"
+              }}
+              disallowEmptySelection={true}
+            >
+              {categories.map((category) => (
+                <SelectItem key={category.value} value={category.value}>
+                  {category.label}
+                </SelectItem>
+              ))}
+            </Select>
+
+            {/* Budget Range Select */}
+            <Select
+              label="Budget Range"
+              selectedKeys={[budgetFilter]}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string;
+                if (selected) {
+                  setBudgetFilter(selected);
+                }
+              }}
+              className="w-full"
+              classNames={{
+                trigger: "bg-white/10 border-white/20 text-white",
+                value: "text-white",
+                label: "text-gray-400"
+              }}
+              disallowEmptySelection={true}
+            >
+              {budgetRanges.map((range) => (
+                <SelectItem key={range.value} value={range.value}>
+                  {range.label}
+                </SelectItem>
+              ))}
+            </Select>
+
+            {/* Sort By Select - WITH DEFAULT OPTION */}
+            <Select
+              label="Sort By"
+              selectedKeys={sortBy ? [sortBy] : []}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string;
+                if (selected) {
+                  setSortBy(selected);
+                }
+              }}
+              className="w-full"
+              classNames={{
+                trigger: "bg-white/10 border-white/20 text-white",
+                value: "text-white",
+                label: "text-gray-400"
+              }}
+              placeholder="Select sorting"
+            >
+              <SelectItem key="rating" value="rating">Highest Rated</SelectItem>
+              <SelectItem key="completedJobs" value="completedJobs">Most Projects</SelectItem>
+              <SelectItem key="hourlyRate" value="hourlyRate">Lowest Price</SelectItem>
+              <SelectItem key="newest" value="newest">Newest</SelectItem>
+            </Select>
             </div>
           </form>
         </div>
@@ -403,24 +485,28 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
                             }}
                           />
                         )}
-                        <div className="flex-1 min-w-0"> {/* Add min-w-0 */}
-                          <h3 className="font-semibold text-white truncate"> {/* Add truncate */}
-                            {freelancer.displayName || 'Anonymous Freelancer'}
-                          </h3>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-white truncate flex-1">
+                              {freelancer.displayName || 'Anonymous Freelancer'}
+                            </h3>
+                            {freelancer.isPro && (
+                              <Chip
+                                size="sm"
+                                color="warning"
+                                variant="flat"
+                                className="flex-shrink-0"
+                                startContent={<Icon icon="lucide:crown" className="text-xs" />}
+                              >
+                                PRO
+                              </Chip>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-300 truncate">
                             {freelancer.title || getExperienceLevelLabel(freelancer.experienceLevel || '')}
                           </p>
-                          {freelancer.location && (
-                            <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
-                              <Icon icon="lucide:map-pin" className="w-3 h-3 flex-shrink-0" />
-                              <span className="truncate">{freelancer.location}</span>
-                            </p>
-                          )}
-                        </div>
-                        {freelancer.isVerified && (
-                          <Icon icon="lucide:check-circle" className="text-beamly-secondary flex-shrink-0" />
-                        )}
                       </div>
+                    </div>
                       
                       {/* Bio already has line-clamp-2 which is good */}
                       
@@ -472,13 +558,22 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
                 </motion.div>
               ))}
             </div>
-            {hasMore && !loading && ( // Only show when not loading
+            {hasMore && !loading && (
               <div className="text-center mt-8">
                 <Button
                   color="secondary"
                   variant="bordered"
                   size="lg"
-                  onPress={() => fetchFreelancers(false)} // Explicitly pass false
+                  onPress={() => {
+                    const currentPosition = window.scrollY;
+                    fetchFreelancers(false);
+                    setTimeout(() => {
+                      window.scrollTo({
+                        top: currentPosition,
+                        behavior: 'instant'
+                      });
+                    }, 100);
+                  }}
                   disabled={loading}
                   className="font-medium"
                 >

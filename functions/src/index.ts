@@ -197,6 +197,8 @@ export const onProposalAccepted = onDocumentUpdated(
   }
 );
 
+
+
 // Trigger: Send notification for new messages
 export const onNewMessage = onDocumentCreated(
   {
@@ -566,18 +568,7 @@ export const createJobPaymentIntent = onCall(
     const { db, FieldValue } = getAdmin();
     const { jobId, proposalId, amount } = request.data;
 
-    // ADD VALIDATION HERE
     console.log("Received payment request:", { jobId, proposalId, amount });
-
-    // Validate amount
-    const numericAmount = parseFloat(amount);
-    if (isNaN(numericAmount) || numericAmount < 0.50) {
-      console.error("Invalid amount:", amount, "Parsed:", numericAmount);
-      throw new HttpsError(
-        "invalid-argument",
-        `Amount must be at least $0.50. Received: ${amount}`
-      );
-    }
 
     try {
       // Get job and proposal details
@@ -593,24 +584,26 @@ export const createJobPaymentIntent = onCall(
         throw new HttpsError("not-found", "Proposal data not found");
       }
 
-      // Create payment intent with validated amount
-      const stripe = await getStripe();
+      // Validate and calculate amount with client commission
+      const numericAmount = typeof amount === "string" ?
+        parseFloat(amount.replace(/[^0-9.]/g, "")) : amount;
 
-      // Ensure we're sending cents (Stripe expects smallest currency unit)
-      const amountInCents = Math.round(numericAmount * 100);
+      // Add 5% client commission
+      const clientCommissionRate = 0.05;
+      const totalAmount = numericAmount * (1 + clientCommissionRate);
+      const amountInCents = Math.round(totalAmount * 100);
 
-      console.log("Creating payment intent for cents:", amountInCents);
-
-      // Double-check the amount in cents
-      if (amountInCents < 50) { // 50 cents minimum
+      if (amountInCents < 50) {
         throw new HttpsError(
           "invalid-argument",
-          `Amount too small. Minimum is $0.50 (50 cents). Got ${amountInCents} cents`
+          `Amount must be at least $0.50. Minimum is 50 cents. Got ${amountInCents} cents`
         );
       }
 
+      // Create payment intent
+      const stripe = await getStripe();
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: amountInCents, // This must be >= 50 for USD
+        amount: amountInCents, // Includes 5% client commission
         currency: "usd",
         metadata: {
           jobId,
@@ -618,6 +611,8 @@ export const createJobPaymentIntent = onCall(
           clientId: request.auth.uid,
           freelancerId: proposalData.freelancerId,
           type: "job_payment",
+          originalAmount: numericAmount.toString(),
+          clientCommission: (totalAmount - numericAmount).toFixed(2),
         },
         capture_method: "automatic",
         setup_future_usage: "off_session",
@@ -631,7 +626,9 @@ export const createJobPaymentIntent = onCall(
         proposalId,
         clientId: request.auth.uid,
         freelancerId: proposalData.freelancerId,
-        amount: numericAmount, // Store in dollars
+        amount: totalAmount, // Store total amount (including client commission)
+        originalAmount: numericAmount, // Store original amount
+        clientCommission: totalAmount - numericAmount,
         currency: "usd",
         status: "pending",
         type: "job_payment",
@@ -651,7 +648,6 @@ export const createJobPaymentIntent = onCall(
   }
 );
 
-// In functions/src/index.ts, around line 625
 export const releasePaymentToFreelancer = onCall(
   {
     region: "us-central1",
@@ -667,9 +663,10 @@ export const releasePaymentToFreelancer = onCall(
     const { jobId, freelancerId } = request.data;
 
     try {
-      // Get freelancer's Connect account
+      // Get freelancer's Connect account and data
       const freelancerDoc = await db.doc(`users/${freelancerId}`).get();
-      const connectAccountId = freelancerDoc.data()?.stripeConnectAccountId;
+      const freelancerData = freelancerDoc.data();
+      const connectAccountId = freelancerData?.stripeConnectAccountId;
 
       if (!connectAccountId) {
         throw new HttpsError("failed-precondition", "Freelancer has no Connect account");
@@ -689,37 +686,55 @@ export const releasePaymentToFreelancer = onCall(
       const paymentDoc = paymentsQuery.docs[0];
       const paymentData = paymentDoc.data();
 
-      // Calculate platform fee (e.g., 10%)
-      const platformFeePercent = 0.10;
-      const amount = paymentData.amount;
-      const platformFee = Math.round(amount * platformFeePercent * 100); // In cents
-      const freelancerAmount = Math.round(amount * 100) - platformFee; // In cents
+      // Check if freelancer is Pro
+      const isProFreelancer = freelancerData?.isPro || false;
 
-      // Create transfer to freelancer
+      // Calculate commissions
+      // The payment amount includes the client's 5% commission already
+      const totalAmount = paymentData.amount; // This includes client's 5%
+      const originalAmount = paymentData.originalAmount || (totalAmount / 1.05); // Base amount
+      const clientCommission = totalAmount - originalAmount; // Client's 5%
+
+      // Freelancer commission: 15% for free, 5% for pro (calculated on original amount)
+      const freelancerCommissionPercent = isProFreelancer ? 0.05 : 0.15;
+      const freelancerCommission = originalAmount * freelancerCommissionPercent;
+      const freelancerPayout = originalAmount - freelancerCommission;
+
+      // Platform keeps: client commission + freelancer commission
+      const platformTotal = clientCommission + freelancerCommission;
+
+      // Create transfer to freelancer (in cents)
       const stripe = await getStripe();
       const transfer = await stripe.transfers.create({
-        amount: freelancerAmount,
+        amount: Math.round(freelancerPayout * 100), // Convert to cents
         currency: "usd",
         destination: connectAccountId,
         metadata: {
           jobId,
           freelancerId,
           paymentId: paymentDoc.id,
+          freelancerCommissionPercent: freelancerCommissionPercent.toString(),
+          isProFreelancer: isProFreelancer.toString(),
         },
       });
 
-      // Update payment status
+      // Update payment status with detailed commission breakdown
       await paymentDoc.ref.update({
         status: "released",
         releasedAt: FieldValue.serverTimestamp(),
         stripeTransferId: transfer.id,
-        platformFee: platformFee / 100,
-        freelancerAmount: freelancerAmount / 100,
+        originalAmount: originalAmount,
+        clientCommission: clientCommission,
+        freelancerCommission: freelancerCommission,
+        freelancerCommissionPercent,
+        freelancerPayout: freelancerPayout,
+        platformTotal: platformTotal,
+        isProFreelancer,
       });
 
       // Update freelancer's earnings
       await db.doc(`users/${freelancerId}`).update({
-        totalEarnings: FieldValue.increment(freelancerAmount / 100),
+        totalEarnings: FieldValue.increment(freelancerPayout),
         completedJobs: FieldValue.increment(1),
       });
 
@@ -733,6 +748,8 @@ export const releasePaymentToFreelancer = onCall(
       return {
         success: true,
         transferId: transfer.id,
+        freelancerPayout: freelancerPayout,
+        platformTotal: platformTotal,
       };
     } catch (error: unknown) {
       console.error("Error releasing payment:", error);
@@ -740,6 +757,7 @@ export const releasePaymentToFreelancer = onCall(
     }
   }
 );
+
 // Create Subscription Checkout Session
 export const createSubscriptionCheckout = onCall(
   {
@@ -1270,7 +1288,73 @@ async function notifyFreelancersAboutNewJob(job: Record<string, unknown>) {
   }
 }
 
-// HTTP Function: Submit Proposal
+// Check if user can submit proposal (5 per month for free users)
+export const checkProposalLimit = onCall(
+  {
+    region: "us-central1",
+    maxInstances: 10,
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated");
+    }
+
+    const { db, Timestamp } = getAdmin();
+    const userId = request.auth.uid;
+
+    try {
+      const userDoc = await db.doc(`users/${userId}`).get();
+      const userData = userDoc.data();
+
+      if (!userData) {
+        throw new HttpsError("not-found", "User not found");
+      }
+
+      // Pro users have unlimited proposals
+      if (userData.isPro === true) {
+        return {
+          canSubmit: true,
+          remaining: -1, // Unlimited
+          isPro: true,
+        };
+      }
+
+      // Check monthly proposal count for free users
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      let monthlyProposals = userData.monthlyProposals || 0;
+      const lastReset = userData.lastProposalReset?.toDate();
+
+      // Reset counter if it's a new month
+      if (!lastReset ||
+          lastReset.getMonth() !== currentMonth ||
+          lastReset.getFullYear() !== currentYear) {
+        monthlyProposals = 0;
+        await userDoc.ref.update({
+          monthlyProposals: 0,
+          lastProposalReset: Timestamp.now(),
+        });
+      }
+
+      const canSubmit = monthlyProposals < 5;
+      const remaining = Math.max(0, 5 - monthlyProposals);
+
+      return {
+        canSubmit,
+        remaining,
+        isPro: false,
+        current: monthlyProposals,
+      };
+    } catch (error: unknown) {
+      console.error("Error checking proposal limit:", error);
+      throw new HttpsError("internal", (error as Error).message);
+    }
+  }
+);
+
+// Update the submitProposal function to check limits
 export const submitProposal = onCall(
   {
     maxInstances: 10,
@@ -1278,13 +1362,12 @@ export const submitProposal = onCall(
     timeoutSeconds: 60,
   },
   async (request) => {
-    // Verify user is authenticated
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "User must be authenticated");
     }
 
-    const { db, FieldValue } = getAdmin();
-    const { data } = request;
+    const { db, FieldValue, Timestamp } = getAdmin();
+    const { data } = request; // This is now properly used
     const freelancerId = request.auth.uid;
 
     try {
@@ -1303,6 +1386,34 @@ export const submitProposal = onCall(
 
       if (freelancerData.userType !== "freelancer" && freelancerData.userType !== "both") {
         throw new HttpsError("permission-denied", "Only freelancers can submit proposals");
+      }
+
+      // Check proposal limit for free users
+      if (freelancerData.isPro !== true) {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        let monthlyProposals = freelancerData.monthlyProposals || 0;
+        const lastReset = freelancerData.lastProposalReset?.toDate();
+
+        // Reset counter if it's a new month
+        if (!lastReset ||
+            lastReset.getMonth() !== currentMonth ||
+            lastReset.getFullYear() !== currentYear) {
+          monthlyProposals = 0;
+          await freelancerDoc.ref.update({
+            monthlyProposals: 0,
+            lastProposalReset: Timestamp.now(),
+          });
+        }
+
+        if (monthlyProposals >= 5) {
+          throw new HttpsError(
+            "resource-exhausted",
+            "You've reached your monthly limit of 5 proposals. Upgrade to Pro for unlimited proposals."
+          );
+        }
       }
 
       // Get job data
@@ -1328,7 +1439,7 @@ export const submitProposal = onCall(
       }
 
       // Create proposal
-      const proposalRef = db.collection("proposals").doc();
+      const proposalRef = db.collection("proposals").doc(); // THIS WAS MISSING
       const now = FieldValue.serverTimestamp();
 
       const proposalData = {
@@ -1363,6 +1474,14 @@ export const submitProposal = onCall(
           proposalCount: FieldValue.increment(1),
           updatedAt: now,
         });
+
+        // Update freelancer's monthly proposal count if not Pro
+        if (freelancerData.isPro !== true) {
+          transaction.update(freelancerDoc.ref, {
+            monthlyProposals: FieldValue.increment(1),
+            lastProposalReset: freelancerData.lastProposalReset || Timestamp.now(),
+          });
+        }
       });
 
       // Trigger will handle notification creation
@@ -1370,16 +1489,49 @@ export const submitProposal = onCall(
       return { success: true, proposalId: proposalRef.id };
     } catch (error: unknown) {
       console.error("Error submitting proposal:", error);
-
       if (error instanceof HttpsError) {
         throw error;
       }
-
       throw new HttpsError("internal", "Failed to submit proposal");
     }
   }
 );
 
+// Scheduled function to reset monthly proposal counters
+export const resetMonthlyProposals = onSchedule(
+  {
+    schedule: "0 0 1 * *", // Run at midnight on the 1st of each month
+    region: "us-central1",
+    timeoutSeconds: 540,
+    maxInstances: 1,
+  },
+  async (event) => {
+    const { db, FieldValue } = getAdmin();
+    console.log("Resetting monthly proposal counters:", event.scheduleTime);
+
+    try {
+      const batch = db.batch();
+
+      // Reset all non-Pro users' proposal counts
+      const users = await db.collection("users")
+        .where("isPro", "==", false)
+        .where("monthlyProposals", ">", 0)
+        .get();
+
+      users.forEach((doc: any) => {
+        batch.update(doc.ref, {
+          monthlyProposals: 0,
+          lastProposalReset: FieldValue.serverTimestamp(),
+        });
+      });
+
+      await batch.commit();
+      console.log(`Reset proposal counters for ${users.size} users`);
+    } catch (error) {
+      console.error("Error resetting monthly proposals:", error);
+    }
+  }
+);
 // HTTP Function: Send Message
 export const sendMessage = onCall(
   {

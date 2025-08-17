@@ -22,6 +22,8 @@ import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { ImageCropper } from './ImageCropper';
+import { httpsCallable } from 'firebase/functions';
+import { fns } from '../lib/firebase';
 
 interface JobApplicationModalProps {
   isOpen: boolean;
@@ -65,7 +67,14 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [currentImageFile, setCurrentImageFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  
+  const [proposalLimit, setProposalLimit] = useState<{
+  canSubmit: boolean;
+  remaining: number;
+  isPro: boolean;
+  current?: number;
+
+}>({ canSubmit: true, remaining: 5, isPro: false });
+const [checkingLimit, setCheckingLimit] = useState(false);
   const [formData, setFormData] = useState({
     coverLetter: "",
     proposedRate: "",
@@ -120,6 +129,36 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
     return null;
   };
   
+  // Check proposal limit when modal opens
+useEffect(() => {
+  if (isOpen && user) {
+    checkProposalLimit();
+  }
+}, [isOpen, user]);
+
+const checkProposalLimit = async () => {
+  if (!user) return;
+  
+  setCheckingLimit(true);
+  try {
+    const checkLimit = httpsCallable(fns, 'checkProposalLimit');
+    const result = await checkLimit() as any;
+    console.log('Proposal limit check:', result.data);
+    setProposalLimit(result.data);
+    
+    // If user can't submit, show error immediately
+    if (!result.data.canSubmit) {
+      setError("You've reached your monthly limit of 5 proposals. Upgrade to Pro for unlimited proposals.");
+    }
+  } catch (error) {
+    console.error('Error checking proposal limit:', error);
+    // Don't block submission if check fails
+    setProposalLimit({ canSubmit: true, remaining: -1, isPro: false });
+  } finally {
+    setCheckingLimit(false);
+  }
+};
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -334,7 +373,17 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+      // Check proposal limit first
+  if (!proposalLimit.canSubmit) {
+    setError("You've reached your monthly limit of 5 proposals. Upgrade to Pro for unlimited proposals.");
+    // Navigate to billing after a delay
+    setTimeout(() => {
+      onClose();
+      navigate('/billing');
+      toast.error("Please upgrade to Pro for unlimited proposals");
+    }, 2000);
+    return;
+  }
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -462,7 +511,7 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
         isOpen={isOpen}
         onClose={onClose}
         size="2xl"
-        scrollBehavior="inside"
+        scrollBehavior="outside"
         classNames={{
           base: isDarkMode ? "dark" : "",
           backdrop: isDarkMode ? "bg-black/80" : "bg-black/50",
@@ -510,7 +559,82 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
                     </Chip>
                   </div>
                 </div>
+                {/* Proposal Limit Info - ADD THIS */}
+                {!checkingLimit && !proposalLimit.isPro && (
+                  <div className={`p-4 rounded-lg ${
+                    proposalLimit.remaining <= 2 
+                      ? isDarkMode ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-amber-50 border border-amber-200'
+                      : isDarkMode ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-blue-50 border border-blue-200'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <Icon 
+                        icon={proposalLimit.remaining <= 2 ? "lucide:alert-triangle" : "lucide:info"} 
+                        className={`mt-0.5 ${
+                          proposalLimit.remaining <= 2 
+                            ? 'text-amber-500' 
+                            : isDarkMode ? 'text-blue-400' : 'text-blue-500'
+                        }`}
+                      />
+                      <div className="flex-1">
+                        <p className={`text-sm font-medium mb-1 ${
+                          proposalLimit.remaining <= 2 
+                            ? 'text-amber-500' 
+                            : isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                        }`}>
+                          Proposal Limit
+                        </p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                          {proposalLimit.remaining > 0 
+                            ? `You have ${proposalLimit.remaining} proposal${proposalLimit.remaining === 1 ? '' : 's'} remaining this month.`
+                            : 'You\'ve reached your monthly limit.'}
+                        </p>
+                        {proposalLimit.remaining <= 2 && proposalLimit.remaining > 0 && (
+                          <Button
+                            size="sm"
+                            color="warning"
+                            variant="flat"
+                            className="mt-2"
+                            onPress={() => {
+                              onClose();
+                              navigate('/billing');
+                            }}
+                          >
+                            <Icon icon="lucide:crown" className="mr-1" />
+                            Upgrade to Pro for Unlimited
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
+                {/* Can't Submit Warning - ADD THIS */}
+                {!proposalLimit.canSubmit && (
+                  <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'}`}>
+                    <div className="flex items-start gap-3">
+                      <Icon icon="lucide:x-circle" className="text-red-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-500 mb-1">
+                          Monthly Limit Reached
+                        </p>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-3`}>
+                          Free users can submit up to 5 proposals per month.
+                        </p>
+                        <Button
+                          color="secondary"
+                          size="sm"
+                          onPress={() => {
+                            onClose();
+                            navigate('/billing');
+                          }}
+                          startContent={<Icon icon="lucide:crown" />}
+                        >
+                          Upgrade to Pro
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {/* Cover Letter */}
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
@@ -727,10 +851,14 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
                 type="submit"
                 color="secondary"
                 className={isDarkMode ? 'bg-beamly-secondary text-beamly-third font-semibold hover:bg-beamly-secondary/90' : ''}
-                isLoading={loading}
-                isDisabled={loading}
+                isLoading={loading || checkingLimit}
+                isDisabled={loading || checkingLimit || !proposalLimit.canSubmit}
               >
-                Submit Application
+                {!proposalLimit.canSubmit 
+                  ? 'Limit Reached' 
+                  : checkingLimit 
+                    ? 'Checking...' 
+                    : 'Submit Application'}
               </Button>
             </ModalFooter>
           </form>

@@ -17,7 +17,7 @@ const SUBSCRIPTION_PLANS = [
       '5 proposals per month',
       'Partial analytics',
       'Basic profile visibility',
-      '15% commission on earnings'
+      '15% commission on earnings' // Updated from 15%
     ]
   },
   {
@@ -28,9 +28,10 @@ const SUBSCRIPTION_PLANS = [
     savings: 0,
     features: [
       'Unlimited proposals per month',
-      'Profile promotion',
+      'Priority listing in search results', // Added
       'Full analytics dashboard',
-      '0% commission - keep 100% of earnings',
+      '5% commission only - save 10%!', // Updated
+      'PRO badge on profile', // Added
       'Priority support'
     ]
   },
@@ -45,7 +46,7 @@ const SUBSCRIPTION_PLANS = [
       'Everything in Monthly plan',
       'Save 20% compared to monthly',
       'Extended profile promotion',
-      '0% commission - keep 100% of earnings',
+      '5% commission only - save 10%!',
       'Premium support'
     ]
   }
@@ -291,7 +292,7 @@ export const ProSubscription: React.FC = () => {
               <div className="text-sm text-gray-300">
                 <p className="font-medium mb-1">Commission Information</p>
                 <p>Free plan: 15% commission on all earnings</p>
-                <p>Paid plans: 0% commission - keep 100% of your earnings</p>
+                <p>Pro plans: 5% commission only - save 10%!</p>
               </div>
             </div>
           </div>

@@ -134,6 +134,33 @@ export const StripeService = {
     }
   },
 
+  async releasePaymentToFreelancer(jobId: string, freelancerId: string) {
+    try {
+      const releasePayment = httpsCallable(fns, 'releasePaymentToFreelancer');
+      const result = await releasePayment({
+        jobId,
+        freelancerId
+      }) as any;
+      
+      if (result.data.success) {
+        return {
+          success: true,
+          transferId: result.data.transferId,
+          freelancerPayout: result.data.freelancerPayout,
+          platformTotal: result.data.platformTotal
+        };
+      }
+      
+      return { 
+        success: false, 
+        error: result.data.error || 'Failed to release payment' 
+      };
+    } catch (error) {
+      console.error('Error releasing payment:', error);
+      return { success: false, error };
+    }
+  },
+
   async getConnectAccountStatus(userId: string) {
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
@@ -160,7 +187,90 @@ export const StripeService = {
       return { success: false, error };
     }
   },
+// Add these methods to your StripeService object:
 
+  // Get subscription status
+  async getSubscriptionStatus(userId: string) {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      const userData = userDoc.data();
+      
+      if (!userData) {
+        return { success: false, isActive: false };
+      }
+      
+      return {
+        success: true,
+        isActive: userData.subscriptionStatus === 'active',
+        plan: userData.subscriptionPlan,
+        endDate: userData.subscriptionEndDate,
+        isPro: userData.isPro || false
+      };
+    } catch (error) {
+      console.error('Error getting subscription status:', error);
+      return { success: false, isActive: false };
+    }
+  },
+
+  // Create subscription checkout
+  async createSubscriptionCheckout(userId: string, planType: 'monthly' | 'quarterly' | 'yearly') {
+    try {
+      const createCheckout = httpsCallable(fns, 'createSubscriptionCheckout');
+      
+      // Map plan types to your Stripe price IDs
+      const priceIds = {
+        monthly: 'price_monthly_id', // Replace with your actual Stripe price ID
+        quarterly: 'price_quarterly_id', // Replace with your actual Stripe price ID
+        yearly: 'price_yearly_id' // Replace with your actual Stripe price ID
+      };
+      
+      const result = await createCheckout({
+        userId,
+        priceId: priceIds[planType],
+        successUrl: `${window.location.origin}/billing?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/billing`
+      }) as any;
+      
+      if (result.data.success) {
+        return {
+          success: true,
+          checkoutUrl: result.data.url
+        };
+      }
+      
+      return { success: false, error: result.data.error };
+    } catch (error) {
+      console.error('Error creating subscription checkout:', error);
+      return { success: false, error };
+    }
+  },
+
+  // Cancel subscription
+  async cancelSubscription(userId: string) {
+    try {
+      const cancelSub = httpsCallable(fns, 'cancelSubscription');
+      const result = await cancelSub({ userId }) as any;
+      
+      if (result.data.success) {
+        // Update local user data
+        await updateDoc(doc(db, 'users', userId), {
+          subscriptionStatus: 'cancelled',
+          isPro: false,
+          updatedAt: serverTimestamp()
+        });
+        
+        return {
+          success: true,
+          endDate: result.data.endDate
+        };
+      }
+      
+      return { success: false, error: result.data.error };
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      return { success: false, error };
+    }
+  }, 
   async createConnectAccountLink(userId: string, returnUrl: string, refreshUrl: string) {
     try {
       const createLink = httpsCallable(fns, 'createStripeAccountLink');
