@@ -89,9 +89,15 @@ export const EditProfilePage: React.FC = () => {
   const showClientFields = userData?.userType === 'client' || userData?.userType === 'both';
   
   const selectedCategoryKeys = useMemo(
-  () => (profileData.category ? new Set([profileData.category]) : new Set<string>()),
-  [profileData.category]
-);
+    () => {
+      if (profileData.category && profileData.category !== '') {
+        return new Set([profileData.category]);
+      }
+      return new Set<string>();
+    },
+    [profileData.category]
+  );
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -382,30 +388,35 @@ export const EditProfilePage: React.FC = () => {
                     {/* Category - ADD THIS SECTION FIRST */}
                     {/* Category */}
                     <div className="form-field">
-                      <label className="text-white text-sm font-medium mb-2 block">
-                        Primary Category *
-                      </label>
+                    <label className="text-white text-sm font-medium mb-2 block">
+                      Primary Category *
+                    </label>
 
-                      <Select
-                        placeholder="Select your primary category"
-                        selectionMode="single"
-                        selectedKeys={selectedCategoryKeys}
-                        onSelectionChange={(keys) => {
-                          const [key] = Array.from(keys as Set<React.Key>);
-                          setProfileData((p) => ({ ...p, category: (key as string) ?? "" }));
-                        }}
-                        isRequired
-                        classNames={{
-                          trigger: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10",
-                          value: "text-white",
-                        }}
-                      >
-                        {freelancerCategories.map((c) => (
-                          // Note: NextUI uses the `key` prop as the value; no `value` prop needed
-                          <SelectItem key={c.value}>{c.label}</SelectItem>
-                        ))}
-                      </Select>
-                    </div>
+                    <Select
+                      placeholder="Select your primary category"
+                      selectionMode="single"
+                      selectedKeys={selectedCategoryKeys}
+                      onSelectionChange={(keys) => {
+                        const selectedKey = Array.from(keys)[0] as string;
+                        console.log('Category selected:', selectedKey); // Debug log
+                        setProfileData(prev => ({ 
+                          ...prev, 
+                          category: selectedKey || '' 
+                        }));
+                      }}
+                      isRequired
+                      classNames={{
+                        trigger: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10",
+                        value: "text-white",
+                      }}
+                    >
+                      {freelancerCategories.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </div>
                     {/* Skills */}
                     <div>
                       <label className="text-white text-sm font-medium mb-2 block">

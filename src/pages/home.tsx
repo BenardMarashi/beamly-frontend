@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Input, Button, Card, CardBody, Avatar, Badge } from "@nextui-org/react";
+import { Input, Button, Card, CardBody, Avatar, Chip } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -30,6 +30,7 @@ interface Freelancer {
   ratingCount?: number;
   completedProjects?: number;
   skills?: string[];
+  isPro?: boolean;
 }
 
 interface Project {
@@ -168,80 +169,58 @@ export const HomePage: React.FC = () => {
   }, [user, t]);
 
   // Fetch top freelancers
-  useEffect(() => {
-    if (!user) return;
+  // Around line 170-230, update the fetchTopFreelancers:
+useEffect(() => {
+  if (!user) return;
 
-    let unsubscribe: (() => void) | undefined;
+  let unsubscribe: (() => void) | undefined;
 
-    const fetchTopFreelancers = async () => {
-      try {
-        const baseConstraints = [
-          where('userType', 'in', ['freelancer', 'both']),
-          where('profileCompleted', '==', true),
-          limit(10)
-        ];
+  const fetchTopFreelancers = async () => {
+    try {
+      // Simple query without isPro ordering
+      const freelancersQuery = query(
+        collection(db, 'users'),
+        where('userType', 'in', ['freelancer', 'both']),
+        where('profileCompleted', '==', true),
+        limit(20) // Fetch more initially to account for client-side filtering
+      );
 
-        try {
-          // Try with rating first
-          const freelancersQuery = query(
-            collection(db, 'users'),
-            ...baseConstraints,
-            orderBy('rating', 'desc')
-          );
-
-          unsubscribe = onSnapshot(freelancersQuery, 
-            (snapshot) => {
-              const freelancers = snapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                  id: doc.id,
-                  displayName: data.displayName || t('home.unknownUser'),
-                  title: data.title || '',
-                  photoURL: data.photoURL || '',
-                  rating: data.rating || 0,
-                  completedProjects: data.completedProjects || 0,
-                  skills: data.skills || []
-                } as Freelancer;
-              });
-              setTopFreelancers(freelancers);
-            },
-            (error) => {
-              console.error("Error fetching freelancers with rating:", error);
-              // If ordering by rating fails, try without it
-              const simpleQuery = query(
-                collection(db, 'users'),
-                ...baseConstraints
-              );
-              
-              unsubscribe = onSnapshot(simpleQuery, 
-                (snapshot) => {
-                  const freelancers = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                      id: doc.id,
-                      displayName: data.displayName || t('home.unknownUser'),
-                      title: data.title || '',
-                      photoURL: data.photoURL || '',
-                      rating: data.rating || 0,  // Change from 5.0 to 0
-                      ratingCount: data.ratingCount || data.reviewCount || 0,  // Add this
-                      completedProjects: data.completedProjects || 0,
-                      skills: data.skills || []
-                    } as Freelancer;
-                  });
-                  // Sort by rating client-side if needed
-                  freelancers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-                  setTopFreelancers(freelancers.slice(0, 10));
-                }
-              );
-            }
-          );
-        } catch (initialError) {
-          console.error("Initial freelancer query setup failed:", initialError);
-          // Fallback to simple query
+      unsubscribe = onSnapshot(freelancersQuery, 
+        (snapshot) => {
+          const freelancers = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              displayName: data.displayName || t('home.unknownUser'),
+              title: data.title || '',
+              photoURL: data.photoURL || '',
+              rating: data.rating || 0,
+              ratingCount: data.ratingCount || 0,
+              completedProjects: data.completedProjects || 0,
+              skills: data.skills || [],
+              isPro: data.isPro || false // Ensure isPro defaults to false
+            } as Freelancer;
+          });
+          
+          // Sort client-side: Pro members first, then by rating
+          freelancers.sort((a, b) => {
+            // Pro members first
+            if (a.isPro && !b.isPro) return -1;
+            if (!a.isPro && b.isPro) return 1;
+            // Then by rating
+            return (b.rating || 0) - (a.rating || 0);
+          });
+          
+          // Take only top 10 after sorting
+          setTopFreelancers(freelancers.slice(0, 10));
+        },
+        (error) => {
+          console.error("Error fetching freelancers:", error);
+          // Fallback query without profileCompleted
           const simpleQuery = query(
             collection(db, 'users'),
             where('userType', 'in', ['freelancer', 'both']),
-            limit(10)
+            limit(20)
           );
           
           unsubscribe = onSnapshot(simpleQuery, 
@@ -253,30 +232,40 @@ export const HomePage: React.FC = () => {
                   displayName: data.displayName || t('home.unknownUser'),
                   title: data.title || '',
                   photoURL: data.photoURL || '',
-                  rating: data.rating || 0,  // Change from 5.0 to 0
-                  ratingCount: data.ratingCount || data.reviewCount || 0,  // Add this
+                  rating: data.rating || 0,
+                  ratingCount: data.ratingCount || 0,
                   completedProjects: data.completedProjects || 0,
-                  skills: data.skills || []
+                  skills: data.skills || [],
+                  isPro: data.isPro || false
                 } as Freelancer;
               });
-              setTopFreelancers(freelancers);
+              
+              // Sort client-side
+              freelancers.sort((a, b) => {
+                if (a.isPro && !b.isPro) return -1;
+                if (!a.isPro && b.isPro) return 1;
+                return (b.rating || 0) - (a.rating || 0);
+              });
+              
+              setTopFreelancers(freelancers.slice(0, 10));
             }
           );
         }
-      } catch (error) {
-        console.error("Error in fetchTopFreelancers:", error);
-        setTopFreelancers([]);
-      }
-    };
+      );
+    } catch (error) {
+      console.error("Error in fetchTopFreelancers:", error);
+      setTopFreelancers([]);
+    }
+  };
 
-    fetchTopFreelancers();
+  fetchTopFreelancers();
 
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [user, t]);
+  return () => {
+    if (unsubscribe) {
+      unsubscribe();
+    }
+  };
+}, [user, t]);
 
   // Fetch user's active projects
   useEffect(() => {
@@ -562,6 +551,18 @@ export const HomePage: React.FC = () => {
                   onPress={() => navigate(`/freelancer/${freelancer.id}`)}
                 >
                   <CardBody className="p-3 flex flex-col items-center text-center">
+                  {freelancer.isPro && (
+                      <div className="absolute top-1 right-1 z-10">
+                        <Chip
+                          size="sm"
+                          color="warning"
+                          variant="flat"
+                          className="px-1"
+                        >
+                          <Icon icon="lucide:crown" className="text-xs" />
+                        </Chip>
+                      </div>
+                    )}
                     <Avatar 
                       src={freelancer.photoURL} 
                       name={freelancer.displayName}

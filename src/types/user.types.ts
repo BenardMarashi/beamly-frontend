@@ -51,11 +51,13 @@ export interface UserData {
   
   // Subscription fields
   isPro?: boolean;
-  subscriptionStatus?: 'active' | 'cancelled' | 'past_due' | 'unpaid';
-  subscriptionPlan?: 'monthly' | 'quarterly' | 'yearly';
+  subscriptionStatus?: 'active' | 'cancelled' | 'expired';
+  subscriptionPlan?: string;
   stripeSubscriptionId?: string;
   subscriptionStartDate?: Date;
   subscriptionEndDate?: Date;
+  monthlyProposals?: number; // Current month's proposal count
+  lastProposalReset?: Date; // Last time the counter was reset
   
   // System fields
   createdAt?: Date;
