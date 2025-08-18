@@ -1367,7 +1367,7 @@ export const submitProposal = onCall(
     }
 
     const { db, FieldValue, Timestamp } = getAdmin();
-    const { data } = request; // This is now properly used
+    const { data } = request;
     const freelancerId = request.auth.uid;
 
     try {
@@ -1402,6 +1402,7 @@ export const submitProposal = onCall(
             lastReset.getMonth() !== currentMonth ||
             lastReset.getFullYear() !== currentYear) {
           monthlyProposals = 0;
+          // Update immediately to avoid race conditions
           await freelancerDoc.ref.update({
             monthlyProposals: 0,
             lastProposalReset: Timestamp.now(),
@@ -1439,7 +1440,7 @@ export const submitProposal = onCall(
       }
 
       // Create proposal
-      const proposalRef = db.collection("proposals").doc(); // THIS WAS MISSING
+      const proposalRef = db.collection("proposals").doc();
       const now = FieldValue.serverTimestamp();
 
       const proposalData = {
@@ -1463,8 +1464,15 @@ export const submitProposal = onCall(
         updatedAt: now,
       };
 
+      // NEW: Track the updated count for return
+      let newProposalCount = freelancerData.monthlyProposals || 0;
+
       // Use a transaction to ensure consistency
       await db.runTransaction(async (transaction: any) => {
+        // Re-read the freelancer doc inside transaction for consistency
+        const freshFreelancerDoc = await transaction.get(freelancerDoc.ref);
+        const freshData = freshFreelancerDoc.data();
+
         // Create proposal
         transaction.set(proposalRef, proposalData);
 
@@ -1476,17 +1484,24 @@ export const submitProposal = onCall(
         });
 
         // Update freelancer's monthly proposal count if not Pro
-        if (freelancerData.isPro !== true) {
+        if (freshData.isPro !== true) {
+          // Calculate the new count
+          newProposalCount = (freshData.monthlyProposals || 0) + 1;
+
           transaction.update(freelancerDoc.ref, {
-            monthlyProposals: FieldValue.increment(1),
-            lastProposalReset: freelancerData.lastProposalReset || Timestamp.now(),
+            monthlyProposals: newProposalCount,
+            lastProposalReset: freshData.lastProposalReset || Timestamp.now(),
           });
         }
       });
 
-      // Trigger will handle notification creation
-
-      return { success: true, proposalId: proposalRef.id };
+      // Return success with updated count information
+      return {
+        success: true,
+        proposalId: proposalRef.id,
+        newProposalCount: freelancerData.isPro ? -1 : newProposalCount,
+        remaining: freelancerData.isPro ? -1 : Math.max(0, 5 - newProposalCount),
+      };
     } catch (error: unknown) {
       console.error("Error submitting proposal:", error);
       if (error instanceof HttpsError) {

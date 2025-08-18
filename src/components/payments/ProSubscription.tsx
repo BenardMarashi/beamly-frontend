@@ -6,6 +6,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { StripeService } from '../../services/stripe-service';
 import toast from 'react-hot-toast';
 
+
+const STRIPE_PRICE_IDS = {
+  monthly: 'price_1RoqOADtB4sjDNJywCzlCHBM',
+  sixmonths: 'price_1Rt9g9DtB4sjDNJy5eXZpg7d',
+  quarterly: 'price_1RoqOADtB4sjDNJyCiGCXLZx',
+  yearly: 'price_1RoqOADtB4sjDNJyGYfrEVTu'
+};
+
 const SUBSCRIPTION_PLANS = [
   {
     id: 'free',
@@ -82,34 +90,47 @@ export const ProSubscription: React.FC = () => {
     }
   };
 
-  const handleSubscribe = async () => {
-    if (!user?.uid) return;
-    
-    if (selectedPlan === 'free') {
-      toast('You are already on the free plan');
-      return;
+const handleSubscribe = async () => {
+  if (!user?.uid) return;
+  
+  if (selectedPlan === 'free') {
+    toast('You are already on the free plan');
+    return;
+  }
+  
+  setLoading(true);
+  try {
+    // Get the actual Stripe price ID
+    let priceId = '';
+    switch(selectedPlan) {
+      case 'monthly':
+        priceId = STRIPE_PRICE_IDS.monthly;
+        break;
+      case 'sixmonths':
+        priceId = STRIPE_PRICE_IDS.sixmonths;
+        break;
+      default:
+        toast.error('Invalid plan selected');
+        setLoading(false);
+        return;
     }
-    
-    setLoading(true);
-    try {
-// Map our plan IDs to what StripeService expects
-      const stripePlanId = selectedPlan === 'sixmonths' ? 'quarterly' : selectedPlan;
 
-      const result = await StripeService.createSubscriptionCheckout(
-        user.uid,
-        stripePlanId as 'monthly' | 'quarterly' | 'yearly'
-      );
-      
-      if (result.success && result.checkoutUrl) {
-        window.location.href = result.checkoutUrl;
-      }
-    } catch (error) {
-      console.error('Error creating checkout:', error);
-      toast.error('Failed to create checkout session');
-    } finally {
-      setLoading(false);
+    // Now call the service with the actual price ID
+    const result = await StripeService.createSubscriptionCheckout(
+      user.uid,
+      priceId  // Pass the actual Stripe price ID here!
+    );
+    
+    if (result.success && result.checkoutUrl) {
+      window.location.href = result.checkoutUrl;
     }
-  };
+  } catch (error) {
+    console.error('Error creating checkout:', error);
+    toast.error('Failed to create checkout session');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleCancelSubscription = async () => {
     if (!user?.uid || !window.confirm('Are you sure you want to cancel your subscription? You will return to the free plan with 15% commission.')) return;

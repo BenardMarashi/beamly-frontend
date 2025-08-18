@@ -179,191 +179,230 @@ export const ProjectEditPage: React.FC = () => {
     );
   }
 
-  return (
-    <div className="container mx-auto max-w-2xl px-4 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Card className="bg-white/5 backdrop-blur-lg border border-white/10">
-          <CardBody className="p-8">
-            <h1 className="text-2xl font-bold text-white mb-6">Edit Project</h1>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Title */}
-              <Input
-                label="Project Title"
-                placeholder="Enter project title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                isRequired
-                classNames={{
-                  label: "text-gray-300",
-                  input: "text-white",
-                  inputWrapper: "bg-white/5 border-white/10"
-                }}
-              />
-
-              {/* Description */}
-              <Textarea
-                label="Project Description"
-                placeholder="Describe your project..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                minRows={4}
-                isRequired
-                classNames={{
-                  label: "text-gray-300",
-                  input: "text-white",
-                  inputWrapper: "bg-white/5 border-white/10"
-                }}
-              />
-
-              {/* Category */}
-              <Select
-                label="Category"
-                placeholder="Select a category"
-                selectedKeys={[category]}
-                onChange={(e) => setCategory(e.target.value)}
-                isRequired
-                classNames={{
-                  label: "text-gray-300",
-                  trigger: "bg-white/5 border-white/10",
-                  value: "text-white"
-                }}
-              >
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </Select>
-
-              {/* Skills */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Technologies Used *
-                </label>
-                <div className="flex gap-2 mb-2">
+return (
+    <div className="min-h-screen py-20 px-4"> {/* Proper padding */}
+      <div className="container mx-auto max-w-3xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="glass-effect border border-white/10">
+            <CardBody className="p-6 md:p-8">
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-8">
+                Edit Project
+              </h1>
+              
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Title */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Project Title *
+                  </label>
                   <Input
-                    placeholder="Add a skill"
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
+                    placeholder="Enter project title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    variant="bordered"
+                    size="lg"
                     classNames={{
-                      input: "text-white",
-                      inputWrapper: "bg-white/5 border-white/10"
+                      input: "text-white placeholder:text-gray-500",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 focus-within:!border-beamly-secondary"
                     }}
                   />
-                  <Button
-                    color="secondary"
-                    onPress={handleAddSkill}
-                    isIconOnly
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Project Description *
+                  </label>
+                  <Textarea
+                    placeholder="Describe your project in detail..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    minRows={5}
+                    variant="bordered"
+                    size="lg"
+                    classNames={{
+                      input: "text-white placeholder:text-gray-500",
+                      inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 focus-within:!border-beamly-secondary"
+                    }}
+                  />
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Select a category *
+                  </label>
+                  <Select
+                    placeholder="Choose category"
+                    selectedKeys={category ? [category] : []}
+                    onChange={(e) => setCategory(e.target.value)}
+                    variant="bordered"
+                    size="lg"
+                    classNames={{
+                      trigger: "bg-white/5 border-white/20 hover:border-white/30 data-[open=true]:border-beamly-secondary text-white",
+                      value: "text-white",
+                      popoverContent: "bg-beamly-third",
+                      listbox: "bg-beamly-third"
+                    }}
                   >
-                    <Icon icon="lucide:plus" />
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat} className="text-white">
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+
+                {/* Skills */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Technologies Used *
+                  </label>
+                  <div className="flex gap-2 mb-3">
+                    <Input
+                      placeholder="Add a skill (e.g., React, Node.js)"
+                      value={newSkill}
+                      onChange={(e) => setNewSkill(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddSkill();
+                        }
+                      }}
+                      variant="bordered"
+                      size="lg"
+                      classNames={{
+                        input: "text-white placeholder:text-gray-500",
+                        inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 focus-within:!border-beamly-secondary"
+                      }}
+                    />
+                    <Button
+                      color="secondary"
+                      onPress={handleAddSkill}
+                      isIconOnly
+                      size="lg"
+                      className="min-w-unit-12 h-12"
+                    >
+                      <Icon icon="lucide:plus" className="text-xl" />
+                    </Button>
+                  </div>
+                  {skills.length > 0 && (
+                    <div className="flex flex-wrap gap-2 p-3 bg-white/5 rounded-lg border border-white/10">
+                      {skills.map((skill, index) => (
+                        <Chip
+                          key={index}
+                          onClose={() => handleRemoveSkill(skill)}
+                          variant="flat"
+                          className="bg-beamly-secondary/20 text-white"
+                        >
+                          {skill}
+                        </Chip>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              {/* Images Section - Add this back */}
+<div>
+  <label className="block text-sm font-medium text-gray-300 mb-2">
+    Project Images *
+  </label>
+  
+  {/* Existing Images */}
+  {images.length > 0 && (
+    <div className="p-4 bg-white/5 rounded-lg border border-white/10 mb-4">
+      <p className="text-xs text-gray-400 mb-3">Current Images</p>
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        {images.map((image, index) => (
+          <div key={index} className="relative group aspect-square">
+            <img
+              src={image}
+              alt={`Project ${index + 1}`}
+              className="w-full h-full object-cover rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={() => handleRemoveImage(index)}
+              className="absolute top-1 right-1 p-1.5 bg-red-500/90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Icon icon="lucide:x" className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+
+  {/* New Images Preview */}
+  {newImages.length > 0 && (
+    <div className="p-4 bg-white/5 rounded-lg border border-white/10 mb-4">
+      <p className="text-xs text-gray-400 mb-3">New Images to Upload</p>
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        {newImages.map((file, index) => (
+          <div key={index} className="relative group aspect-square">
+            <img
+              src={URL.createObjectURL(file)}
+              alt={`New ${index + 1}`}
+              className="w-full h-full object-cover rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={() => handleRemoveNewImage(index)}
+              className="absolute top-1 right-1 p-1.5 bg-red-500/90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Icon icon="lucide:x" className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+
+  <input
+    type="file"
+    accept="image/*"
+    multiple
+    onChange={handleImageUpload}
+    className="hidden"
+    id="image-upload"
+  />
+  <label
+    htmlFor="image-upload"
+    className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+  >
+    <Icon icon="lucide:upload" className="text-lg" />
+    <span>Add Images</span>
+  </label>
+</div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/10">
+                  <Button
+                    variant="flat"
+                    onPress={() => navigate(`/projects/${id}`)}
+                    size="lg"
+                    className="w-full sm:w-auto bg-white/10 text-white"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    color="secondary"
+                    isLoading={saving}
+                    size="lg"
+                    className="w-full sm:w-auto font-semibold"
+                  >
+                    Save Changes
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {skills.map((skill, index) => (
-                    <Chip
-                      key={index}
-                      onClose={() => handleRemoveSkill(skill)}
-                      variant="flat"
-                      className="bg-white/10"
-                    >
-                      {skill}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-              {/* Images */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Project Images
-                </label>
-                
-                {/* Existing Images */}
-                {images.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    {images.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={image}
-                          alt={`Project ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 p-1 bg-danger/80 rounded-lg opacity-0 group-hover:opacity-100 transition"
-                        >
-                          <Icon icon="lucide:x" className="w-4 h-4 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* New Images Preview */}
-                {newImages.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    {newImages.map((file, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`New ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveNewImage(index)}
-                          className="absolute top-1 right-1 p-1 bg-danger/80 rounded-lg opacity-0 group-hover:opacity-100 transition"
-                        >
-                          <Icon icon="lucide:x" className="w-4 h-4 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label
-                  htmlFor="image-upload"
-                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition"
-                >
-                  <Icon icon="lucide:upload" />
-                  Add Images
-                </label>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-4 justify-end">
-                <Button
-                  variant="flat"
-                  onPress={() => navigate(`/projects/${id}`)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  color="secondary"
-                  isLoading={saving}
-                >
-                  Save Changes
-                </Button>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-      </motion.div>
+              </form>
+            </CardBody>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 };

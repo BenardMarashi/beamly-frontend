@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Card, CardBody, Button, Chip, Image, Spinner } from '@nextui-org/react';
+// Line 4, after existing imports
+import { Card, CardBody, Button, Chip, Image, Spinner, Modal, ModalContent, ModalBody } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -17,6 +18,7 @@ export const ProjectDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [freelancerName, setFreelancerName] = useState<string>('');
+  const [isZoomed, setIsZoomed] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -174,29 +176,37 @@ export const ProjectDetailsPage: React.FC = () => {
             {/* Images Gallery */}
             {project.images && project.images.length > 0 && (
               <div className="mb-8">
-                <div className="relative aspect-video mb-4 rounded-lg overflow-hidden">
+                <div 
+                    className="relative aspect-video mb-4 rounded-lg overflow-hidden cursor-pointer group bg-black/10"
+                    onClick={() => setIsZoomed(true)}
+                  >
                   <Image
                     src={project.images[currentImageIndex]}
                     alt={`${project.title} - Image ${currentImageIndex + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
-                  
                   {/* Image Navigation */}
                   {project.images.length > 1 && (
                     <>
                       <button
                         className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition"
-                        onClick={() => setCurrentImageIndex((prev) => 
-                          prev === 0 ? project.images.length - 1 : prev - 1
-                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentImageIndex((prev) => 
+                            prev === 0 ? project.images.length - 1 : prev - 1
+                          )
+                        }}
                       >
                         <Icon icon="lucide:chevron-left" className="w-6 h-6" />
                       </button>
                       <button
                         className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition"
-                        onClick={() => setCurrentImageIndex((prev) => 
-                          prev === project.images.length - 1 ? 0 : prev + 1
-                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentImageIndex((prev) => 
+                            prev === project.images.length - 1 ? 0 : prev + 1
+                          )
+                        }}
                       >
                         <Icon icon="lucide:chevron-right" className="w-6 h-6" />
                       </button>
@@ -353,6 +363,64 @@ export const ProjectDetailsPage: React.FC = () => {
           </CardBody>
         </Card>
       </motion.div>
+            {/* Add this Zoom Modal */}
+      <Modal 
+        isOpen={isZoomed} 
+        onClose={() => setIsZoomed(false)}
+        size="full"
+        hideCloseButton={true}
+        classNames={{
+          wrapper: "bg-black/90",
+          base: "bg-transparent shadow-none",
+          body: "p-0 pt-20",
+          closeButton: "text-white hover:bg-white/20 text-2xl p-2 z-50"
+        }}
+      >
+        <ModalContent>
+          <ModalBody className="flex items-center justify-center min-h-screen relative">
+            <button
+              className="fixed top-24 right-6 p-3 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30 transition-all"
+              onClick={() => setIsZoomed(false)}
+            >
+              <Icon icon="lucide:x" className="w-6 h-6" />
+            </button>
+            {project?.images && (
+              <>
+                <img
+                  src={project.images[currentImageIndex]}
+                  alt={`${project.title} - Image ${currentImageIndex + 1}`}
+                  className="max-w-full max-h-[85vh] object-contain"
+                />
+                
+                {project.images.length > 1 && (
+                  <>
+                    <button
+                      className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 text-white hover:bg-black/70 transition"
+                      onClick={() => setCurrentImageIndex(prev => 
+                        prev === 0 ? project.images.length - 1 : prev - 1
+                      )}
+                    >
+                      <Icon icon="lucide:chevron-left" className="w-8 h-8" />
+                    </button>
+                    <button
+                      className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 text-white hover:bg-black/70 transition"
+                      onClick={() => setCurrentImageIndex(prev => 
+                        prev === project.images.length - 1 ? 0 : prev + 1
+                      )}
+                    >
+                      <Icon icon="lucide:chevron-right" className="w-8 h-8" />
+                    </button>
+                    
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full">
+                      {currentImageIndex + 1} / {project.images.length}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

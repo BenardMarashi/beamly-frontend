@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardBody, Button, Chip, Image, Spinner } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, orderBy, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Project } from '../../types/firestore.types';
@@ -47,20 +47,6 @@ export const PortfolioPage: React.FC = () => {
       setLoading(false);
     }
   };
-
-  const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project from your portfolio?')) return;
-
-    try {
-      await deleteDoc(doc(db, 'projects', projectId));
-      setProjects(projects.filter(p => p.id !== projectId));
-      toast.success('Project removed from portfolio');
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      toast.error('Failed to delete project');
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -115,19 +101,26 @@ export const PortfolioPage: React.FC = () => {
                 transition={{ duration: 0.3 }}
                 whileHover={{ scale: 1.02 }}
               >
-                <Card className="bg-white/5 backdrop-blur-lg border border-white/10 h-full">
+                <Card 
+                      className="bg-white/5 backdrop-blur-lg border border-white/10 h-full cursor-pointer hover:bg-white/10 transition-all"
+                      isPressable
+                      onPress={() => navigate(`/projects/${project.id}`)}
+                    >
                   <CardBody className="p-0">
-                    <div className="relative h-48 bg-gradient-to-br from-blue-600/20 to-purple-600/20">
+                    <div className="relative h-48 bg-gradient-to-br from-blue-600/20 to-purple-600/20 overflow-hidden">
                       <Image
                         src={project.images?.[0] || '/placeholder-project.jpg'}
                         alt={project.title}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute top-2 right-2">
-                        <Chip size="sm" variant="flat" className="bg-black/60 text-white">
-                          {project.category}
-                        </Chip>
-                      </div>
+                      {/* Category chip */}
+                        {project.category && (
+                          <div className="absolute top-2 right-2">
+                            <Chip size="sm" variant="flat" className="bg-black/60 text-white">
+                              {project.category}
+                            </Chip>
+                          </div>
+                        )}
                     </div>
                     
                     <div className="p-6">
@@ -166,60 +159,7 @@ export const PortfolioPage: React.FC = () => {
                         </span>
                       </div>
                       
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="flat"
-                          color="primary"
-                          className="flex-1"
-                          onPress={() => navigate(`/projects/${project.id}`)}
-                        >
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="flat"
-                          color="secondary"
-                          onPress={() => navigate(`/projects/${project.id}/edit`)}
-                        >
-                          <Icon icon="lucide:edit" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="flat"
-                          color="danger"
-                          onPress={() => handleDeleteProject(project.id)}
-                        >
-                          <Icon icon="lucide:trash" />
-                        </Button>
-                      </div>
                       
-                      {(project.liveUrl || project.githubUrl) && (
-                        <div className="flex gap-2 mt-2">
-                          {project.liveUrl && (
-                            <Button
-                              size="sm"
-                              variant="light"
-                              color="primary"
-                              startContent={<Icon icon="lucide:external-link" />}
-                              onPress={() => window.open(project.liveUrl, '_blank')}
-                            >
-                              Live
-                            </Button>
-                          )}
-                          {project.githubUrl && (
-                            <Button
-                              size="sm"
-                              variant="light"
-                              color="default"
-                              startContent={<Icon icon="lucide:github" />}
-                              onPress={() => window.open(project.githubUrl, '_blank')}
-                            >
-                              Code
-                            </Button>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </CardBody>
                 </Card>

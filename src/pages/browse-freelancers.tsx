@@ -46,7 +46,12 @@ const BrowseFreelancersPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState(urlSearchParams.get('category') || 'all');
   const [sortBy, setSortBy] = useState('rating');
   const [budgetFilter, setBudgetFilter] = useState('all');
+  
+  // CHANGED: Store all fetched users and display separately
+  const [allFetchedUsers, setAllFetchedUsers] = useState<Freelancer[]>([]);
   const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
+  const [displayCount, setDisplayCount] = useState(12);
+  
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const lastDocRef = useRef<DocumentSnapshot | null>(null);
@@ -98,58 +103,96 @@ const BrowseFreelancersPage: React.FC = () => {
     
     return skillsMap[category] || [];
   };
-  
 
-const fetchFreelancers = React.useCallback(async (reset = false) => {
-  const scrollPosition = window.scrollY;
-  
-  setLoading(true);
-  try {
-    if (reset) {
-      lastDocRef.current = null;
-    }
+  // Fetch users from database
+  const fetchUsersFromDatabase = async (reset = false) => {
+    const scrollPosition = window.scrollY;
     
-    const constraints: QueryConstraint[] = [
-      where('userType', 'in', ['freelancer', 'both'])
-    ];
-    
-    // Add category filter if not 'all'
-    if (selectedCategory !== 'all') {
-      constraints.push(where('category', '==', selectedCategory));
-    }
-    
-    // Always use createdAt for ordering to avoid errors
-    constraints.push(orderBy('createdAt', 'desc'));
-    
-    if (!reset && lastDocRef.current) {
-      constraints.push(startAfter(lastDocRef.current));
-    }
-    
-    constraints.push(limit(12));
-    
-    const q = query(collection(db, 'users'), ...constraints);
-    
-    const querySnapshot = await getDocs(q);
-    console.log('Query returned', querySnapshot.docs.length, 'documents');
-    
-    if (querySnapshot.docs.length > 0) {
-      lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
-    }
-    
-    let newFreelancers = querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      console.log(`User ${doc.id}: isPro=${data.isPro}, name=${data.displayName}`);
+    setLoading(true);
+    try {
+      if (reset) {
+        lastDocRef.current = null;
+        setAllFetchedUsers([]);
+        setDisplayCount(12);
+      }
       
-      return {
-        id: doc.id,
-        ...data,
-        isPro: data.isPro === true,
-        rating: data.rating || 0,
-        completedJobs: data.completedJobs || 0,
-        hourlyRate: data.hourlyRate || '0',
-        createdAt: data.createdAt || { seconds: 0 }
-      } as Freelancer;
-    });
+      const constraints: QueryConstraint[] = [
+        where('userType', 'in', ['freelancer', 'both'])
+      ];
+      
+      // Add category filter if not 'all'
+      if (selectedCategory !== 'all') {
+        constraints.push(where('category', '==', selectedCategory));
+      }
+      
+      // Always use createdAt for ordering to avoid errors
+      constraints.push(orderBy('createdAt', 'desc'));
+      
+      if (!reset && lastDocRef.current) {
+        constraints.push(startAfter(lastDocRef.current));
+      }
+      
+      // CHANGED: Fetch more on initial load to ensure we get PRO users
+      const fetchLimit = reset ? 100 : 20;
+      constraints.push(limit(fetchLimit));
+      
+      const q = query(collection(db, 'users'), ...constraints);
+      
+      const querySnapshot = await getDocs(q);
+      console.log(`Query returned ${querySnapshot.docs.length} documents (initial: ${reset})`);
+      
+      if (querySnapshot.docs.length > 0) {
+        lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
+      }
+      
+      const newUsers = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log(`User ${doc.id}: isPro=${data.isPro}, name=${data.displayName}`);
+        
+        return {
+          id: doc.id,
+          ...data,
+          isPro: data.isPro === true,
+          rating: data.rating || 0,
+          completedJobs: data.completedJobs || 0,
+          hourlyRate: data.hourlyRate || '0',
+          createdAt: data.createdAt || { seconds: 0 }
+        } as Freelancer;
+      });
+      
+      // Update all fetched users
+      if (reset) {
+        setAllFetchedUsers(newUsers);
+      } else {
+        setAllFetchedUsers(prev => [...prev, ...newUsers]);
+      }
+      
+      setHasMore(querySnapshot.docs.length === fetchLimit);
+      
+      // Restore scroll for load more
+      if (!reset && querySnapshot.docs.length > 0) {
+        setTimeout(() => {
+          window.scrollTo({
+            top: scrollPosition,
+            behavior: 'instant'
+          });
+        }, 50);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching freelancers:', error);
+      if (reset) {
+        setAllFetchedUsers([]);
+      }
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Apply filters and sorting to all fetched users
+  const applyFiltersAndSorting = React.useCallback(() => {
+    let filtered = [...allFetchedUsers];
     
     // Apply budget filter
     if (budgetFilter !== 'all') {
@@ -157,7 +200,7 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
       const minValue = parseInt(min);
       const maxValue = max ? parseInt(max) : Infinity;
       
-      newFreelancers = newFreelancers.filter(freelancer => {
+      filtered = filtered.filter(freelancer => {
         const rate = parseInt(freelancer.hourlyRate || '0');
         if (budgetFilter === '100+') return rate >= 100;
         return rate >= minValue && rate <= maxValue;
@@ -167,7 +210,7 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
     // Apply search filter
     if (searchQuery && searchQuery.trim()) {
       const searchLower = searchQuery.toLowerCase().trim();
-      newFreelancers = newFreelancers.filter(freelancer => 
+      filtered = filtered.filter(freelancer => 
         freelancer.displayName?.toLowerCase().includes(searchLower) ||
         freelancer.bio?.toLowerCase().includes(searchLower) ||
         freelancer.title?.toLowerCase().includes(searchLower) ||
@@ -176,112 +219,128 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
       );
     }
     
-    // COMPLETELY REWRITTEN SORT FUNCTION
-    const sortFreelancers = (list: Freelancer[]): Freelancer[] => {
-      // Separate Pro and non-Pro users
-      const proUsers: Freelancer[] = [];
-      const regularUsers: Freelancer[] = [];
-      
-      list.forEach(user => {
-        if (user.isPro === true) {
-          proUsers.push(user);
-        } else {
-          regularUsers.push(user);
-        }
-      });
-      
-      console.log(`Found ${proUsers.length} Pro users and ${regularUsers.length} regular users`);
-      
-      // Sort function for each group
-      const compareFunction = (a: Freelancer, b: Freelancer): number => {
-        switch (sortBy) {
-          case 'rating':
-            return (b.rating || 0) - (a.rating || 0);
-          case 'completedJobs':
-            return (b.completedJobs || 0) - (a.completedJobs || 0);
-          case 'hourlyRate':
-            const aRate = parseInt(a.hourlyRate || '0');
-            const bRate = parseInt(b.hourlyRate || '0');
-            return aRate - bRate;
-          case 'newest':
-          default:
-            const aTime = a.createdAt?.seconds || 0;
-            const bTime = b.createdAt?.seconds || 0;
-            return bTime - aTime;
-        }
-      };
-      
-      // Sort each group WITHOUT MUTATION
-      const sortedProUsers = [...proUsers].sort(compareFunction);
-      const sortedRegularUsers = [...regularUsers].sort(compareFunction);
-      
-      // Combine with Pro users FIRST
-      const result = [...sortedProUsers, ...sortedRegularUsers];
-      
-      console.log('First 3 after sorting:', result.slice(0, 3).map(f => ({
-        name: f.displayName,
-        isPro: f.isPro
-      })));
-      
-      return result;
+    // SORT WITH PRO USERS ALWAYS FIRST
+    const proUsers: Freelancer[] = [];
+    const regularUsers: Freelancer[] = [];
+    
+    filtered.forEach(user => {
+      if (user.isPro === true) {
+        proUsers.push(user);
+      } else {
+        regularUsers.push(user);
+      }
+    });
+    
+    console.log(`After filtering: ${proUsers.length} Pro users, ${regularUsers.length} regular users out of ${allFetchedUsers.length} total`);
+    
+    // Sort function for each group
+    const compareFunction = (a: Freelancer, b: Freelancer): number => {
+      switch (sortBy) {
+        case 'rating':
+          return (b.rating || 0) - (a.rating || 0);
+        case 'completedJobs':
+          return (b.completedJobs || 0) - (a.completedJobs || 0);
+        case 'hourlyRate':
+          const aRate = parseInt(a.hourlyRate || '0');
+          const bRate = parseInt(b.hourlyRate || '0');
+          return aRate - bRate;
+        case 'newest':
+        default:
+          const aTime = a.createdAt?.seconds || 0;
+          const bTime = b.createdAt?.seconds || 0;
+          return bTime - aTime;
+      }
     };
     
-    // Apply sorting and set state
-    if (reset) {
-      // Initial load or filter change
-      const sorted = sortFreelancers(newFreelancers);
-      setFreelancers(sorted);
-    } else {
-      // Load more
-      setFreelancers(prev => {
-        const combined = [...prev, ...newFreelancers];
-        const sorted = sortFreelancers(combined);
-        
-        // Restore scroll position
-        requestAnimationFrame(() => {
-          window.scrollTo({
-            top: scrollPosition,
-            behavior: 'instant'
-          });
-        });
-        
-        return sorted;
-      });
-    }
+    // Sort each group
+    const sortedProUsers = [...proUsers].sort(compareFunction);
+    const sortedRegularUsers = [...regularUsers].sort(compareFunction);
     
-    setHasMore(querySnapshot.docs.length === 12);
+    // Combine with Pro users FIRST
+    const sorted = [...sortedProUsers, ...sortedRegularUsers];
     
-    if (!reset && querySnapshot.docs.length > 0) {
-      setTimeout(() => {
-        window.scrollTo({
-          top: scrollPosition,
-          behavior: 'instant'
-        });
-      }, 50);
-    }
+    // Display only the amount we want
+    const displayed = sorted.slice(0, displayCount);
     
-  } catch (error) {
-    console.error('Error fetching freelancers:', error);
-    if (reset) {
-      setFreelancers([]);
+    console.log('First 3 after sorting:', displayed.slice(0, 3).map(f => ({
+      name: f.displayName,
+      isPro: f.isPro
+    })));
+    
+    setFreelancers(displayed);
+    
+    // Check if we need more data
+    if (displayed.length < displayCount && hasMore && !loading) {
+      fetchUsersFromDatabase(false);
     }
-    setHasMore(false);
-  } finally {
-    setLoading(false);
-  }
-}, [selectedCategory, sortBy, searchQuery, budgetFilter]);
+  }, [allFetchedUsers, budgetFilter, searchQuery, sortBy, displayCount, hasMore, loading]);
 
+  // Apply filters when data or filters change
+  useEffect(() => {
+    applyFiltersAndSorting();
+  }, [applyFiltersAndSorting]);
+
+  // Initial load and category change
   useEffect(() => {
     setFreelancers([]);
+    setAllFetchedUsers([]);
+    setDisplayCount(12);
     lastDocRef.current = null;
-    fetchFreelancers(true);
-  }, [fetchFreelancers]);
+    fetchUsersFromDatabase(true);
+  }, [selectedCategory]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setFreelancers([]);
-    lastDocRef.current = null;
-    fetchFreelancers(true);
+    setDisplayCount(12);
+    applyFiltersAndSorting();
+  };
+
+  const handleLoadMore = () => {
+    const currentPosition = window.scrollY;
+    
+    // Check if we have more filtered results to show
+    let filtered = [...allFetchedUsers];
+    
+    // Apply same filters
+    if (budgetFilter !== 'all') {
+      const [min, max] = budgetFilter.split('-').map(v => v === '100+' ? '100' : v);
+      const minValue = parseInt(min);
+      const maxValue = max ? parseInt(max) : Infinity;
+      
+      filtered = filtered.filter(freelancer => {
+        const rate = parseInt(freelancer.hourlyRate || '0');
+        if (budgetFilter === '100+') return rate >= 100;
+        return rate >= minValue && rate <= maxValue;
+      });
+    }
+    
+    if (searchQuery && searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(freelancer => 
+        freelancer.displayName?.toLowerCase().includes(searchLower) ||
+        freelancer.bio?.toLowerCase().includes(searchLower) ||
+        freelancer.title?.toLowerCase().includes(searchLower) ||
+        freelancer.skills?.some(skill => skill.toLowerCase().includes(searchLower)) ||
+        freelancer.location?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    if (displayCount < filtered.length) {
+      // We have more filtered results to show
+      setDisplayCount(prev => prev + 12);
+    } else if (hasMore) {
+      // Need to fetch more from database
+      fetchUsersFromDatabase(false).then(() => {
+        setDisplayCount(prev => prev + 12);
+      });
+    }
+    
+    setTimeout(() => {
+      window.scrollTo({
+        top: currentPosition,
+        behavior: 'instant'
+      });
+    }, 100);
   };
 
   const handleFreelancerClick = React.useCallback((freelancerId: string) => {
@@ -558,27 +617,28 @@ const fetchFreelancers = React.useCallback(async (reset = false) => {
                 </motion.div>
               ))}
             </div>
-            {hasMore && !loading && (
+            {(hasMore || freelancers.length >= 12) && !loading && (
               <div className="text-center mt-8">
                 <Button
                   color="secondary"
                   variant="bordered"
                   size="lg"
-                  onPress={() => {
-                    const currentPosition = window.scrollY;
-                    fetchFreelancers(false);
-                    setTimeout(() => {
-                      window.scrollTo({
-                        top: currentPosition,
-                        behavior: 'instant'
-                      });
-                    }, 100);
-                  }}
+                  onPress={handleLoadMore}
                   disabled={loading}
                   className="font-medium"
                 >
                   Load More
                 </Button>
+              </div>
+            )}
+
+            {/* Loading spinner when loading more */}
+            {loading && freelancers.length > 0 && (
+              <div className="text-center mt-8">
+                <div className="inline-flex items-center gap-2 text-gray-400">
+                  <Icon icon="eos-icons:loading" className="animate-spin text-2xl" />
+                  <span>Loading more...</span>
+                </div>
               </div>
             )}
 

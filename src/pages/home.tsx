@@ -169,7 +169,7 @@ export const HomePage: React.FC = () => {
   }, [user, t]);
 
   // Fetch top freelancers
-  // Around line 170-230, update the fetchTopFreelancers:
+
 useEffect(() => {
   if (!user) return;
 
@@ -177,12 +177,12 @@ useEffect(() => {
 
   const fetchTopFreelancers = async () => {
     try {
-      // Simple query without isPro ordering
+      // First try with profileCompleted filter
       const freelancersQuery = query(
         collection(db, 'users'),
         where('userType', 'in', ['freelancer', 'both']),
         where('profileCompleted', '==', true),
-        limit(20) // Fetch more initially to account for client-side filtering
+        limit(30) // Fetch more initially to ensure we get enough pro users
       );
 
       unsubscribe = onSnapshot(freelancersQuery, 
@@ -198,29 +198,33 @@ useEffect(() => {
               ratingCount: data.ratingCount || 0,
               completedProjects: data.completedProjects || 0,
               skills: data.skills || [],
-              isPro: data.isPro || false // Ensure isPro defaults to false
+              isPro: data.isPro === true // Ensure isPro is boolean
             } as Freelancer;
           });
           
-          // Sort client-side: Pro members first, then by rating
-          freelancers.sort((a, b) => {
-            // Pro members first
-            if (a.isPro && !b.isPro) return -1;
-            if (!a.isPro && b.isPro) return 1;
-            // Then by rating
-            return (b.rating || 0) - (a.rating || 0);
-          });
+          // Separate pro and regular users
+          const proUsers = freelancers.filter(f => f.isPro === true);
+          const regularUsers = freelancers.filter(f => f.isPro !== true);
           
-          // Take only top 10 after sorting
-          setTopFreelancers(freelancers.slice(0, 10));
+          // Sort each group by rating (highest first)
+          proUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          regularUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          
+          // Combine with Pro users first, then take top 10
+          const sortedFreelancers = [...proUsers, ...regularUsers].slice(0, 10);
+          
+          console.log(`Top freelancers: ${proUsers.length} Pro users, ${regularUsers.length} regular users`);
+          
+          setTopFreelancers(sortedFreelancers);
         },
         (error) => {
           console.error("Error fetching freelancers:", error);
-          // Fallback query without profileCompleted
+          
+          // Fallback query without profileCompleted if there's an error
           const simpleQuery = query(
             collection(db, 'users'),
             where('userType', 'in', ['freelancer', 'both']),
-            limit(20)
+            limit(30)
           );
           
           unsubscribe = onSnapshot(simpleQuery, 
@@ -236,18 +240,19 @@ useEffect(() => {
                   ratingCount: data.ratingCount || 0,
                   completedProjects: data.completedProjects || 0,
                   skills: data.skills || [],
-                  isPro: data.isPro || false
+                  isPro: data.isPro === true
                 } as Freelancer;
               });
               
-              // Sort client-side
-              freelancers.sort((a, b) => {
-                if (a.isPro && !b.isPro) return -1;
-                if (!a.isPro && b.isPro) return 1;
-                return (b.rating || 0) - (a.rating || 0);
-              });
+              // Separate and sort
+              const proUsers = freelancers.filter(f => f.isPro === true);
+              const regularUsers = freelancers.filter(f => f.isPro !== true);
               
-              setTopFreelancers(freelancers.slice(0, 10));
+              proUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+              regularUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+              
+              const sortedFreelancers = [...proUsers, ...regularUsers].slice(0, 10);
+              setTopFreelancers(sortedFreelancers);
             }
           );
         }
@@ -520,104 +525,128 @@ useEffect(() => {
       </div>
 
       {/* Top Freelancers */}
-      <div className="px-4 mt-6 md:mt-8">
-        <div className="flex justify-between items-center mb-3 md:mb-4">
-          <h2 className={`text-lg md:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-            {t('home.topFreelancers')}
-          </h2>
-          <Button
-            variant="light"
-            className="text-beamly-secondary p-0"
-            endContent={<Icon icon="lucide:chevron-right" />}
-            onPress={() => navigate("/browse-freelancers")}
+      {/* Top Freelancers */}
+<div className="px-4 mt-6 md:mt-8">
+  <div className="flex justify-between items-center mb-3 md:mb-4">
+    <h2 className={`text-lg md:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+      {t('home.topFreelancers')}
+    </h2>
+    <Button
+      variant="light"
+      className="text-beamly-secondary p-0"
+      endContent={<Icon icon="lucide:chevron-right" />}
+      onPress={() => navigate("/browse-freelancers")}
+    >
+      {t('home.seeAll')}
+    </Button>
+  </div>
+  
+  <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar cursor-grab active:cursor-grabbing">
+    {topFreelancers.length > 0 ? (
+      topFreelancers.map((freelancer, index) => (
+        <motion.div
+          key={freelancer.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
+          className="min-w-[140px] sm:min-w-[160px]" // Increased minimum width
+        >
+          <Card 
+            className={`${index % 2 === 0 ? (isDarkMode ? 'glass-card' : 'bg-white shadow-md') : 'yellow-glass shadow-md'} border-none card-hover h-auto w-full overflow-visible relative`} // Changed to h-auto
+            isPressable
+            onPress={() => navigate(`/freelancer/${freelancer.id}`)}
           >
-            {t('home.seeAll')}
-          </Button>
-        </div>
-        
-        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar cursor-grab active:cursor-grabbing">
-          {topFreelancers.length > 0 ? (
-            topFreelancers.map((freelancer, index) => (
-              <motion.div
-                key={freelancer.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.3 + index * 0.1 }}
-                className="min-w-[110px] sm:min-w-[130px]"
-              >
-                <Card 
-                  className={`${index % 2 === 0 ? (isDarkMode ? 'glass-card' : 'bg-white shadow-md') : 'yellow-glass shadow-md'} border-none card-hover h-[200px] w-full overflow-hidden`}
-                  isPressable
-                  onPress={() => navigate(`/freelancer/${freelancer.id}`)}
-                >
-                  <CardBody className="p-3 flex flex-col items-center text-center">
-                  {freelancer.isPro && (
-                      <div className="absolute top-1 right-1 z-10">
-                        <Chip
-                          size="sm"
-                          color="warning"
-                          variant="flat"
-                          className="px-1"
-                        >
-                          <Icon icon="lucide:crown" className="text-xs" />
-                        </Chip>
-                      </div>
-                    )}
-                    <Avatar 
-                      src={freelancer.photoURL} 
-                      name={freelancer.displayName}
-                      className="w-10 h-10 mb-1"
-                      classNames={{
-                        base: !freelancer.photoURL ? "bg-beamly-secondary/20" : "",
-                        name: "text-beamly-secondary text-xs font-bold"
-                      }}
+    {freelancer.isPro && (
+      <Chip
+        size="sm"
+        color="warning"
+        variant="flat"
+        className="absolute top-2 right-2 px-1.5 py-0.5"
+        startContent={<Icon icon="lucide:crown" className="w-3 h-3" />}
+      >
+        <span className="text-xs font-bold">PRO</span>
+      </Chip>
+    )}
+            
+            <CardBody className="p-4 flex flex-col items-center text-center space-y-2"> {/* Better spacing */}
+              {/* Avatar */}
+              <div className="relative">
+                <Avatar 
+                  src={freelancer.photoURL} 
+                  name={freelancer.displayName}
+                  className="w-12 h-12"
+                  classNames={{
+                    base: !freelancer.photoURL ? "bg-beamly-secondary/20" : "",
+                    name: "text-beamly-secondary text-xs font-bold"
+                  }}
+                />
+                {freelancer.isPro && (
+                  <div className="absolute -bottom-1 -right-1">
+                    <div className="bg-warning text-warning-foreground rounded-full p-1">
+                      <Icon icon="lucide:crown" className="w-3 h-3" />
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Name and Title */}
+              <div className="w-full space-y-1">
+                <div className="flex items-center justify-center gap-1">
+                  <h3 className={`font-semibold text-sm truncate ${isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}`}>
+                    {freelancer.displayName}
+                  </h3>
+                </div>
+                <p className={`text-xs truncate ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {freelancer.title || freelancer.skills?.[0] || t('home.freelancer')}
+                </p>
+              </div>
+              
+              {/* Rating Section */}
+              <div className="w-full pt-1 border-t border-white/10">
+                {/* Stars */}
+                <div className="flex items-center justify-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Icon 
+                      key={star}
+                      icon={star <= Math.round(freelancer.rating || 0) ? "lucide:star" : "lucide:star"} 
+                      className={`w-3 h-3 ${star <= Math.round(freelancer.rating || 0) ? 'text-beamly-secondary fill-beamly-secondary' : 'text-gray-400'}`}
                     />
-                    <h3 className={`font-semibold text-xs truncate w-full ${isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}`}>
-                      {freelancer.displayName}
-                    </h3>
-                    <p className={`text-xs truncate w-full ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {freelancer.title || freelancer.skills?.[0] || t('home.freelancer')}
-                    </p>
-                    
-                    {/* Updated Rating Display */}
-                    <div className="mt-1">
-                      <div className="flex items-center justify-center">
-                        {/* Display stars based on actual rating */}
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Icon 
-                            key={star}
-                            icon={star <= Math.round(freelancer.rating || 0) ? "lucide:star" : "lucide:star"} 
-                            className={`w-3 h-3 ${star <= Math.round(freelancer.rating || 0) ? 'text-beamly-secondary' : 'text-gray-400'}`}
-                          />
-                        ))}
-                      </div>
-                      <div className={`text-xs mt-1 ${isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}`}>
-                        {freelancer.rating ? freelancer.rating.toFixed(1) : '0.0'}
-                      </div>
-                    </div>
-                    
-                    {/* Reviews Count */}
-                    <div className="mt-1">
-                      <div className="text-beamly-secondary font-bold text-lg">
-                        {freelancer.ratingCount || 0}
-                      </div>
-                      <div className={`text-xs ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {t('home.reviews')}
-                      </div>
-                    </div>
-                  </CardBody>
-                </Card>
-              </motion.div>
-            ))
-          ) : (
-            <div className="w-full text-center py-8">
-              <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-                {t('home.noFreelancersAvailable')}
-              </p>
-            </div>
-          )}
-        </div>
+                  ))}
+                </div>
+                
+                {/* Rating Value */}
+                <div className="flex items-center justify-center gap-2 mt-1">
+                  <span className={`text-sm font-bold ${isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}`}>
+                    {freelancer.rating ? freelancer.rating.toFixed(1) : '0.0'}
+                  </span>
+                  <span className={`text-xs ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>
+                    ({freelancer.ratingCount || 0})
+                  </span>
+                </div>
+              </div>
+              
+              {/* Completed Projects */}
+              <div className="w-full pt-1">
+                <div className="flex items-center justify-center gap-1">
+                  <Icon icon="lucide:briefcase" className="w-3 h-3 text-beamly-secondary" />
+                  <span className={`text-xs ${isDarkMode || index % 2 === 1 ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {freelancer.completedProjects || 0} {t('home.projects')}
+                  </span>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        </motion.div>
+      ))
+    ) : (
+      <div className="w-full text-center py-8">
+        <p className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+          {t('home.noFreelancersAvailable')}
+        </p>
       </div>
+    )}
+  </div>
+</div>
 
       {/* Featured Jobs */}
       <div className="px-4 mt-6 md:mt-8">

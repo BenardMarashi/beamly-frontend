@@ -371,9 +371,10 @@ const checkProposalLimit = async () => {
     return urls;
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-      // Check proposal limit first
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  // Check proposal limit first
   if (!proposalLimit.canSubmit) {
     setError("You've reached your monthly limit of 5 proposals. Upgrade to Pro for unlimited proposals.");
     // Navigate to billing after a delay
@@ -384,144 +385,186 @@ const checkProposalLimit = async () => {
     }, 2000);
     return;
   }
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
+  
+  const validationError = validateForm();
+  if (validationError) {
+    setError(validationError);
+    return;
+  }
+  
+  if (!user) {
+    setError("You must be logged in to apply");
+    return;
+  }
+  
+  setLoading(true);
+  setError(null);
+  
+  try {
+    // Get user profile data
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const userData = userDoc.data();
+    
+    if (!userData) {
+      throw new Error('User profile not found. Please complete your profile first.');
     }
     
-    if (!user) {
-      setError("You must be logged in to apply");
-      return;
+    // Validate freelancer profile
+    if (userData.userType === 'freelancer' || userData.userType === 'both') {
+      const missingFields = [];
+      if (!userData.displayName?.trim()) missingFields.push('Display Name');
+      if (!userData.bio?.trim()) missingFields.push('Bio');
+      if (!userData.skills || userData.skills.length === 0) missingFields.push('Skills');
+      if (!userData.hourlyRate || userData.hourlyRate <= 0) missingFields.push('Hourly Rate');
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Please complete your profile before applying. Missing: ${missingFields.join(', ')}`);
+      }
     }
     
-    setLoading(true);
-    setError(null);
-    
+    // Check if user already applied for this job
     try {
-      // Get user profile data
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const userData = userDoc.data();
-      
-      if (!userData) {
-        throw new Error('User profile not found. Please complete your profile first.');
+      const existingProposalCheck = await ProposalService.checkExistingProposal(job.id, user.uid);
+      if (existingProposalCheck.success && existingProposalCheck.exists) {
+        throw new Error('You have already applied for this job.');
       }
-      
-      // Validate freelancer profile
-      if (userData.userType === 'freelancer' || userData.userType === 'both') {
-        const missingFields = [];
-        if (!userData.displayName?.trim()) missingFields.push('Display Name');
-        if (!userData.bio?.trim()) missingFields.push('Bio');
-        if (!userData.skills || userData.skills.length === 0) missingFields.push('Skills');
-        if (!userData.hourlyRate || userData.hourlyRate <= 0) missingFields.push('Hourly Rate');
-        
-        if (missingFields.length > 0) {
-          throw new Error(`Please complete your profile before applying. Missing: ${missingFields.join(', ')}`);
-        }
-      }
-      
-      // Check if user already applied for this job
-      try {
-        const existingProposalCheck = await ProposalService.checkExistingProposal(job.id, user.uid);
-        if (existingProposalCheck.success && existingProposalCheck.exists) {
-          throw new Error('You have already applied for this job.');
-        }
-      } catch (checkError: any) {
-        console.warn('Could not check for existing proposal:', checkError);
-        // Continue anyway if check fails
-      }
-      
-      // Upload attachments if any
-      const attachmentUrls = await uploadAttachments();
-      
-      // Validate required fields
-      if (!job.id || !job.clientId) {
-        throw new Error('Job information is incomplete. Please refresh and try again.');
-      }
-      
-      const proposalData = {
-        jobId: job.id,
-        jobTitle: job.title,
-        clientId: job.clientId,
-        clientName: job.clientName || "",
-        freelancerId: user.uid,
-        freelancerName: userData.displayName || user.displayName || "Anonymous",
-        freelancerPhotoURL: userData.photoURL || user.photoURL || "",
-        freelancerRating: userData.rating || 0,
-        coverLetter: formData.coverLetter,
-        proposedRate: parseFloat(formData.proposedRate),
-        estimatedDuration: formData.estimatedDuration,
-        budgetType: job.budgetType,
-        attachments: attachmentUrls,
-        status: "pending" as const
-      };
-      
-      console.log('Creating proposal with data:', proposalData);
-      
-      const result = await ProposalService.createProposal(proposalData);
-      
-      if (result.success) {
-        toast.success("Application submitted successfully!");
-        onSuccess?.();
-        onClose();
-        // Reset form
-        setFormData({
-          coverLetter: "",
-          proposedRate: "",
-          estimatedDuration: ""
-        });
-        setAttachments([]);
-      } else {
-        setError("Failed to submit application. Please try again.");
-      }
-    } catch (err: any) {
-      console.error("Error submitting application:", err);
-      console.error("Error details:", {
-        code: err.code,
-        message: err.message,
-        details: err.details
-      });
-      
-      const errorMessage = err.message || "An error occurred while submitting your application.";
-      
-      // Check if it's a permission error
-      if (err.code === 'permission-denied' || errorMessage.includes('Missing or insufficient permissions')) {
-        setError("You don't have permission to apply for this job. Please make sure you're logged in and try again.");
-      } else {
-        setError(errorMessage);
-      }
-      
-      // If profile is incomplete, navigate to settings after a delay
-      if (errorMessage.includes('complete your profile')) {
-        setTimeout(() => {
-          onClose();
-          navigate('/settings');
-          toast.error("Please complete your profile first");
-        }, 2000);
-      }
-    } finally {
-      setLoading(false);
-      setUploadProgress(0);
+    } catch (checkError: any) {
+      console.warn('Could not check for existing proposal:', checkError);
+      // Continue anyway if check fails
     }
-  };
+    
+    // Upload attachments if any
+    const attachmentUrls = await uploadAttachments();
+    
+    // Validate required fields
+    if (!job.id || !job.clientId) {
+      throw new Error('Job information is incomplete. Please refresh and try again.');
+    }
+    
+    // UPDATED: Use the Firebase Function directly instead of ProposalService
+    const submitProposalFn = httpsCallable(fns, 'submitProposal');
+    
+    const proposalData = {
+      jobId: job.id,
+      coverLetter: formData.coverLetter,
+      proposedRate: parseFloat(formData.proposedRate),
+      estimatedDuration: formData.estimatedDuration,
+      attachments: attachmentUrls,
+    };
+    
+    console.log('Submitting proposal with data:', proposalData);
+    
+    const result = await submitProposalFn(proposalData) as any;
+    
+    if (result.data?.success) {
+      toast.success("Application submitted successfully!");
+      
+      // UPDATED: Update the local state with the new count from the response
+      if (!userData.isPro && result.data.remaining !== undefined) {
+        setProposalLimit(prev => ({
+          ...prev,
+          remaining: result.data.remaining,
+          current: result.data.newProposalCount
+        }));
+      }
+      
+      // Delay the check to ensure Firebase has propagated the changes
+      setTimeout(() => {
+        checkProposalLimit();
+      }, 2000);
+      
+      onSuccess?.();
+      onClose();
+      
+      // Reset form
+      setFormData({
+        coverLetter: "",
+        proposedRate: "",
+        estimatedDuration: ""
+      });
+      setAttachments([]);
+    } else {
+      setError("Failed to submit application. Please try again.");
+    }
+  } catch (err: any) {
+    console.error("Error submitting application:", err);
+    console.error("Error details:", {
+      code: err.code,
+      message: err.message,
+      details: err.details
+    });
+    
+    const errorMessage = err.message || "An error occurred while submitting your application.";
+    
+    // Check for specific error types
+    if (err.code === 'functions/resource-exhausted' || errorMessage.includes('reached your monthly limit')) {
+      setError("You've reached your monthly limit of 5 proposals. Upgrade to Pro for unlimited proposals.");
+      setTimeout(() => {
+        onClose();
+        navigate('/billing');
+      }, 2000);
+    } else if (err.code === 'functions/already-exists' || errorMessage.includes('already applied')) {
+      setError("You have already applied for this job.");
+    } else if (err.code === 'permission-denied' || errorMessage.includes('Missing or insufficient permissions')) {
+      setError("You don't have permission to apply for this job. Please make sure you're logged in and try again.");
+    } else {
+      setError(errorMessage);
+    }
+    
+    // If profile is incomplete, navigate to settings after a delay
+    if (errorMessage.includes('complete your profile')) {
+      setTimeout(() => {
+        onClose();
+        navigate('/settings');
+        toast.error("Please complete your profile first");
+      }, 2000);
+    }
+  } finally {
+    setLoading(false);
+    setUploadProgress(0);
+  }
+};
   
   return (
     <>
-      <Modal
-        isOpen={isOpen}
-        onClose={onClose}
-        size="2xl"
-        scrollBehavior="outside"
-        classNames={{
-          base: isDarkMode ? "dark" : "",
-          backdrop: isDarkMode ? "bg-black/80" : "bg-black/50",
-          wrapper: isDarkMode ? "" : "",
-          body: isDarkMode ? "bg-beamly-third py-6" : "bg-white py-6",
-          header: isDarkMode ? "bg-beamly-third border-b border-white/10" : "bg-white border-b border-gray-200",
-          footer: isDarkMode ? "bg-beamly-third border-t border-white/10" : "bg-white border-t border-gray-200",
-          closeButton: isDarkMode ? "text-white/70 hover:text-white hover:bg-white/10" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-        }}
-      >
+<Modal
+  isOpen={isOpen}
+  onClose={onClose}
+  size="2xl"
+  scrollBehavior="inside"  // Change back to "inside"
+  placement="center"
+  backdrop="blur"
+  isDismissable={false}  // Prevent accidental closes
+  autoFocus={false}  // Prevent auto-focus causing scroll
+  motionProps={{  // Add smooth animation
+    variants: {
+      enter: {
+        y: 0,
+        opacity: 1,
+        transition: {
+          duration: 0.3,
+          ease: "easeOut"
+        }
+      },
+      exit: {
+        y: -20,
+        opacity: 0,
+        transition: {
+          duration: 0.2,
+          ease: "easeIn"
+        }
+      }
+    }
+  }}
+  classNames={{
+    base: isDarkMode ? "dark" : "",
+    backdrop: isDarkMode ? "bg-black/80" : "bg-black/50",
+    body: isDarkMode ? "bg-beamly-third py-6" : "bg-white py-6",
+    header: isDarkMode ? "bg-beamly-third border-b border-white/10" : "bg-white border-b border-gray-200",
+    footer: isDarkMode ? "bg-beamly-third border-t border-white/10" : "bg-white border-t border-gray-200",
+    closeButton: isDarkMode ? "text-white/70 hover:text-white hover:bg-white/10" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+  }}
+>
         <ModalContent 
           className={isDarkMode ? 'bg-beamly-third' : 'bg-white'}
           style={isDarkMode ? { backgroundColor: '#011241' } : {}}
