@@ -213,37 +213,32 @@ export const StripeService = {
   },
 
   // Create subscription checkout
-  async createSubscriptionCheckout(userId: string, planType: 'monthly' | 'quarterly' | 'yearly') {
-    try {
-      const createCheckout = httpsCallable(fns, 'createSubscriptionCheckout');
-      
-      // Map plan types to your Stripe price IDs
-      const priceIds = {
-        monthly: 'price_monthly_id', // Replace with your actual Stripe price ID
-        quarterly: 'price_quarterly_id', // Replace with your actual Stripe price ID
-        yearly: 'price_yearly_id' // Replace with your actual Stripe price ID
+// Create subscription checkout
+async createSubscriptionCheckout(userId: string, priceId: string) {
+  try {
+    const createCheckout = httpsCallable(fns, 'createSubscriptionCheckout');
+    
+    // Now we receive the actual price ID directly
+    const result = await createCheckout({
+      userId,
+      priceId: priceId, // Pass the actual price ID directly
+      successUrl: `${window.location.origin}/billing?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${window.location.origin}/billing`
+    }) as any;
+    
+    if (result.data.success) {
+      return {
+        success: true,
+        checkoutUrl: result.data.url
       };
-      
-      const result = await createCheckout({
-        userId,
-        priceId: priceIds[planType],
-        successUrl: `${window.location.origin}/billing?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}/billing`
-      }) as any;
-      
-      if (result.data.success) {
-        return {
-          success: true,
-          checkoutUrl: result.data.url
-        };
-      }
-      
-      return { success: false, error: result.data.error };
-    } catch (error) {
-      console.error('Error creating subscription checkout:', error);
-      return { success: false, error };
     }
-  },
+    
+    return { success: false, error: result.data.error };
+  } catch (error) {
+    console.error('Error creating subscription checkout:', error);
+    return { success: false, error };
+  }
+},
 
   // Cancel subscription
   async cancelSubscription(userId: string) {
