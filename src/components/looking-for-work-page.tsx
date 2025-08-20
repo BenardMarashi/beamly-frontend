@@ -78,10 +78,10 @@ export const LookingForWorkPage: React.FC = () => {
 
   const budgetRanges = [
     { value: "all", label: "Any Budget" },
-    { value: "0-500", label: "Under $500" },
-    { value: "500-1000", label: "$500 - $1,000" },
-    { value: "1000-5000", label: "$1,000 - $5,000" },
-    { value: "5000+", label: "$5,000+" }
+    { value: "0-500", label: "Under €500" },
+    { value: "500-1000", label: "€500 - €1,000" },
+    { value: "1000-5000", label: "€1,000 - €5,000" },
+    { value: "5000+", label: "€5,000+" }
   ];
 
   const durations = [

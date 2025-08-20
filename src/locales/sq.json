@@ -2266,5 +2266,330 @@
     "nextPage": "Faqja tjetër",
     "firstPage": "Faqja e parë",
     "lastPage": "Faqja e fundit"
+  },
+  "contact": {
+    "title": "Na Kontaktoni",
+    "subtitle": "Jemi këtu për t'ju ndihmuar dhe për t'iu përgjigjur çdo pyetjeje që mund të keni",
+    "email": {
+      "title": "Na Dërgoni Email",
+      "description": "Na dërgoni një email dhe ne do t'ju përgjigjemi sa më shpejt të jetë e mundur"
+    },
+    "location": {
+      "title": "Vendndodhja Jonë",
+      "description": "Të vendosur në zemër të Shqipërisë"
+    },
+    "responseTime": {
+      "title": "Koha e Përgjigjes",
+      "description": "Zakonisht përgjigjemi për të gjitha kërkesat brenda 24-48 orëve gjatë ditëve të punës. Kënaqësia juaj është prioriteti ynë."
+    },
+    "businessHours": {
+      "title": "Orari i Punës",
+      "description": "E Hënë deri të Premte, 9:00 - 18:00 CET. Jemi të mbyllur në fundjavë dhe festat zyrtare shqiptare."
+    },
+    "faq": {
+      "title": "Po Kërkoni Përgjigje të Shpejta?",
+      "description": "Shikoni pyetjet tona të bëra më shpesh për ndihmë të menjëhershme me temat e zakonshme.",
+      "button": "Shiko Pyetjet e Shpeshta"
+    }
+  },
+  "common": {
+    "success": "Sukses",
+    "error": "Ndodhi një gabim",
+    "cancel": "Anulo",
+    "save": "Ruaj",
+    "delete": "Fshi",
+    "edit": "Ndrysho",
+    "search": "Kërko",
+    "loading": "Po ngarkohet..."
+  },
+  "nav": {
+    "settings": "Cilësimet"
+  },
+  "settings": {
+    "appearance": {
+      "title": "Pamja",
+      "theme": "Tema",
+      "themeDescription": "Zgjidhni temën tuaj të preferuar",
+      "toggleTheme": "Ndrysho temën",
+      "light": "E ndriçuar",
+      "dark": "E errët"
+    },
+    "language": {
+      "title": "Gjuha",
+      "select": "Zgjidhni gjuhën"
+    },
+    "account": {
+      "title": "Llogaria",
+      "dangerZone": "Zonë e rrezikshme",
+      "dangerZoneDescription": "Këto veprime nuk mund të zhbëhen. Ju lutemi procedoni me kujdes."
+    },
+    "changePassword": "Ndrysho fjalëkalimin",
+    "currentPassword": "Fjalëkalimi aktual",
+    "newPassword": "Fjalëkalimi i ri",
+    "confirmPassword": "Konfirmo fjalëkalimin e ri",
+    "updatePassword": "Përditëso fjalëkalimin",
+    "deleteAccount": "Fshi llogarinë",
+    "deleteConfirmation": "Jeni i sigurt që doni të fshini llogarinë tuaj? Ky veprim nuk mund të zhbëhet.",
+    "deleteWarning": "Të gjitha të dhënat tuaja, duke përfshirë punët, propozimet dhe mesazhet do të fshihen përgjithmonë.",
+    "errors": {
+      "passwordMismatch": "Fjalëkalimet nuk përputhen",
+      "passwordTooShort": "Fjalëkalimi duhet të jetë të paktën 6 karaktere",
+      "wrongPassword": "Fjalëkalimi aktual është i gabuar",
+      "passwordUpdateFailed": "Dështoi përditësimi i fjalëkalimit",
+      "deleteAccountFailed": "Dështoi fshirja e llogarisë. Ju lutemi provoni të hyni përsëri."
+    },
+    "success": {
+      "passwordUpdated": "Fjalëkalimi u përditësua me sukses",
+      "accountDeleted": "Llogaria u fshi me sukses"
+    }
+  },
+  "home": {
+    "greeting": "Mirë se erdhe përsëri, {{name}}!",
+    "there": "mik",
+    "whatLooking": "Çfarë po kërkoni sot?",
+    "searchPlaceholder": "Kërkoni për shërbime, freelancerë ose projekte...",
+    "loading": "Po ngarkohet paneli juaj...",
+    "unknownClient": "Klient i panjohur",
+    "unknownUser": "Përdorues i panjohur",
+    "untitledProject": "Projekt pa titull",
+    "untitledJob": "Punë pa titull",
+    "anonymous": "Anonim",
+    "noDeadline": "Pa afat",
+    "dueInDays": "Mbaron në {{days}} ditë",
+    "overdue": "Vonuar",
+    "jobCategories": "Kategoritë e Punëve",
+    "seeAll": "Shiko të Gjitha",
+    "explore": "Eksploro",
+    "topFreelancers": "Freelancerët Kryesorë",
+    "featuredJobs": "Punët e Rekomanduara",
+    "freelancer": "Freelancer",
+    "projectsCount": "{{count}} projekt",
+    "projectsCount_plural": "{{count}} projekte",
+    "noFreelancersAvailable": "Nuk ka freelancerë të disponueshëm për momentin",
+    "noJobsAvailable": "Nuk ka punë të disponueshme për momentin",
+    "postJob": "Posto një Punë",
+    "categories": {
+      "design": "Dizajn",
+      "development": "Zhvillim",
+      "writing": "Shkrim",
+      "marketing": "Marketing",
+      "video": "Video dhe Animacion",
+      "music": "Muzikë dhe Audio",
+      "business": "Biznes",
+      "data": "Shkenca e të Dhënave",
+      "photography": "Fotografi",
+      "translation": "Përkthim"
+    },
+    "errors": {
+      "loadJobs": "Dështoi ngarkimi i punëve. Ju lutemi provoni përsëri.",
+      "loadFreelancers": "Dështoi ngarkimi i freelancerëve. Ju lutemi provoni përsëri.",
+      "loadProjects": "Dështoi ngarkimi i projekteve. Ju lutemi provoni përsëri."
+    }
+  },
+    "terms": {
+    "title": "Kushtet e Shërbimit",
+    "lastUpdated": "Përditësuar së Fundi",
+    "sections": {
+      "role": {
+        "title": "Roli i Platformës",
+        "1.1": "Beamly vepron vetëm si një ndërmjetësues digjital mes Freelancerëve dhe Klientëve.",
+        "1.2": "Ne nuk jemi palë kontraktuese dhe nuk ofrojmë vetë shërbimet e ofruara nga Freelancerët.",
+        "1.3": "Ne nuk garantojmë cilësinë, ligjshmërinë, profesionalizmin apo afatet kohore të shërbimeve të ofruara nga Freelancerët.",
+        "1.4": "Çdo marrëveshje, pagesë apo komunikim është përgjegjësi e vetme e palëve të përfshira."
+      },
+      "use": {
+        "title": "Përdorimi i Platformës",
+        "2.1": "Ju pranoni të përdorni platformën vetëm për qëllime të ligjshme dhe në përputhje me ligjet e Shqipërisë dhe Kosovës.",
+        "2.2": "Nuk lejohet publikimi ose ofrimi i përmbajtjes që cenon të drejtat e autorit, të drejtat e privatësisë apo çdo ligj tjetër në fuqi.",
+        "2.3": "Ju jeni përgjegjës vetëm për përmbajtjen, veprimet dhe komunikimet tuaja në platformë."
+      },
+      "taxes": {
+        "title": "Deklarimi i të Ardhurave dhe Tatimet",
+        "3.1": "Freelancerët janë përgjegjës vetëm për regjistrimin, deklarimin dhe pagesën e çdo tatimi, kontributi apo detyrimi ligjor që lind nga të ardhurat e tyre.",
+        "3.2": "Beamly nuk mban përgjegjësi për mosdeklarimin apo deklarimin e gabuar të të ardhurave nga Freelancerët.",
+        "3.3": "Platforma nuk ofron këshillim tatimor apo shërbime kontabiliteti."
+      },
+      "payments": {
+        "title": "Pagesat dhe Komisionet",
+        "4.1": "Të gjitha pagesat për shërbimet e ofruara nga Freelancerët duhet të kryhen ekskluzivisht përmes sistemit të pagesave të platformës.",
+        "4.2": "Pagesat përpunohen përmes Stripe, një ofrues i licencuar i shërbimeve të pagesave, i cili vepron si ndërmjetës i autorizuar për mbledhjen dhe shpërndarjen e fondeve. Pasi pagesa nga Klienti të përpunohet, Beamly merr shumën nga Stripe dhe e transferon tek Freelanceri, duke mbajtur një komision si tarifë shërbimi.",
+        "4.3": "Përdoruesit nuk lejohen të shmangin sistemin e pagesave të platformës duke kryer pagesa direkte jashtë saj. Çdo përpjekje për ta bërë këtë mund të rezultojë në pezullimin ose mbylljen e llogarisë.",
+        "4.4": "Komisionet tona nuk përfshijnë taksa apo tarifa të aplikueshme sipas ligjeve të Shqipërisë ose Kosovës; Përdoruesit janë përgjegjës për këto detyrime."
+      },
+      "security": {
+        "title": "Siguria dhe Komunikimi",
+        "5.1": "Përdorni sistemin e brendshëm të komunikimit të platformës për transparencë dhe dokumentim. Marrëveshjet e bëra jashtë platformës nuk janë të mbrojtura.",
+        "5.2": "Shmangni ndarjen e informacionit personal, financiar ose të fjalëkalimeve të llogarive me palë të treta.",
+        "5.3": "Çdo aktivitet i dyshimtë duhet të raportohet menjëherë tek platforma, e cila mund të ndërmarrë veprime sipas politikave të saj."
+      },
+      "disclaimer": {
+        "title": "Përjashtimi nga Përgjegjësia",
+        "6.1": "Platforma nuk mban përgjegjësi për asnjë humbje, dëm, mosmarrëveshje, pretendim ose shpenzim që lind nga:",
+        "item1": "Moskryerja ose cilësia e dobët e shërbimeve.",
+        "item2": "Dështimi i Freelancerëve për të deklaruar të ardhurat.",
+        "item3": "Marrëveshje joformale ose mosmarrëveshje financiare mes palëve.",
+        "6.2": "Përdoruesi pranon se përdorimi i platformës është tërësisht në rrezikun e tij."
+      },
+      "law": {
+        "title": "Ligji në Fuqi dhe Juridiksioni",
+        "7.1": "Këto Kushte rregullohen nga ligjet e Republikës së Shqipërisë dhe Republikës së Kosovës — në varësi të vendit ku operon platforma.",
+        "7.2": "Çdo mosmarrëveshje do të zgjidhet ekskluzivisht nga gjykatat kompetente të zgjedhura nga platforma (Shqipëri ose Kosovë)."
+      },
+      "amendments": {
+        "title": "Ndryshimet në Kushte",
+        "8.1": "Platforma rezervon të drejtën të ndryshojë çdo dispozitë të këtyre Kushteve në çdo kohë.",
+        "8.2": "Versioni i përditësuar do të publikohet menjëherë dhe hyn në fuqi që nga momenti i publikimit."
+      },
+      "conclusion": {
+        "title": "Përfundimi",
+        "content": "Duke përdorur Beamly, ju konfirmoni se keni lexuar, kuptuar dhe pranuar këto Kushte."
+      }
+    }
+  },
+  "privacy": {
+    "title": "Politika e Privatësisë",
+    "lastUpdated": "Përditësuar së Fundi",
+    "sections": {
+      "collect": {
+        "title": "Informacioni që Mbledhim",
+        "items": [
+          "Informacioni i Llogarisë: Emri, adresa e email-it, emri i përdoruesit, fjalëkalimi, foto profili.",
+          "Informacioni i Kontaktit: Numri i telefonit, adresa për faturim, të dhënat e vendndodhjes.",
+          "Informacioni i Pagesave: Përpunohen në mënyrë të sigurt nga Stripe; ne nuk ruajmë të dhënat e plota të kartës suaj.",
+          "Të Dhënat e Transaksioneve: Detaje për shërbimet e blera, shumën dhe datat e pagesave.",
+          "Të Dhënat e Komunikimit: Mesazhet dhe skedarët e shkëmbyer përmes platformës.",
+          "Të Dhëna Teknike: Adresa IP, lloji i shfletuesit, lloji i pajisjes dhe cookies."
+        ]
+      },
+      "use": {
+        "title": "Si Përdorim të Dhënat Tuaja",
+        "items": [
+          "Ofrimin dhe funksionimin e platformës.",
+          "Përpunimin e pagesave dhe transferimin e fondeve tek Freelancerët.",
+          "Lehtësimin e komunikimit midis Klientëve dhe Freelancerëve.",
+          "Zbatimin e Kushteve dhe Rregulloreve tona.",
+          "Përmirësimin e përvojës së përdoruesve dhe funksionalitetit të platformës.",
+          "Parandalimin e mashtrimeve, keqpërdorimeve dhe veprimeve të paligjshme.",
+          "Përmbushjen e detyrimeve ligjore (përfshirë raportimin tatimor kur aplikohet)."
+        ]
+      },
+      "legal": {
+        "title": "Bazat Ligjore për Përpunimin e të Dhënave",
+        "items": [
+          "Pëlqimi juaj (p.sh., për komunikime marketingu).",
+          "Nevoja kontraktuale (p.sh., për ofrimin e shërbimeve që keni kërkuar).",
+          "Detyrime ligjore (p.sh., tatime, masa kundër mashtrimit).",
+          "Interesa të ligjshme (p.sh., përmirësimi i shërbimeve tona)."
+        ]
+      },
+      "sharing": {
+        "title": "Ndarja dhe Zbulimi i të Dhënave",
+        "items": [
+          "Përpunuesit e pagesave (p.sh., Stripe) për përpunimin e transaksioneve.",
+          "Ofruesit e shërbimeve (p.sh., hosting, analiza, email).",
+          "Autoritetet ligjore kur kërkohet nga ligji ose urdhër gjykate.",
+          "Partnerët e biznesit vetëm me pëlqimin tuaj."
+        ]
+      },
+      "transfers": {
+        "title": "Transferimet Ndërkombëtare të të Dhënave",
+        "content": "Nëse të dhënat tuaja transferohen jashtë Shqipërisë, Kosovës ose BE-së, ne sigurojmë mbrojtje adekuate në përputhje me GDPR (p.sh., Klauzolat Standarde Kontraktuale)."
+      },
+      "retention": {
+        "title": "Ruajtja e të Dhënave",
+        "content": "Ne ruajmë të dhënat tuaja personale vetëm për aq kohë sa është e nevojshme për qëllimet e përcaktuara në këtë Politikë Privatësie, përveç nëse ligji kërkon një periudhë më të gjatë ruajtjeje."
+      },
+      "rights": {
+        "title": "Të Drejtat Tuaja",
+        "items": [
+          "Të keni qasje në të dhënat tuaja personale.",
+          "Të kërkoni korrigjim ose fshirje.",
+          "Të kundërshtoni ose të kufizoni përpunimin.",
+          "Të kërkoni portabilitet të të dhënave.",
+          "Të tërhiqni pëlqimin në çdo kohë.",
+          "Të depozitoni një ankesë tek Komisioneri për Mbrojtjen e të Dhënave Personale në Shqipëri ose Agjencia për Informacion dhe Privatësi në Kosovë."
+        ]
+      },
+      "cookies": {
+        "title": "Cookies",
+        "items": [
+          "Aktivizimin e funksioneve kryesore të platformës.",
+          "Përmirësimin e përvojës së përdoruesit.",
+          "Analizimin e përdorimit të platformës."
+        ]
+      },
+      "security": {
+        "title": "Masat e Sigurisë",
+        "content": "Ne zbatojmë masa teknike dhe organizative të përshtatshme për të mbrojtur të dhënat tuaja kundër qasjes së paautorizuar, ndryshimit, zbulimit ose shkatërrimit."
+      },
+      "changes": {
+        "title": "Ndryshimet në Politikën e Privatësisë",
+        "content": "Ne mund të përditësojmë këtë Politikë Privatësie herë pas here. Ndryshimet do të publikohen në këtë faqe me datën e përditësimit të shënuar."
+      },
+      "contact": {
+        "title": "Na Kontaktoni",
+        "intro": "Nëse keni pyetje ose kërkesa në lidhje me këtë Politikë Privatësie, mund të na kontaktoni në:",
+        "email": "Email"
+      }
+    }
+  },
+  "about": {
+    "hero": {
+      "title": "Rreth Beamly",
+      "subtitle": "Duke lidhur freelancerë të talentuar me biznese në Shqipëri dhe Kosovë"
+    },
+    "mission": {
+      "title": "Misioni Ynë",
+      "content": "Beamly është e përkushtuar të krijojë një treg të besueshëm ku freelancerët dhe klientët mund të bashkëpunojnë pa probleme. Ne besojmë në fuqizimin e profesionistëve për të shfaqur aftësitë e tyre dhe në ndihmën e bizneseve për të gjetur talentin perfekt për projektet e tyre.",
+      "vision": "Vizioni ynë është të bëhemi platforma kryesore e punës së lirë në Ballkan, duke nxitur rritjen ekonomike dhe duke krijuar mundësi për profesionistë të aftë në të gjithë rajonin."
+    },
+    "features": {
+      "secure": {
+        "title": "Pagesa të Sigurta",
+        "desc": "Transaksione të mbrojtura përmes Stripe"
+      },
+      "community": {
+        "title": "Komunitet i Gjallë",
+        "desc": "Lidhuni me profesionistë nga industri të ndryshme"
+      },
+      "growth": {
+        "title": "Rritje Karriere",
+        "desc": "Ndërtoni portofolin dhe reputacionin tuaj"
+      },
+      "global": {
+        "title": "Lokal & Global",
+        "desc": "Punoni me klientë nga e gjithë bota"
+      }
+    },
+    "values": {
+      "title": "Vlerat Tona",
+      "transparency": {
+        "title": "Transparencë",
+        "desc": "Komunikim i qartë dhe praktika të ndershme biznesi"
+      },
+      "quality": {
+        "title": "Cilësi",
+        "desc": "Standarde të larta për çdo projekt dhe ndërveprim"
+      },
+      "trust": {
+        "title": "Besim",
+        "desc": "Ndërtimi i marrëdhënieve të qëndrueshme përmes besueshmërisë"
+      },
+      "innovation": {
+        "title": "Inovacion",
+        "desc": "Përmirësimi i vazhdueshëm i platformës dhe shërbimeve tona"
+      }
+    },
+    "team": {
+      "title": "Ekipi Ynë",
+      "content": "Beamly u themelua nga një ekip i pasionuar zhvilluesish dhe sipërmarrësish që kuptojnë sfidat e punës së lirë dhe punës në distancë. Ne jemi të përkushtuar të ndërtojmë një platformë që u shërben vërtet nevojave të komunitetit tonë.",
+      "location": "Me bazë në Shqipëri, ne jemi krenarë që mbështesim ekosistemin në rritje të teknologjisë në Ballkan dhe ndihmojmë të lidhim talentet lokale me mundësi globale."
+    },
+    "cta": {
+      "title": "Gati për të Filluar?",
+      "subtitle": "Bashkohuni me mijëra freelancerë dhe biznese që tashmë përdorin Beamly",
+      "joinButton": "Bashkohu me Beamly",
+      "contactButton": "Na Kontaktoni"
+    }
   }
 }

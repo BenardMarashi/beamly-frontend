@@ -9,6 +9,8 @@ interface AuthContextType {
   user: User | null;
   userData: UserData | null;
   loading: boolean;
+  authInitialized: boolean;
+  authStateReady: boolean;
   isFreelancer: boolean;
   isClient: boolean;
   canPostJobs: boolean;
@@ -20,6 +22,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   userData: null,
   loading: true,
+  authInitialized: false,
+  authStateReady: false,
   isFreelancer: false,
   isClient: false,
   canPostJobs: false,
@@ -39,14 +43,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
+  const [authStateReady, setAuthStateReady] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
     // Set persistence to LOCAL (persists even after browser close)
     setPersistence(auth, browserLocalPersistence).catch(console.error);
 
     let unsubscribeUserData: (() => void) | null = null;
+    let authStateResolved = false;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Mark that we've received at least one auth state update
+      if (!authStateResolved) {
+        authStateResolved = true;
+        setAuthInitialized(true);
+        // Give a small buffer for auth token to be fully ready
+        setTimeout(() => {
+          setAuthStateReady(true);
+        }, 50);
+      }
+
       setUser(firebaseUser);
       
       // Clean up previous user data subscription
@@ -151,11 +168,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const canApplyToJobs = isFreelancer;
   const canPostProjects = isFreelancer;
 
-  return (
+return (
     <AuthContext.Provider value={{
       user,
       userData,
       loading,
+      authInitialized,
+      authStateReady,
       isFreelancer,
       isClient,
       canPostJobs,

@@ -152,7 +152,7 @@ const PaymentForm: React.FC<JobPaymentProps> = ({
               isDisabled={!stripe || loading}
               className="flex-1"
             >
-              Pay ${(amount * 1.05).toFixed(2)}
+              Pay €{(amount * 1.05).toFixed(2)}
             </Button>
           </div>
 
@@ -184,7 +184,7 @@ export const ReleasePayment: React.FC<{
   const [loading, setLoading] = useState(false);
 
   const handleRelease = async () => {
-    if (!window.confirm(`Are you sure you want to release $${amount} to ${freelancerName}?`)) {
+    if (!window.confirm(`Are you sure you want to release €${amount} to ${freelancerName}?`)) {
       return;
     }
 

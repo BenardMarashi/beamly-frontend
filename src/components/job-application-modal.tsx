@@ -530,13 +530,17 @@ const handleSubmit = async (e: React.FormEvent) => {
 <Modal
   isOpen={isOpen}
   onClose={onClose}
-  size="2xl"
-  scrollBehavior="inside"  // Change back to "inside"
-  placement="center"
-  backdrop="blur"
-  isDismissable={false}  // Prevent accidental closes
-  autoFocus={false}  // Prevent auto-focus causing scroll
-  motionProps={{  // Add smooth animation
+  size="full" // Use full size on mobile
+  scrollBehavior="inside"
+  classNames={{
+    wrapper: "p-0 m-0",
+    base: "m-0 sm:m-4 max-h-[100dvh] sm:max-h-[90vh]", // Use dvh for dynamic viewport
+    body: "p-4 overflow-y-auto",
+    header: "border-b border-gray-200 dark:border-gray-700",
+    footer: "border-t border-gray-200 dark:border-gray-700",
+    closeButton: "right-4 top-4 z-10"
+  }}
+  motionProps={{
     variants: {
       enter: {
         y: 0,
@@ -547,7 +551,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         }
       },
       exit: {
-        y: -20,
+        y: 20,
         opacity: 0,
         transition: {
           duration: 0.2,
@@ -555,14 +559,6 @@ const handleSubmit = async (e: React.FormEvent) => {
         }
       }
     }
-  }}
-  classNames={{
-    base: isDarkMode ? "dark" : "",
-    backdrop: isDarkMode ? "bg-black/80" : "bg-black/50",
-    body: isDarkMode ? "bg-beamly-third py-6" : "bg-white py-6",
-    header: isDarkMode ? "bg-beamly-third border-b border-white/10" : "bg-white border-b border-gray-200",
-    footer: isDarkMode ? "bg-beamly-third border-t border-white/10" : "bg-white border-t border-gray-200",
-    closeButton: isDarkMode ? "text-white/70 hover:text-white hover:bg-white/10" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
   }}
 >
         <ModalContent 
@@ -596,8 +592,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                       }}
                     >
                       {job.budgetType === "fixed" 
-                        ? `$${job.budgetMin.toLocaleString()}`
-                        : `$${job.budgetMin} - $${job.budgetMax}/hr`
+                        ? `€${job.budgetMin.toLocaleString()}`
+                        : `€${job.budgetMin} - $${job.budgetMax}/hr`
                       }
                     </Chip>
                   </div>

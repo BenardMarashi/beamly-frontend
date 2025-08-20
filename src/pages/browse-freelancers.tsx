@@ -81,10 +81,10 @@ const BrowseFreelancersPage: React.FC = () => {
 
   const budgetRanges = [
     { value: 'all', label: 'Any Budget' },
-    { value: '0-25', label: 'Under $25/hr' },
-    { value: '25-50', label: '$25-$50/hr' },
-    { value: '50-100', label: '$50-$100/hr' },
-    { value: '100+', label: '$100+/hr' }
+    { value: '0-25', label: 'Under €25/hr' },
+    { value: '25-50', label: '€25-€50/hr' },
+    { value: '50-100', label: '€50-€100/hr' },
+    { value: '100+', label: '€100+/hr' }
   ];
   
   const getCategorySkills = (category: string) => {

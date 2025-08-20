@@ -203,9 +203,9 @@ export const JobApplyPage: React.FC = () => {
                 <div>
                   <span className="text-gray-400 text-sm">Budget:</span>
                   <p className="text-beamly-secondary font-semibold">
-                    ${job.budgetMin}
+                    €{job.budgetMin}
                     {job.budgetType === 'hourly' && job.budgetMax > job.budgetMin 
-                      ? ` - $${job.budgetMax} /hr` 
+                      ? ` - €${job.budgetMax} /hr` 
                       : job.budgetType === 'hourly' 
                       ? ' /hr' 
                       : ''}

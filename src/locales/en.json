@@ -2267,5 +2267,330 @@
     "nextPage": "Next page",
     "firstPage": "First page",
     "lastPage": "Last page"
+  },
+  "contact": {
+    "title": "Get in Touch",
+    "subtitle": "We're here to help and answer any questions you might have",
+    "email": {
+      "title": "Email Us",
+      "description": "Send us an email and we'll respond as soon as possible"
+    },
+    "location": {
+      "title": "Our Location",
+      "description": "Based in the heart of Albania"
+    },
+    "responseTime": {
+      "title": "Response Time",
+      "description": "We typically respond to all inquiries within 24-48 hours during business days. Your satisfaction is our priority."
+    },
+    "businessHours": {
+      "title": "Business Hours",
+      "description": "Monday to Friday, 9:00 AM - 6:00 PM CET. We're closed on weekends and Albanian public holidays."
+    },
+    "faq": {
+      "title": "Looking for Quick Answers?",
+      "description": "Check out our frequently asked questions for instant help with common topics.",
+      "button": "View FAQ"
+    }
+    },
+      "common": {
+    "success": "Success",
+    "error": "An error occurred",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "settings": "Settings"
+  },
+  "settings": {
+    "appearance": {
+      "title": "Appearance",
+      "theme": "Theme",
+      "themeDescription": "Choose your preferred theme",
+      "toggleTheme": "Toggle theme",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "language": {
+      "title": "Language",
+      "select": "Select Language"
+    },
+    "account": {
+      "title": "Account",
+      "dangerZone": "Danger Zone",
+      "dangerZoneDescription": "These actions are irreversible. Please proceed with caution."
+    },
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "updatePassword": "Update Password",
+    "deleteAccount": "Delete Account",
+    "deleteConfirmation": "Are you sure you want to delete your account? This action cannot be undone.",
+    "deleteWarning": "All your data, including jobs, proposals, and messages will be permanently deleted.",
+    "errors": {
+      "passwordMismatch": "Passwords do not match",
+      "passwordTooShort": "Password must be at least 6 characters",
+      "wrongPassword": "Current password is incorrect",
+      "passwordUpdateFailed": "Failed to update password",
+      "deleteAccountFailed": "Failed to delete account. Please try logging in again."
+    },
+    "success": {
+      "passwordUpdated": "Password updated successfully",
+      "accountDeleted": "Account deleted successfully"
+    }
+  },
+    "home": {
+    "greeting": "Welcome back, {{name}}!",
+    "there": "there",
+    "whatLooking": "What are you looking for today?",
+    "searchPlaceholder": "Search for services, freelancers, or projects...",
+    "loading": "Loading your dashboard...",
+    "unknownClient": "Unknown Client",
+    "unknownUser": "Unknown User",
+    "untitledProject": "Untitled Project",
+    "untitledJob": "Untitled Job",
+    "anonymous": "Anonymous",
+    "noDeadline": "No deadline",
+    "dueInDays": "Due in {{days}} days",
+    "overdue": "Overdue",
+    "jobCategories": "Job Categories",
+    "seeAll": "See All",
+    "explore": "Explore",
+    "topFreelancers": "Top Freelancers",
+    "featuredJobs": "Featured Jobs",
+    "freelancer": "Freelancer",
+    "projectsCount": "{{count}} project",
+    "projectsCount_plural": "{{count}} projects",
+    "noFreelancersAvailable": "No freelancers available at the moment",
+    "noJobsAvailable": "No jobs available at the moment",
+    "postJob": "Post a Job",
+    "categories": {
+      "design": "Design",
+      "development": "Development",
+      "writing": "Writing",
+      "marketing": "Marketing",
+      "video": "Video & Animation",
+      "music": "Music & Audio",
+      "business": "Business",
+      "data": "Data Science",
+      "photography": "Photography",
+      "translation": "Translation"
+    },
+    "errors": {
+      "loadJobs": "Failed to load jobs. Please try again.",
+      "loadFreelancers": "Failed to load freelancers. Please try again.",
+      "loadProjects": "Failed to load projects. Please try again."
+    }
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last Updated",
+    "sections": {
+      "role": {
+        "title": "Role of the Platform",
+        "1.1": "Beamly acts solely as a digital intermediary between Freelancers and Clients.",
+        "1.2": "We are not a contracting party and do not provide the services delivered by Freelancers ourselves.",
+        "1.3": "We do not guarantee the quality, legality, professionalism, or timeliness of services provided by Freelancers.",
+        "1.4": "Any agreement, payment, or communication is the sole responsibility of the parties involved."
+      },
+      "use": {
+        "title": "Use of the Platform",
+        "2.1": "You agree to use the platform only for lawful purposes and in compliance with the laws of Albania and Kosovo.",
+        "2.2": "You may not publish or offer content that infringes copyright, privacy rights, or any other applicable law.",
+        "2.3": "You are solely responsible for your content, actions, and communications on the platform."
+      },
+      "taxes": {
+        "title": "Income Reporting and Taxes",
+        "3.1": "Freelancers are solely responsible for registering, reporting, and paying any taxes, contributions, or legal obligations arising from their income.",
+        "3.2": "Beamly is not responsible for non-reporting or incorrect reporting of income by Freelancers.",
+        "3.3": "The platform does not provide tax advice or accounting services."
+      },
+      "payments": {
+        "title": "Payments and Commissions",
+        "4.1": "All payments for services provided by Freelancers must be made exclusively through the platform's payment system.",
+        "4.2": "Payments are processed via Stripe, a licensed third-party payment service provider, which acts as an authorized intermediary for collecting and disbursing funds. Once payment from the Client is processed, Beamly receives the amount from Stripe and transfers the payment to the Freelancer, withholding a commission as a service fee.",
+        "4.3": "Users are prohibited from circumventing the platform's payment system by making direct payments outside the platform. Any attempt to do so may result in suspension or termination of the account.",
+        "4.4": "Our commissions do not include any applicable taxes or fees under the laws of Albania or Kosovo; Users are responsible for any such obligations."
+      },
+      "security": {
+        "title": "Security and Communication",
+        "5.1": "Use the platform's internal communication system for transparency and documentation. Agreements made outside the platform are not protected.",
+        "5.2": "Avoid sharing personal, financial, or account password information with third parties.",
+        "5.3": "Any suspicious activity must be reported immediately to the platform, which may take action in accordance with its policies."
+      },
+      "disclaimer": {
+        "title": "Disclaimer of Liability",
+        "6.1": "The platform shall not be liable for any loss, damage, dispute, claim, or expense arising from:",
+        "item1": "Non-performance or poor-quality services.",
+        "item2": "Failure by Freelancers to report income.",
+        "item3": "Informal agreements or financial disputes between parties.",
+        "6.2": "The User acknowledges that use of the platform is entirely at their own risk."
+      },
+      "law": {
+        "title": "Governing Law and Jurisdiction",
+        "7.1": "These Terms are governed by the laws of the Republic of Albania and the Republic of Kosovo — depending on the platform's place of operation.",
+        "7.2": "Any dispute shall be resolved exclusively by the competent courts selected by the platform (Albania or Kosovo)."
+      },
+      "amendments": {
+        "title": "Amendments to the Terms",
+        "8.1": "The platform reserves the right to modify any clause of these Terms at any time.",
+        "8.2": "The updated version will be published immediately and shall take effect upon posting."
+      },
+      "conclusion": {
+        "title": "Conclusion",
+        "content": "By using Beamly, you confirm that you have read, understood, and accepted these Terms."
+      }
+    }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last Updated",
+    "sections": {
+      "collect": {
+        "title": "Information We Collect",
+        "items": [
+          "Account Information: Name, email address, username, password, profile photo.",
+          "Contact Information: Phone number, billing address, location data.",
+          "Payment Information: Processed securely by Stripe; we do not store your full payment card details.",
+          "Transaction Data: Details of services purchased, amounts, and dates of payments.",
+          "Communication Data: Messages and files exchanged through the platform.",
+          "Technical Data: IP address, browser type, device type, and cookies."
+        ]
+      },
+      "use": {
+        "title": "How We Use Your Data",
+        "items": [
+          "Providing and operating the platform.",
+          "Processing payments and transferring funds to Freelancers.",
+          "Facilitating communication between Clients and Freelancers.",
+          "Enforcing our Terms and Conditions.",
+          "Improving user experience and platform functionality.",
+          "Preventing fraud, abuse, and illegal activities.",
+          "Complying with legal obligations (including tax reporting where applicable)."
+        ]
+      },
+      "legal": {
+        "title": "Legal Basis for Processing",
+        "items": [
+          "Your consent (e.g., for marketing communications).",
+          "Contractual necessity (e.g., providing services you requested).",
+          "Legal obligations (e.g., tax, anti-fraud measures).",
+          "Legitimate interests (e.g., improving our services)."
+        ]
+      },
+      "sharing": {
+        "title": "Data Sharing and Disclosure",
+        "items": [
+          "Payment processors (e.g., Stripe) to process transactions.",
+          "Service providers (e.g., hosting, analytics, email services).",
+          "Legal authorities when required by law or court order.",
+          "Business partners only with your consent."
+        ]
+      },
+      "transfers": {
+        "title": "International Data Transfers",
+        "content": "If your data is transferred outside Albania, Kosovo, or the EU, we ensure adequate protection under GDPR-compliant safeguards (e.g., Standard Contractual Clauses)."
+      },
+      "retention": {
+        "title": "Data Retention",
+        "content": "We retain your personal data only for as long as necessary to fulfill the purposes set out in this Privacy Policy, unless a longer retention period is required by law."
+      },
+      "rights": {
+        "title": "Your Rights",
+        "items": [
+          "Access your personal data.",
+          "Request correction or deletion.",
+          "Object to or restrict processing.",
+          "Request data portability.",
+          "Withdraw consent at any time.",
+          "File a complaint with the Commissioner for Personal Data Protection in Albania or the Agency for Information and Privacy in Kosovo."
+        ]
+      },
+      "cookies": {
+        "title": "Cookies",
+        "items": [
+          "Enable core platform functions.",
+          "Improve user experience.",
+          "Analyze usage patterns."
+        ]
+      },
+      "security": {
+        "title": "Security Measures",
+        "content": "We implement appropriate technical and organizational measures to protect your data against unauthorized access, alteration, disclosure, or destruction."
+      },
+      "changes": {
+        "title": "Changes to This Policy",
+        "content": "We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated 'Last Updated' date."
+      },
+      "contact": {
+        "title": "Contact Us",
+        "intro": "If you have any questions or requests regarding this Privacy Policy, you can contact us at:",
+        "email": "Email"
+      }
+    }
+  },
+  "about": {
+    "hero": {
+      "title": "About Beamly",
+      "subtitle": "Connecting talented freelancers with businesses across Albania and Kosovo"
+    },
+    "mission": {
+      "title": "Our Mission",
+      "content": "Beamly is dedicated to creating a trusted marketplace where freelancers and clients can collaborate seamlessly. We believe in empowering professionals to showcase their skills and helping businesses find the perfect talent for their projects.",
+      "vision": "Our vision is to become the leading freelance platform in the Balkans, fostering economic growth and creating opportunities for skilled professionals throughout the region."
+    },
+    "features": {
+      "secure": {
+        "title": "Secure Payments",
+        "desc": "Protected transactions through Stripe"
+      },
+      "community": {
+        "title": "Vibrant Community",
+        "desc": "Connect with professionals across industries"
+      },
+      "growth": {
+        "title": "Career Growth",
+        "desc": "Build your portfolio and reputation"
+      },
+      "global": {
+        "title": "Local & Global",
+        "desc": "Work with clients worldwide"
+      }
+    },
+    "values": {
+      "title": "Our Values",
+      "transparency": {
+        "title": "Transparency",
+        "desc": "Clear communication and honest business practices"
+      },
+      "quality": {
+        "title": "Quality",
+        "desc": "High standards for every project and interaction"
+      },
+      "trust": {
+        "title": "Trust",
+        "desc": "Building lasting relationships through reliability"
+      },
+      "innovation": {
+        "title": "Innovation",
+        "desc": "Continuously improving our platform and services"
+      }
+    },
+    "team": {
+      "title": "Our Team",
+      "content": "Beamly was founded by a passionate team of developers and entrepreneurs who understand the challenges of freelancing and remote work. We're committed to building a platform that truly serves the needs of our community.",
+      "location": "Based in Albania, we're proud to support the growing tech ecosystem in the Balkans and help connect local talent with global opportunities."
+    },
+    "cta": {
+      "title": "Ready to Get Started?",
+      "subtitle": "Join thousands of freelancers and businesses already using Beamly",
+      "joinButton": "Join Beamly",
+      "contactButton": "Contact Us"
+    }
   }
 }

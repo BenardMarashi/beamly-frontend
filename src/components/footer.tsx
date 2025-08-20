@@ -39,7 +39,7 @@ export const Footer: React.FC<FooterProps> = ({ isDarkMode = true }) => {
               to="/contact"
               className="text-sm hover:underline transition-all duration-300"
             >
-              {t('footer.support.contact', 'Contact')}
+              {t('footer.legal.support', 'Contact')}
             </Link>
             <Link
               to="/about"

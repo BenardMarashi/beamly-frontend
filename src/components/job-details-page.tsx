@@ -92,9 +92,9 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
     if (!job) return '';
     
     if (job.budgetType === 'fixed') {
-      return `$${job.budgetMin}`;
+      return `€${job.budgetMin}`;
     } else {
-      return `$${job.budgetMin} - $${job.budgetMax}/hr`;
+      return `€${job.budgetMin} - €${job.budgetMax}/hr`;
     }
   };
 

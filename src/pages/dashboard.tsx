@@ -172,9 +172,9 @@ const DashboardPage: React.FC = () => {
   
   const formatBudget = (job: RecentJob) => {
     if (job.budgetType === 'fixed') {
-      return `$${job.budgetMin}`;
+      return `€${job.budgetMin}`;
     }
-    return `$${job.budgetMin} - $${job.budgetMax}/hr`;
+    return `€${job.budgetMin} -€${job.budgetMax}/hr`;
   };
   
   if (loading) {
