@@ -222,7 +222,7 @@ export const ProfileManagementPage: React.FC<ProfileManagementPageProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
                   type="number"
-                  label="Hourly Rate (USD)"
+                  label="Hourly Rate (EUR)"
                   placeholder="0"
                   value={profileData.hourlyRate.toString()}
                   onChange={(e) => setProfileData({ ...profileData, hourlyRate: parseInt(e.target.value) || 0 })}

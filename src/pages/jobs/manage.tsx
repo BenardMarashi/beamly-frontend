@@ -192,7 +192,7 @@ export const ManageJobsPage: React.FC = () => {
                         </TableCell>
                         <TableCell>{job.category}</TableCell>
                         <TableCell>
-                          ${job.budget} {job.budgetType === 'hourly' && '/hr'}
+                          €{job.budget} {job.budgetType === 'hourly' && '/hr'}
                         </TableCell>
                         <TableCell>{job.proposals}</TableCell>
                         <TableCell>

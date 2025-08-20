@@ -7,7 +7,7 @@ import {
   ModalFooter,
   Button,
   Input
-} from "@heroui/react";
+} from "@nextui-org/react";
 import { Icon } from "@iconify/react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../lib/firebase";
@@ -72,9 +72,47 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
   };
   
   return (
-    <Modal isOpen={isOpen} onClose={handleClose}>
-      <ModalContent>
-        <form onSubmit={handleSubmit}>
+  <Modal 
+    isOpen={isOpen} 
+    onClose={handleClose}
+    size="full"
+    placement="center"
+    classNames={{
+      wrapper: "p-0 m-0",
+      base: `
+        m-0 sm:m-4 
+        max-h-[100dvh] sm:max-h-[500px]
+        h-full sm:h-auto
+        rounded-none sm:rounded-lg
+      `,
+      body: "p-6",
+      header: "p-6 pb-0",
+      footer: "p-6 pt-0"
+    }}
+    motionProps={{
+      variants: {
+        enter: {
+          y: 0,
+          opacity: 1,
+          transition: {
+            duration: 0.3,
+            ease: "easeOut"
+          }
+        },
+        exit: {
+          y: 20,
+          opacity: 0,
+          transition: {
+            duration: 0.2,
+            ease: "easeIn"
+          }
+        }
+      }
+    }}
+  >
+    <ModalContent>
+      {(onClose) => (
+        <form onSubmit={handleSubmit} className="h-full flex flex-col">
           <ModalHeader className="flex flex-col gap-1">
             <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
               Reset Password
@@ -84,7 +122,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
             </p>
           </ModalHeader>
           
-          <ModalBody>
+          <ModalBody className="flex-1">
             {!success ? (
               <div className="space-y-4">
                 <Input
@@ -97,7 +135,15 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
                   startContent={<Icon icon="lucide:mail" className="text-gray-400" />}
                   className={isDarkMode ? "bg-white/10" : ""}
                   isRequired
+                  autoFocus
+                  classNames={{
+                    input: "text-base", // Prevents iOS zoom
+                    inputWrapper: "h-12"
+                  }}
                 />
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  <p>We'll send you an email with instructions to reset your password.</p>
+                </div>
               </div>
             ) : (
               <div className="text-center py-6">
@@ -114,31 +160,41 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
             )}
           </ModalBody>
           
-          <ModalFooter>
+          <ModalFooter className="mt-auto">
             {!success ? (
               <>
-                <Button variant="light" onPress={handleClose}>
+                <Button 
+                  variant="light" 
+                  onPress={handleClose}
+                  className="flex-1 sm:flex-none"
+                >
                   Cancel
                 </Button>
                 <Button
                   color="secondary"
                   type="submit"
                   isLoading={loading}
-                  disabled={loading}
+                  disabled={loading || !email}
+                  className="flex-1 sm:flex-none"
                 >
                   Send Reset Email
                 </Button>
               </>
             ) : (
-              <Button color="secondary" onPress={handleClose}>
+              <Button 
+                color="secondary" 
+                onPress={handleClose}
+                className="w-full sm:w-auto"
+              >
                 Close
               </Button>
             )}
           </ModalFooter>
         </form>
-      </ModalContent>
-    </Modal>
-  );
+      )}
+    </ModalContent>
+  </Modal>
+);
 };
 
 // Export a hook to use password reset functionality

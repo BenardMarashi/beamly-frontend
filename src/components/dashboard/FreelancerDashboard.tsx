@@ -184,7 +184,7 @@ export const FreelancerDashboard: React.FC<{ isDarkMode: boolean }> = ({ isDarkM
                     <div className="flex-1">
                       <h4 className="font-medium mb-1">{proposal.jobTitle}</h4>
                       <p className="text-sm text-gray-500">
-                        Proposed: ${proposal.proposedRate}
+                        Proposed: €{proposal.proposedRate}
                       </p>
                     </div>
                     <Chip

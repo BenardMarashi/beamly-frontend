@@ -4,7 +4,7 @@ import { NextUIProvider } from '@nextui-org/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ThemeProvider } from './contexts/theme-context';
-import { Toaster, toast } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Spinner } from '@nextui-org/react';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -16,7 +16,6 @@ import i18n from './i18n';
 
 // Layouts - Keep your current layout system
 import { MainLayout } from './layouts/main-layout';
-import { DashboardLayout } from './layouts/dashboard-layout';
 
 // Regular imports for frequently used pages
 import { LandingPage } from './pages/landing';
@@ -44,6 +43,8 @@ const SettingsPage = lazy(() => import('./pages/settings'));
 const NotificationsPage = lazy(() => import('./pages/notifications'));
 const HelpPage = lazy(() => import('./pages/help'));
 const TermsPage = lazy(() => import('./pages/terms'));
+const AboutPage = lazy(() => import('./pages/about'));
+const ContactPage = lazy(() => import('./pages/support'));
 const PrivacyPage = lazy(() => import('./pages/privacy'));
 const NotFoundPage = lazy(() => import('./pages/404'));
 const AnalyticsPage = lazy(() => import('./pages/analytics'));
@@ -76,31 +77,75 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiresProfile = false,
   allowedUserTypes = []
 }) => {
-  const { user, userData, loading } = useAuth();
+  const { user, userData, loading, authInitialized, authStateReady } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [routeChecked, setRouteChecked] = useState(false);
 
-useEffect(() => {
-  // Skip redirects if we're navigating between message pages
-  const isMessageRoute = location.pathname.includes('/messages');
-  const prevPath = location.state?.from || '';
-  const isNavigatingBetweenMessages = isMessageRoute && prevPath.includes('/messages');
-
-  if (!loading && !isNavigatingBetweenMessages) {
-    if (requiresAuth && !user) {
-      navigate('/login', { state: { from: location.pathname } });
-    } else if (requiresProfile && user && !userData?.profileCompleted) {
-      navigate('/edit-profile', { state: { from: location.pathname } });
-    } else if (allowedUserTypes.length > 0 && userData) {
-      const userType = userData.userType;
-      if (!allowedUserTypes.includes(userType) && userType !== 'both') {
-        navigate('/dashboard');
-      }
+  useEffect(() => {
+    if (!authInitialized || !authStateReady) {
+      return;
     }
-  }
-}, [user, userData, loading, navigate, location, requiresAuth, requiresProfile, allowedUserTypes]);
 
-  if (loading) {
+    if (routeChecked) {
+      return;
+    }
+
+    const isMessageRoute = location.pathname.includes('/messages');
+    const prevPath = location.state?.from || '';
+    const isNavigatingBetweenMessages = isMessageRoute && prevPath.includes('/messages');
+    
+    if (isNavigatingBetweenMessages) {
+      setRouteChecked(true);
+      return;
+    }
+
+const performAuthChecks = () => {
+      if (requiresAuth && !user) {
+        navigate('/login', { 
+          state: { from: location.pathname },
+          replace: true 
+        });
+      } else if (requiresProfile && user && !userData?.profileCompleted) {
+        navigate('/edit-profile', { 
+          state: { from: location.pathname },
+          replace: true 
+        });
+      } else if (allowedUserTypes.length > 0 && userData) {
+        const userType = userData.userType;
+        if (!allowedUserTypes.includes(userType) && userType !== 'both') {
+          navigate('/dashboard', { replace: true });
+        }
+      }
+      setRouteChecked(true);
+    };
+
+    if (typeof window.requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        performAuthChecks();
+      });
+    } else {
+      performAuthChecks();
+    }
+
+  }, [
+    user, 
+    userData, 
+    authInitialized, 
+    authStateReady,
+    routeChecked,
+    navigate, 
+    location, 
+    requiresAuth, 
+    requiresProfile, 
+    allowedUserTypes
+  ]);
+
+  if (!authInitialized || !authStateReady || loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!routeChecked) {
     return <LoadingSpinner />;
   }
 
@@ -113,9 +158,9 @@ useEffect(() => {
 
 // Route configuration with your existing layout system
 const AppRoutes = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, authInitialized, authStateReady } = useAuth();
 
-  if (loading) {
+  if (!authInitialized || !authStateReady || loading) {
     return <LoadingSpinner />;
   }
 
@@ -132,6 +177,8 @@ const AppRoutes = () => {
           <Route path="/freelancer/:id" element={<FreelancerProfilePage />} />
           <Route path="/job/:id" element={<JobDetailsPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/help" element={<HelpPage />} />
           <Route path="/looking-for-work" element={<Navigate to="/browse-jobs" replace />} />
@@ -264,8 +311,10 @@ const AppRoutes = () => {
           } />
         </Route>
 
-        {/* 404 Route */}
-        <Route path="*" element={<NotFoundPage />} />
+        {/* Catch-all 404 Route - CRITICAL FOR PREVENTING 404s */}
+        <Route path="*" element={
+          user ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />
+        } />
       </Routes>
     </Suspense>
   );
@@ -318,12 +367,6 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
-  };
 
   return (
     <ErrorBoundary>

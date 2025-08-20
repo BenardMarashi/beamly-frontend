@@ -118,12 +118,12 @@ const SettingsPage: React.FC = () => {
   
   const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('settings.errors.passwordMismatch'));
       return;
     }
     
     if (passwordData.newPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
+      toast.error(t('settings.errors.passwordTooShort'));
       return;
     }
     
@@ -140,7 +140,7 @@ const SettingsPage: React.FC = () => {
       // Update password
       await updatePassword(user!, passwordData.newPassword);
       
-      toast.success('Password updated successfully');
+      toast.success(t('settings.success.passwordUpdated'));
       onPasswordClose();
       setPasswordData({
         currentPassword: '',
@@ -150,9 +150,9 @@ const SettingsPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error updating password:', error);
       if (error.code === 'auth/wrong-password') {
-        toast.error('Current password is incorrect');
+        toast.error(t('settings.errors.wrongPassword'));
       } else {
-        toast.error('Failed to update password');
+        toast.error(t('settings.errors.passwordUpdateFailed'));
       }
     } finally {
       setLoading(false);
@@ -169,11 +169,11 @@ const SettingsPage: React.FC = () => {
       // Delete the user account
       await deleteUser(user!);
       
-      toast.success('Account deleted successfully');
+      toast.success(t('settings.success.accountDeleted'));
       navigate('/');
     } catch (error) {
       console.error('Error deleting account:', error);
-      toast.error('Failed to delete account. Please try logging in again.');
+      toast.error(t('settings.errors.deleteAccountFailed'));
     } finally {
       setLoading(false);
       onDeleteClose();
@@ -243,7 +243,7 @@ const SettingsPage: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-white">{t('settings.appearance.theme') || 'Theme'}</p>
-                  <p className="text-gray-400 text-sm">Choose your preferred theme</p>
+                  <p className="text-gray-400 text-sm">{t('settings.appearance.themeDescription')}</p>
                 </div>
                 <Select
                   selectedKeys={[theme]}
@@ -339,7 +339,7 @@ const SettingsPage: React.FC = () => {
               onPress={onDeleteOpen}
               className="text-white"
             >
-              Delete Account
+              {t('settings.deleteAccount')}
             </Button>
           </CardBody>
         </Card>
@@ -348,25 +348,25 @@ const SettingsPage: React.FC = () => {
       {/* Change Password Modal */}
       <Modal isOpen={isPasswordOpen} onClose={onPasswordClose} isDismissable={!loading}>
         <ModalContent>
-          <ModalHeader>Change Password</ModalHeader>
+          <ModalHeader>{t('settings.changePassword')}</ModalHeader>
           <ModalBody>
             <Input
               type="password"
-              label="Current Password"
+              label={t('settings.currentPassword')}
               value={passwordData.currentPassword}
               onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
               variant="bordered"
             />
             <Input
               type="password"
-              label="New Password"
+              label={t('settings.newPassword')}
               value={passwordData.newPassword}
               onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
               variant="bordered"
             />
             <Input
               type="password"
-              label="Confirm New Password"
+              label={t('settings.confirmPassword')}
               value={passwordData.confirmPassword}
               onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
               variant="bordered"
@@ -381,7 +381,7 @@ const SettingsPage: React.FC = () => {
               onPress={handlePasswordChange}
               isLoading={loading}
             >
-              Update Password
+              {t('settings.updatePassword')}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -390,11 +390,11 @@ const SettingsPage: React.FC = () => {
       {/* Delete Account Modal */}
       <Modal isOpen={isDeleteOpen} onClose={onDeleteClose} isDismissable={!loading}>
         <ModalContent>
-          <ModalHeader className="text-danger">Delete Account</ModalHeader>
+          <ModalHeader className="text-danger">{t('settings.deleteAccount')}</ModalHeader>
           <ModalBody>
-            <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+            <p>{t('settings.deleteConfirmation')}</p>
             <p className="text-gray-400 text-sm mt-2">
-              All your data, including jobs, proposals, and messages will be permanently deleted.
+              {t('settings.deleteWarning')}
             </p>
           </ModalBody>
           <ModalFooter>
@@ -406,7 +406,7 @@ const SettingsPage: React.FC = () => {
               onPress={handleDeleteAccount}
               isLoading={loading}
             >
-              Delete Account
+              {t('settings.deleteAccount')}
             </Button>
           </ModalFooter>
         </ModalContent>

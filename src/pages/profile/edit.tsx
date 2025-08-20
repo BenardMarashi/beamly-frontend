@@ -460,7 +460,7 @@ export const EditProfilePage: React.FC = () => {
                     {/* Hourly Rate */}
                     <div className="form-field">
                       <label className="text-white text-sm font-medium mb-2 block">
-                        Hourly Rate (USD) *
+                        Hourly Rate (EUR) *
                       </label>
                       <Input
                         // Remove the label prop

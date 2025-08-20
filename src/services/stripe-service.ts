@@ -358,7 +358,7 @@ async createSubscriptionCheckout(userId: string, priceId: string) {
           type: 'withdrawal',
           userId,
           amount,
-          currency: 'usd',
+          currency: 'eur',
           status: 'pending',
           stripePayoutId: result.data.payoutId,
           createdAt: serverTimestamp()

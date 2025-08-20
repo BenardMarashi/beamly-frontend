@@ -58,11 +58,11 @@ export const AffiliateProgramPage: React.FC = () => {
     },
     {
       question: "How much can I earn?",
-      answer: "Affiliates earn 30% commission on all subscription fees paid by their referred users during their first year. For example, if you refer someone who subscribes to our Professional plan at $30/month, you'll earn $9 per month for 12 months, totaling $108 per referral."
+      answer: "Affiliates earn 30% commission on all subscription fees paid by their referred users during their first year. For example, if you refer someone who subscribes to our Professional plan at €10/month, you'll earn $9 per month for 12 months, totaling $108 per referral."
     },
     {
       question: "When and how do I get paid?",
-      answer: "Commissions are calculated at the end of each month and paid by the 15th of the following month. We offer payments via PayPal, direct bank transfer, or cryptocurrency. The minimum payout threshold is $50."
+      answer: "Commissions are calculated at the end of each month and paid by the 15th of the following month. We offer payments via PayPal, direct bank transfer, or cryptocurrency. The minimum payout threshold is €50."
     },
     {
       question: "What marketing materials do you provide?",

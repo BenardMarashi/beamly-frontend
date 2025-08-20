@@ -4,11 +4,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Input, Button, Checkbox, Card, CardBody } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useSignIn } from '../hooks/use-auth';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, getRedirectResult } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { firebaseService } from '../services/firebase-services';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -19,40 +23,140 @@ export default function LoginPage() {
     password: '',
     rememberMe: false
   });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.email || !formData.password) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-
-    const user = await signInWithEmail(formData.email, formData.password); // Changed from signIn
-    if (user) {
-      navigate('/dashboard');
+useEffect(() => {
+  // Handle redirect result for mobile
+  const handleRedirectResult = async () => {
+    try {
+      const result = await getRedirectResult(auth);
+      if (result?.user) {
+        await result.user.getIdToken(true);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const userData = await firebaseService.UserService.getUser(result.user.uid);
+        
+        if (!userData) {
+          const userRef = doc(db, 'users', result.user.uid);
+          await setDoc(userRef, {
+            uid: result.user.uid,
+            email: result.user.email || '',
+            displayName: result.user.displayName || '',
+            photoURL: result.user.photoURL || '',
+            userType: 'both',
+            profileCompleted: false,
+            bio: '',
+            skills: [],
+            hourlyRate: 0,
+            companyName: '',
+            isAvailable: true,
+            rating: 0,
+            reviewCount: 0,
+            completedProjects: 0,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          navigate('/complete-profile', { replace: true });
+        } else {
+          navigate('/home', { replace: true });
+        }
+      }
+    } catch (error: any) {
+      if (error?.code && error.code !== 'auth/popup-closed-by-user') {
+        console.error('Redirect result error:', error);
+      }
     }
   };
+  
+  handleRedirectResult();
+}, [navigate]);
 
-  const handleGoogleSignIn = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!formData.email || !formData.password) {
+    toast.error('Please fill in all fields');
+    return;
+  }
+  
+  const user = await signInWithEmail(formData.email, formData.password);
+  if (user) {
+    await user.getIdToken();
+    navigate('/home', { replace: true });
+  }
+};
+
+const handleGoogleSignIn = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    
+    // Force account selection - crucial for mobile
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
+    // Clear any existing auth state first
+    if (auth.currentUser) {
+      await auth.signOut();
+    }
+    
+    // Always use popup for native experience
+    const result = await signInWithPopup(auth, provider);
+    
+    if (result?.user) {
+      // Ensure auth token is ready
+      await result.user.getIdToken(true); // Force token refresh
       
-      // Check if user exists in Firestore - Fixed path
-      const userData = await firebaseService.UserService.getUser(result.user.uid); // Changed from firebaseService.getUser
+      // Add a small delay to ensure Firestore is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Check if user data exists
+      const userData = await firebaseService.UserService.getUser(result.user.uid);
       
       if (!userData) {
-        // New user - redirect to complete profile
-        navigate('/complete-profile');
+        // Create user document directly with Firestore
+        const userRef = doc(db, 'users', result.user.uid);
+        await setDoc(userRef, {
+          uid: result.user.uid,
+          email: result.user.email || '',
+          displayName: result.user.displayName || '',
+          photoURL: result.user.photoURL || '',
+          userType: 'both',
+          profileCompleted: false,
+          bio: '',
+          skills: [],
+          hourlyRate: 0,
+          companyName: '',
+          isAvailable: true,
+          rating: 0,
+          reviewCount: 0,
+          completedProjects: 0,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        navigate('/complete-profile', { replace: true });
       } else {
-        navigate('/dashboard');
+        navigate('/home', { replace: true });
       }
-    } catch (error) {
-      console.error('Google sign in error:', error);
-      toast.error('Failed to sign in with Google');
     }
-  };
+  } catch (error: any) {
+    // Handle specific error codes
+    if (error?.code === 'auth/popup-blocked-by-browser') {
+      toast.error('Please allow popups for this site to sign in with Google');
+    } else if (error?.code === 'auth/cancelled-popup-request') {
+      // User closed the popup - don't show error
+      return;
+    } else if (error?.code === 'auth/popup-closed-by-user') {
+      // User closed the popup - don't show error
+      return;
+    } else if (error?.code === 'auth/unauthorized-domain') {
+      toast.error('This domain is not authorized for Google sign-in');
+    } else if (error?.code === 'auth/operation-not-allowed') {
+      toast.error('Google sign-in is not enabled. Please contact support.');
+    } else {
+      console.error('Google sign in error:', error);
+      toast.error('Failed to sign in with Google. Please try again.');
+    }
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">

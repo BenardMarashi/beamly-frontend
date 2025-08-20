@@ -171,9 +171,9 @@ const handleAcceptProposal = async (proposal: any) => {
   
   console.log('Parsed amount:', amount);
 
-  // Validate amount - Stripe minimum is $0.50
+  // Validate amount - Stripe minimum is €0.50
   if (isNaN(amount) || amount < 0.50) {
-    toast.error(`Invalid amount. Must be at least $0.50. Current: $${amount || 0}`);
+    toast.error(`Invalid amount. Must be at least €0.50. Current: €${amount || 0}`);
     return;
   }
   
@@ -450,7 +450,7 @@ const handleAcceptProposal = async (proposal: any) => {
                   <div className="flex flex-wrap gap-4 mb-4">
                     <div className="flex items-center gap-2">
                       <p className="text-sm text-gray-400">Bid Amount:</p>
-                      <p className="font-semibold text-white">${proposal.bidAmount || proposal.proposedRate || 0}</p>
+                      <p className="font-semibold text-white">€{proposal.bidAmount || proposal.proposedRate || 0}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <p className="text-sm text-gray-400">Delivery:</p>
@@ -569,7 +569,7 @@ const handleAcceptProposal = async (proposal: any) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-400">Bid Amount</p>
-                    <p className="font-semibold text-white text-lg">${selectedProposal.bidAmount}</p>
+                    <p className="font-semibold text-white text-lg">€{selectedProposal.bidAmount}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-400">Delivery Time</p>

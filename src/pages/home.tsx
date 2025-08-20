@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/theme-context";
 import { useTranslation } from "react-i18next";
-import { collection, query, where, limit, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, where, limit, orderBy, onSnapshot, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { toast } from "react-hot-toast";
 
@@ -182,13 +182,40 @@ useEffect(() => {
         collection(db, 'users'),
         where('userType', 'in', ['freelancer', 'both']),
         where('profileCompleted', '==', true),
-        limit(30) // Fetch more initially to ensure we get enough pro users
+        limit(30)
       );
 
       unsubscribe = onSnapshot(freelancersQuery, 
-        (snapshot) => {
-          const freelancers = snapshot.docs.map(doc => {
+        async (snapshot) => {
+          const freelancersPromises = snapshot.docs.map(async (doc) => {
             const data = doc.data();
+            
+            // Fetch actual project count for this freelancer
+            let actualProjectCount = 0;
+            try {
+              // Count projects
+              const projectsQuery = query(
+                collection(db, 'projects'),
+                where('freelancerId', '==', doc.id)
+              );
+              const projectsSnapshot = await getDocs(projectsQuery);
+              actualProjectCount = projectsSnapshot.size;
+              
+              // Also count completed contracts if projects don't exist
+              if (actualProjectCount === 0) {
+                const contractsQuery = query(
+                  collection(db, 'contracts'),
+                  where('freelancerId', '==', doc.id),
+                  where('status', '==', 'completed')
+                );
+                const contractsSnapshot = await getDocs(contractsQuery);
+                actualProjectCount = contractsSnapshot.size;
+              }
+            } catch (error) {
+              console.error(`Error fetching projects for ${doc.id}:`, error);
+              actualProjectCount = data.completedProjects || 0; // Fallback to stored value
+            }
+            
             return {
               id: doc.id,
               displayName: data.displayName || t('home.unknownUser'),
@@ -196,11 +223,13 @@ useEffect(() => {
               photoURL: data.photoURL || '',
               rating: data.rating || 0,
               ratingCount: data.ratingCount || 0,
-              completedProjects: data.completedProjects || 0,
+              completedProjects: actualProjectCount, // Use actual count
               skills: data.skills || [],
-              isPro: data.isPro === true // Ensure isPro is boolean
+              isPro: data.isPro === true
             } as Freelancer;
           });
+          
+          const freelancers = await Promise.all(freelancersPromises);
           
           // Separate pro and regular users
           const proUsers = freelancers.filter(f => f.isPro === true);
@@ -217,7 +246,7 @@ useEffect(() => {
           
           setTopFreelancers(sortedFreelancers);
         },
-        (error) => {
+        async (error) => {
           console.error("Error fetching freelancers:", error);
           
           // Fallback query without profileCompleted if there's an error
@@ -228,9 +257,34 @@ useEffect(() => {
           );
           
           unsubscribe = onSnapshot(simpleQuery, 
-            (snapshot) => {
-              const freelancers = snapshot.docs.map(doc => {
+            async (snapshot) => {
+              const freelancersPromises = snapshot.docs.map(async (doc) => {
                 const data = doc.data();
+                
+                // Fetch actual project count
+                let actualProjectCount = 0;
+                try {
+                  const projectsQuery = query(
+                    collection(db, 'projects'),
+                    where('freelancerId', '==', doc.id)
+                  );
+                  const projectsSnapshot = await getDocs(projectsQuery);
+                  actualProjectCount = projectsSnapshot.size;
+                  
+                  if (actualProjectCount === 0) {
+                    const contractsQuery = query(
+                      collection(db, 'contracts'),
+                      where('freelancerId', '==', doc.id),
+                      where('status', '==', 'completed')
+                    );
+                    const contractsSnapshot = await getDocs(contractsQuery);
+                    actualProjectCount = contractsSnapshot.size;
+                  }
+                } catch (error) {
+                  console.error(`Error fetching projects for ${doc.id}:`, error);
+                  actualProjectCount = data.completedProjects || 0;
+                }
+                
                 return {
                   id: doc.id,
                   displayName: data.displayName || t('home.unknownUser'),
@@ -238,11 +292,13 @@ useEffect(() => {
                   photoURL: data.photoURL || '',
                   rating: data.rating || 0,
                   ratingCount: data.ratingCount || 0,
-                  completedProjects: data.completedProjects || 0,
+                  completedProjects: actualProjectCount,
                   skills: data.skills || [],
                   isPro: data.isPro === true
                 } as Freelancer;
               });
+              
+              const freelancers = await Promise.all(freelancersPromises);
               
               // Separate and sort
               const proUsers = freelancers.filter(f => f.isPro === true);
@@ -476,7 +532,7 @@ useEffect(() => {
                     className="font-medium text-beamly-third ml-2"
                     onPress={handleSearch}
                   >
-                    Search
+                    {t('common.search')}
                   </Button>
                 </div>
               }
@@ -630,7 +686,7 @@ useEffect(() => {
                 <div className="flex items-center justify-center gap-1">
                   <Icon icon="lucide:briefcase" className="w-3 h-3 text-beamly-secondary" />
                   <span className={`text-xs ${isDarkMode || index % 2 === 1 ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {freelancer.completedProjects || 0} {t('home.projects')}
+                    {freelancer.completedProjects || 0} {t('home.projectsCount', { count: freelancer.completedProjects || 0 })}
                   </span>
                 </div>
               </div>

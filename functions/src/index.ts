@@ -295,7 +295,7 @@ function getDefaultCurrencyForCountry(country: string): string {
     "GI": "eur",
   };
 
-  return currencyMap[country.toUpperCase()] || "usd";
+  return currencyMap[country.toUpperCase()] || "eur";
 }
 
 // REPLACE your existing createStripeConnectAccount function with this:
@@ -596,7 +596,7 @@ export const createJobPaymentIntent = onCall(
       if (amountInCents < 50) {
         throw new HttpsError(
           "invalid-argument",
-          `Amount must be at least $0.50. Minimum is 50 cents. Got ${amountInCents} cents`
+          `Amount must be at least €0.50. Minimum is 50 cents. Got ${amountInCents} cents`
         );
       }
 
@@ -604,7 +604,7 @@ export const createJobPaymentIntent = onCall(
       const stripe = await getStripe();
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amountInCents, // Includes 5% client commission
-        currency: "usd",
+        currency: "eur",
         metadata: {
           jobId,
           proposalId,
@@ -629,7 +629,7 @@ export const createJobPaymentIntent = onCall(
         amount: totalAmount, // Store total amount (including client commission)
         originalAmount: numericAmount, // Store original amount
         clientCommission: totalAmount - numericAmount,
-        currency: "usd",
+        currency: "eur",
         status: "pending",
         type: "job_payment",
         stripePaymentIntentId: paymentIntent.id,
@@ -707,7 +707,7 @@ export const releasePaymentToFreelancer = onCall(
       const stripe = await getStripe();
       const transfer = await stripe.transfers.create({
         amount: Math.round(freelancerPayout * 100), // Convert to cents
-        currency: "usd",
+        currency: "eur",
         destination: connectAccountId,
         metadata: {
           jobId,
@@ -893,7 +893,7 @@ export const createStripePayout = onCall(
       const payout = await stripe.payouts.create(
         {
           amount: Math.round(amount * 100), // Convert to cents
-          currency: "usd",
+          currency: "eur",
           metadata: {
             userId,
           },
@@ -908,7 +908,7 @@ export const createStripePayout = onCall(
         type: "withdrawal",
         userId,
         amount,
-        currency: "usd",
+        currency: "eur",
         status: "pending",
         stripePayoutId: payout.id,
         createdAt: FieldValue.serverTimestamp(),
@@ -1074,7 +1074,7 @@ async function handleSubscriptionCreated(session: any) {
     type: "subscription",
     userId,
     amount: (session.amount_total || 0) / 100,
-    currency: session.currency || "usd",
+    currency: session.currency || "eur",
     status: "completed",
     stripeSessionId: session.id,
     description: `${planType} subscription`,
