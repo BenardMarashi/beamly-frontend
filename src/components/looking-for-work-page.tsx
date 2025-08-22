@@ -14,6 +14,7 @@ import {
   Avatar
 } from "@nextui-org/react";
 import { Icon } from "@iconify/react";
+import { useTranslation } from "react-i18next";
 import { 
   collection, 
   query, 
@@ -53,6 +54,7 @@ interface Job {
 
 export const LookingForWorkPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,32 +67,32 @@ export const LookingForWorkPage: React.FC = () => {
   const jobsPerPage = 9;
 
   const categories = [
-    { value: "all", label: "All Categories" },
-    { value: "web-development", label: "Web Development" },
-    { value: "mobile-development", label: "Mobile Development" },
-    { value: "graphic-design", label: "Graphic Design" },
-    { value: "writing", label: "Writing & Translation" },
-    { value: "digital-marketing", label: "Digital Marketing" },
-    { value: "video-animation", label: "Video & Animation" },
-    { value: "data-science", label: "Data Science" },
-    { value: "business", label: "Business" }
+    { value: "all", label: t('lookingForWork.categories.all') },
+    { value: "web-development", label: t('lookingForWork.categories.webDevelopment') },
+    { value: "mobile-development", label: t('lookingForWork.categories.mobileDevelopment') },
+    { value: "graphic-design", label: t('lookingForWork.categories.graphicDesign') },
+    { value: "writing", label: t('lookingForWork.categories.writing') },
+    { value: "digital-marketing", label: t('lookingForWork.categories.digitalMarketing') },
+    { value: "video-animation", label: t('lookingForWork.categories.videoAnimation') },
+    { value: "data-science", label: t('lookingForWork.categories.dataScience') },
+    { value: "business", label: t('lookingForWork.categories.business') }
   ];
 
   const budgetRanges = [
-    { value: "all", label: "Any Budget" },
-    { value: "0-500", label: "Under €500" },
-    { value: "500-1000", label: "€500 - €1,000" },
-    { value: "1000-5000", label: "€1,000 - €5,000" },
-    { value: "5000+", label: "€5,000+" }
+    { value: "all", label: t('lookingForWork.budget.all') },
+    { value: "0-500", label: t('lookingForWork.budget.under500') },
+    { value: "500-1000", label: t('lookingForWork.budget.500to1000') },
+    { value: "1000-5000", label: t('lookingForWork.budget.1000to5000') },
+    { value: "5000+", label: t('lookingForWork.budget.5000plus') }
   ];
 
   const durations = [
-    { value: "all", label: "Any Duration" },
-    { value: "less-week", label: "Less than a week" },
-    { value: "1-4-weeks", label: "1-4 weeks" },
-    { value: "1-3-months", label: "1-3 months" },
-    { value: "3-6-months", label: "3-6 months" },
-    { value: "6+months", label: "6+ months" }
+    { value: "all", label: t('lookingForWork.duration.all') },
+    { value: "less-week", label: t('lookingForWork.duration.lessWeek') },
+    { value: "1-4-weeks", label: t('lookingForWork.duration.1to4weeks') },
+    { value: "1-3-months", label: t('lookingForWork.duration.1to3months') },
+    { value: "3-6-months", label: t('lookingForWork.duration.3to6months') },
+    { value: "6+months", label: t('lookingForWork.duration.6plusMonths') }
   ];
 
   const popularSkills = [
@@ -210,34 +212,34 @@ export const LookingForWorkPage: React.FC = () => {
   const formatBudget = (job: Job) => {
     if (job.budget) return job.budget;
     if (job.budgetRange) return job.budgetRange;
-    if (job.fixedPrice) return `$${job.fixedPrice}`;
-    if (job.budgetMin && job.budgetMax) return `$${job.budgetMin} - $${job.budgetMax}`;
-    if (job.budgetMin) return `$${job.budgetMin}+`;
-    return "Negotiable";
+    if (job.fixedPrice) return `€${job.fixedPrice}`;
+    if (job.budgetMin && job.budgetMax) return `€${job.budgetMin} - €${job.budgetMax}`;
+    if (job.budgetMin) return `€${job.budgetMin}+`;
+    return t('lookingForWork.negotiable');
   };
 
   const getTimeAgo = (timestamp: any) => {
-    if (!timestamp) return "Recently";
+    if (!timestamp) return t('common.recently');
     
     try {
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
       const now = new Date();
       const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
       
-      if (diffInHours < 1) return "Just now";
-      if (diffInHours < 24) return `${diffInHours}h ago`;
-      if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
-      return `${Math.floor(diffInHours / 168)}w ago`;
+      if (diffInHours < 1) return t('common.justNow');
+      if (diffInHours < 24) return t('common.hoursAgo', { hours: diffInHours });
+      if (diffInHours < 168) return t('common.daysAgo', { days: Math.floor(diffInHours / 24) });
+      return t('common.weeksAgo', { weeks: Math.floor(diffInHours / 168) });
     } catch (error) {
-      return "Recently";
+      return t('common.recently');
     }
   };
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
       <PageHeader
-        title="Find Work"
-        subtitle="Discover opportunities that match your skills"
+        title={t('lookingForWork.title')}
+        subtitle={t('lookingForWork.subtitle')}
       />
 
       {/* Search and Filters */}
@@ -245,7 +247,7 @@ export const LookingForWorkPage: React.FC = () => {
           <form onSubmit={handleSearch} className="flex flex-col gap-4">
             <div className="flex flex-row gap-2" style={{ flexWrap: 'nowrap' }}>
               <Input
-                placeholder="Search for jobs by title, skills, or keywords..."
+                placeholder={t('lookingForWork.searchPlaceholder')}
                 value={searchQuery}
                 onValueChange={setSearchQuery}
                 className="flex-1"
@@ -260,13 +262,13 @@ export const LookingForWorkPage: React.FC = () => {
                 className="text-beamly-third font-medium"
                 startContent={<Icon icon="lucide:search" />}
               >
-                Search Jobs
+                {t('lookingForWork.searchButton')}
               </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Select
-                label="Category"
+                label={t('lookingForWork.filters.category')}
                 selectedKeys={[selectedCategory]}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 classNames={{
@@ -283,7 +285,7 @@ export const LookingForWorkPage: React.FC = () => {
               </Select>
 
               <Select
-                label="Budget Range"
+                label={t('lookingForWork.filters.budgetRange')}
                 selectedKeys={[selectedBudget]}
                 onChange={(e) => setSelectedBudget(e.target.value)}
                 classNames={{
@@ -300,7 +302,7 @@ export const LookingForWorkPage: React.FC = () => {
               </Select>
 
               <Select
-                label="Project Duration"
+                label={t('lookingForWork.filters.duration')}
                 selectedKeys={[selectedDuration]}
                 onChange={(e) => setSelectedDuration(e.target.value)}
                 classNames={{
@@ -321,7 +323,7 @@ export const LookingForWorkPage: React.FC = () => {
 
       {/* Popular Skills */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-4">Popular Skills</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('lookingForWork.popularSkills')}</h3>
         <div className="flex flex-wrap gap-2">
           {popularSkills.map((skill) => (
             <Chip
@@ -357,8 +359,8 @@ export const LookingForWorkPage: React.FC = () => {
         <Card className="glass-effect">
           <CardBody className="text-center py-12">
             <Icon icon="lucide:briefcase-off" className="text-4xl text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No jobs found</h3>
-            <p className="text-gray-400">Try adjusting your search or filters</p>
+            <h3 className="text-xl font-semibold mb-2">{t('lookingForWork.noResults')}</h3>
+            <p className="text-gray-400">{t('lookingForWork.tryAdjusting')}</p>
           </CardBody>
         </Card>
       ) : (
@@ -387,7 +389,7 @@ export const LookingForWorkPage: React.FC = () => {
                             />
                           ) : (
                             <Avatar
-                              name={job.clientName || job.company || 'Client'}
+                              name={job.clientName || job.company || t('common.client')}
                               className="w-6 h-6"
                               classNames={{
                                 base: "bg-beamly-secondary/20",
@@ -396,7 +398,7 @@ export const LookingForWorkPage: React.FC = () => {
                             />
                           )}
                           <span className="text-sm text-gray-400">
-                            {job.clientName || job.company || 'Client'}
+                            {job.clientName || job.company || t('common.client')}
                           </span>
                         </div>
                       </div>
@@ -454,7 +456,7 @@ export const LookingForWorkPage: React.FC = () => {
                     {job.proposalsCount !== undefined && (
                       <div className="mt-3 pt-3 border-t border-white/10">
                         <span className="text-xs text-gray-400">
-                          {job.proposalsCount} proposals
+                          {job.proposalsCount} {t('lookingForWork.proposals')}
                         </span>
                       </div>
                     )}

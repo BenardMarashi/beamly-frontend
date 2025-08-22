@@ -42,10 +42,10 @@ export const PostProjectPage: React.FC = () => {
   useEffect(() => {
     if (!authLoading) {
       if (!user) {
-        toast.error('Please login to post projects');
+        toast.error(t('postProject.errors.loginRequired'));
         navigate('/login');
       } else if (!canPostProjects) {
-        toast.error('Only freelancers can post projects');
+        toast.error(t('postProject.errors.onlyFreelancers'));
         navigate('/dashboard');
       }
     }
@@ -80,37 +80,37 @@ export const PostProjectPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   const categories = [
-    { value: "web-development", label: "Web Development" },
-    { value: "mobile-development", label: "Mobile Development" },
-    { value: "ui-ux-design", label: "UI/UX Design" },
-    { value: "graphic-design", label: "Graphic Design" },
-    { value: "content-writing", label: "Content Writing" },
-    { value: "digital-marketing", label: "Digital Marketing" },
-    { value: "data-science", label: "Data Science" },
-    { value: "machine-learning", label: "Machine Learning" },
-    { value: "blockchain", label: "Blockchain" },
-    { value: "game-development", label: "Game Development" },
-    { value: "devops", label: "DevOps" },
-    { value: "other", label: "Other" }
+    { value: "web-development", label: t('postProject.categories.webDevelopment') },
+    { value: "mobile-development", label: t('postProject.categories.mobileDevelopment') },
+    { value: "ui-ux-design", label: t('postProject.categories.uiUxDesign') },
+    { value: "graphic-design", label: t('postProject.categories.graphicDesign') },
+    { value: "content-writing", label: t('postProject.categories.contentWriting') },
+    { value: "digital-marketing", label: t('postProject.categories.digitalMarketing') },
+    { value: "data-science", label: t('postProject.categories.dataScience') },
+    { value: "machine-learning", label: t('postProject.categories.machineLearning') },
+    { value: "blockchain", label: t('postProject.categories.blockchain') },
+    { value: "game-development", label: t('postProject.categories.gameDevelopment') },
+    { value: "devops", label: t('postProject.categories.devops') },
+    { value: "other", label: t('postProject.categories.other') }
   ];
   
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
     if (!formData.title.trim()) {
-      newErrors.title = "Project title is required";
+      newErrors.title = t('postProject.errors.titleRequired');
     }
     if (!formData.description.trim()) {
-      newErrors.description = "Project description is required";
+      newErrors.description = t('postProject.errors.descriptionRequired');
     }
     if (!formData.category) {
-      newErrors.category = "Please select a category";
+      newErrors.category = t('postProject.errors.categoryRequired');
     }
     if (formData.skills.length === 0) {
-      newErrors.skills = "Add at least one skill";
+      newErrors.skills = t('postProject.errors.skillsRequired');
     }
     if (imageFiles.length === 0 && formData.images.length === 0) {
-      newErrors.images = "Add at least one project image";
+      newErrors.images = t('postProject.errors.imagesRequired');
     }
     
     setErrors(newErrors);
@@ -161,18 +161,18 @@ export const PostProjectPage: React.FC = () => {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + imageFiles.length > 10) {
-      toast.error('Maximum 10 images allowed');
+      toast.error(t('postProject.errors.maxImages'));
       return;
     }
     
     // Validate file types and sizes
     const validFiles = files.filter(file => {
       if (!file.type.startsWith('image/')) {
-        toast.error(`${file.name} is not an image`);
+        toast.error(t('postProject.errors.notImage', { name: file.name }));
         return false;
       }
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error(`${file.name} is too large (max 5MB)`);
+        toast.error(t('postProject.errors.imageTooLarge', { name: file.name }));
         return false;
       }
       return true;
@@ -217,18 +217,18 @@ export const PostProjectPage: React.FC = () => {
           if (result.success && result.downloadURL) {
             uploadedUrls.push(result.downloadURL);
           } else {
-            toast.error(`Failed to upload ${file.name}`);
+            toast.error(t('postProject.errors.uploadFailed', { name: file.name }));
           }
         } catch (error) {
           console.error('Error uploading file:', error);
-          toast.error(`Failed to upload ${file.name}`);
+          toast.error(t('postProject.errors.uploadFailed', { name: file.name }));
         }
       }
       
       return uploadedUrls;
     } catch (error) {
       console.error('Error uploading images:', error);
-      toast.error('Failed to upload images');
+      toast.error(t('postProject.errors.uploadImagesFailed'));
       return [];
     } finally {
       setUploadingImages(false);
@@ -241,7 +241,7 @@ export const PostProjectPage: React.FC = () => {
     
     // Validation
     if (!validateForm()) {
-      toast.error('Please fill in all required fields');
+      toast.error(t('postProject.errors.fillRequired'));
       return;
     }
     
@@ -252,7 +252,7 @@ export const PostProjectPage: React.FC = () => {
       const uploadedImageUrls = await uploadImages();
       
       if (imageFiles.length > 0 && uploadedImageUrls.length === 0) {
-        toast.error('Failed to upload images');
+        toast.error(t('postProject.errors.uploadImagesFailed'));
         setLoading(false);
         return;
       }
@@ -260,7 +260,7 @@ export const PostProjectPage: React.FC = () => {
       // Create project data
       const projectData = {
         freelancerId: user!.uid,
-        freelancerName: userData?.displayName || 'Unknown',
+        freelancerName: userData?.displayName || t('common.unknown'),
         freelancerPhotoURL: userData?.photoURL || '',
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -293,14 +293,14 @@ export const PostProjectPage: React.FC = () => {
           skillsCount: formData.skills.length
         });
         
-        toast.success('Project posted successfully!');
+        toast.success(t('postProject.success.posted'));
         navigate(`/profile/${user!.uid}?tab=portfolio`);
       } else {
-        toast.error('Failed to post project');
+        toast.error(t('postProject.errors.postFailed'));
       }
     } catch (error) {
       console.error('Error posting project:', error);
-      toast.error('Failed to post project');
+      toast.error(t('postProject.errors.postFailed'));
     } finally {
       setLoading(false);
     }
@@ -313,7 +313,7 @@ export const PostProjectPage: React.FC = () => {
       savedAt: new Date().toISOString()
     };
     localStorage.setItem('projectDraft', JSON.stringify(draft));
-    toast.success('Draft saved locally');
+    toast.success(t('postProject.draftSaved'));
   };
   
   const loadDraft = () => {
@@ -321,7 +321,7 @@ export const PostProjectPage: React.FC = () => {
     if (savedDraft) {
       const draft = JSON.parse(savedDraft);
       setFormData(draft);
-      toast.success('Draft loaded');
+      toast.success(t('postProject.draftLoaded'));
     }
   };
   
@@ -334,14 +334,14 @@ export const PostProjectPage: React.FC = () => {
       const hoursSinceSaved = (Date.now() - savedDate.getTime()) / (1000 * 60 * 60);
       
       if (hoursSinceSaved < 24) {
-        toast((t) => (
+        toast((toastInstance) => (
           <div className="flex items-center gap-2">
-            <span>You have a saved draft from {savedDate.toLocaleDateString()}</span>
-            <Button size="sm" color="primary" onClick={() => {
+            <span>{t('postProject.draftAvailable', { date: savedDate.toLocaleDateString() })}</span>
+            <Button size="sm" color="primary" onPress={() => {
               loadDraft();
-              toast.dismiss(t.id);
+              toast.dismiss(toastInstance.id);
             }}>
-              Load
+              {t('postProject.load')}
             </Button>
           </div>
         ), { duration: 5000 });
@@ -365,7 +365,7 @@ export const PostProjectPage: React.FC = () => {
         transition={{ duration: 0.5 }}
       >
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Post a Project</h1>
+          <h1 className="text-3xl font-bold">{t('postProject.title')}</h1>
         </div>
         
         <form onSubmit={handleSubmit}>
@@ -374,15 +374,15 @@ export const PostProjectPage: React.FC = () => {
             <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                  Basic Information
+                  {t('postProject.basicInfo')}
                 </h2>
                 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Project Title <span className="text-red-500">*</span>
+                    {t('postProject.projectTitle')} <span className="text-red-500">*</span>
                   </label>
                   <Input
-                    placeholder="Enter your project title"
+                    placeholder={t('postProject.projectTitlePlaceholder')}
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     isInvalid={!!errors.title}
@@ -396,10 +396,10 @@ export const PostProjectPage: React.FC = () => {
                 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Project Description <span className="text-red-500">*</span>
+                    {t('postProject.projectDescription')} <span className="text-red-500">*</span>
                   </label>
                   <Textarea
-                    placeholder="Describe your project in detail..."
+                    placeholder={t('postProject.projectDescriptionPlaceholder')}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     minRows={4}
@@ -413,10 +413,10 @@ export const PostProjectPage: React.FC = () => {
                 </div>
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Category <span className="text-red-500">*</span>
+                    {t('postProject.category')} <span className="text-red-500">*</span>
                   </label>
                   <Select
-                    placeholder="Select a category"
+                    placeholder={t('postProject.selectCategory')}
                     selectedKeys={formData.category ? [formData.category] : []}
                     onSelectionChange={(keys) => {
                       setFormData({ ...formData, category: Array.from(keys)[0] as string });
@@ -439,10 +439,10 @@ export const PostProjectPage: React.FC = () => {
 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Client/Company Name
+                    {t('postProject.clientCompany')}
                   </label>
                   <Input
-                    placeholder="e.g., ABC Company"
+                    placeholder={t('postProject.clientCompanyPlaceholder')}
                     value={formData.client}
                     onChange={(e) => setFormData({ ...formData, client: e.target.value })}
                     classNames={{
@@ -453,10 +453,10 @@ export const PostProjectPage: React.FC = () => {
                 </div>
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Project Duration
+                    {t('postProject.projectDuration')}
                   </label>
                   <Input
-                    placeholder="e.g., 3 months"
+                    placeholder={t('postProject.projectDurationPlaceholder')}
                     value={formData.duration}
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                     classNames={{
@@ -472,15 +472,15 @@ export const PostProjectPage: React.FC = () => {
             <Card className="form-section overflow-visible mb-6">
               <CardBody className="space-y-4 overflow-visible pb-6">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                  Skills & Technologies
+                  {t('postProject.skillsTechnologies')}
                 </h2>
                 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Add Skills <span className="text-red-500">*</span>
+                    {t('postProject.addSkills')} <span className="text-red-500">*</span>
                   </label>
                   <Input
-                    placeholder="Type a skill and press Enter"
+                    placeholder={t('postProject.addSkillsPlaceholder')}
                     value={currentSkill}
                     onChange={(e) => setCurrentSkill(e.target.value)}
                     onKeyDown={handleAddSkill}
@@ -511,10 +511,10 @@ export const PostProjectPage: React.FC = () => {
                 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Add Technologies
+                    {t('postProject.addTechnologies')}
                   </label>
                   <Input
-                    placeholder="Type a technology and press Enter"
+                    placeholder={t('postProject.addTechnologiesPlaceholder')}
                     value={currentTech}
                     onChange={(e) => setCurrentTech(e.target.value)}
                     onKeyDown={handleAddTechnology}
@@ -544,10 +544,10 @@ export const PostProjectPage: React.FC = () => {
                 <div className="form-grid form-grid-2">
                   <div className="form-field">
                     <label className="text-white text-sm font-medium mb-2 block">
-                      Your Role
+                      {t('postProject.yourRole')}
                     </label>
                     <Input
-                      placeholder="e.g., Full Stack Developer"
+                      placeholder={t('postProject.yourRolePlaceholder')}
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       classNames={{
@@ -559,7 +559,7 @@ export const PostProjectPage: React.FC = () => {
                   
                   <div className="form-field">
                     <label className="text-white text-sm font-medium mb-2 block">
-                      Team Size
+                      {t('postProject.teamSize')}
                     </label>
                     <Input
                       type="number"
@@ -580,15 +580,15 @@ export const PostProjectPage: React.FC = () => {
             <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                  Project Details
+                  {t('postProject.projectDetails')}
                 </h2>
                 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Challenges
+                    {t('postProject.challenges')}
                   </label>
                   <Textarea
-                    placeholder="What challenges did you face in this project?"
+                    placeholder={t('postProject.challengesPlaceholder')}
                     value={formData.challenges}
                     onChange={(e) => setFormData({ ...formData, challenges: e.target.value })}
                     minRows={3}
@@ -601,10 +601,10 @@ export const PostProjectPage: React.FC = () => {
                 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Solution
+                    {t('postProject.solution')}
                   </label>
                   <Textarea
-                    placeholder="How did you solve these challenges?"
+                    placeholder={t('postProject.solutionPlaceholder')}
                     value={formData.solution}
                     onChange={(e) => setFormData({ ...formData, solution: e.target.value })}
                     minRows={3}
@@ -617,10 +617,10 @@ export const PostProjectPage: React.FC = () => {
                 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Impact/Results
+                    {t('postProject.impactResults')}
                   </label>
                   <Textarea
-                    placeholder="What was the impact or results of your project?"
+                    placeholder={t('postProject.impactResultsPlaceholder')}
                     value={formData.impact}
                     onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
                     minRows={3}
@@ -633,10 +633,10 @@ export const PostProjectPage: React.FC = () => {
                 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Client Testimonial
+                    {t('postProject.clientTestimonial')}
                   </label>
                   <Textarea
-                    placeholder="Add a testimonial from your client (optional)"
+                    placeholder={t('postProject.clientTestimonialPlaceholder')}
                     value={formData.testimonial}
                     onChange={(e) => setFormData({ ...formData, testimonial: e.target.value })}
                     minRows={2}
@@ -653,12 +653,12 @@ export const PostProjectPage: React.FC = () => {
             <Card className="form-section">
               <CardBody className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                  Project Images
+                  {t('postProject.projectImages')}
                 </h2>
                 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Upload Images <span className="text-red-500">*</span>
+                    {t('postProject.uploadImages')} <span className="text-red-500">*</span>
                   </label>
                   
                   {errors.images && (
@@ -685,10 +685,10 @@ export const PostProjectPage: React.FC = () => {
                       <div className="text-center">
                         <div className="text-2xl text-default-400 mx-auto mb-2">📤</div>
                         <p className="text-sm text-default-600">
-                          Click to upload images (max 10)
+                          {t('postProject.clickToUpload')}
                         </p>
                         <p className="text-xs text-default-400">
-                          PNG, JPG, GIF up to 5MB each
+                          {t('postProject.fileTypes')}
                         </p>
                       </div>
                     </label>
@@ -712,7 +712,7 @@ export const PostProjectPage: React.FC = () => {
                               className="w-full h-32 object-cover rounded-lg"
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                              <Tooltip content="Set as thumbnail">
+                              <Tooltip content={t('postProject.setAsThumbnail')}>
                                 <Button
                                   isIconOnly
                                   size="sm"
@@ -722,7 +722,7 @@ export const PostProjectPage: React.FC = () => {
                                 >
                                 </Button>
                               </Tooltip>
-                              <Tooltip content="Remove">
+                              <Tooltip content={t('common.remove')}>
                                 <Button
                                   isIconOnly
                                   size="sm"
@@ -739,7 +739,7 @@ export const PostProjectPage: React.FC = () => {
                                 color="success"
                                 className="absolute top-2 left-2"
                               >
-                                Thumbnail
+                                {t('postProject.thumbnail')}
                               </Chip>
                             )}
                           </div>
@@ -749,7 +749,7 @@ export const PostProjectPage: React.FC = () => {
                     
                     <p className="text-xs text-default-500">
                       {imagePreviews.length > 0 && 
-                        `${imagePreviews.length} image${imagePreviews.length > 1 ? 's' : ''} selected. Click the star icon to set thumbnail.`
+                        t('postProject.imagesSelected', { count: imagePreviews.length })
                       }
                     </p>
                   </div>
@@ -765,7 +765,7 @@ export const PostProjectPage: React.FC = () => {
                 isDisabled={loading || uploadingImages}
                 className="border-white/20 text-white hover:bg-white/5"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               
               <div className="flex gap-2">
@@ -775,7 +775,7 @@ export const PostProjectPage: React.FC = () => {
                   isLoading={loading || uploadingImages}
                   className="bg-beamly-secondary text-beamly-primary font-semibold"
                 >
-                  {uploadingImages ? 'Uploading Images...' : 'Post Project'}
+                  {uploadingImages ? t('postProject.uploadingImages') : t('postProject.postProjectButton')}
                 </Button>
               </div>
             </div>

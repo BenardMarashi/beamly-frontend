@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-// Line 4, after existing imports
 import { Card, CardBody, Button, Chip, Image, Spinner, Modal, ModalContent, ModalBody } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { Project } from '../../types/firestore.types';
 import { toast } from 'react-hot-toast';
 
@@ -14,6 +14,7 @@ export const ProjectDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -49,20 +50,20 @@ export const ProjectDetailsPage: React.FC = () => {
           try {
             const userDoc = await getDoc(doc(db, 'users', projectData.freelancerId));
             if (userDoc.exists()) {
-              setFreelancerName(userDoc.data().displayName || 'Freelancer');
+              setFreelancerName(userDoc.data().displayName || t('common.freelancer'));
             }
           } catch (error) {
             console.error('Error fetching freelancer info:', error);
           }
         }
       } else {
-        toast.error('Project not found');
+        toast.error(t('projectDetails.errors.notFound'));
         // Go back to previous page if project not found
         navigate(-1);
       }
     } catch (error) {
       console.error('Error fetching project:', error);
-      toast.error('Failed to load project');
+      toast.error(t('projectDetails.errors.loadFailed'));
       navigate(-1);
     } finally {
       setLoading(false);
@@ -70,18 +71,18 @@ export const ProjectDetailsPage: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!confirm(t('projectDetails.confirmDelete'))) return;
     if (!project) return;
 
     try {
       await deleteDoc(doc(db, 'projects', project.id));
-      toast.success('Project deleted successfully');
+      toast.success(t('projectDetails.success.deleted'));
       
       // Navigate back to portfolio after deletion
       navigate('/portfolio');
     } catch (error) {
       console.error('Error deleting project:', error);
-      toast.error('Failed to delete project');
+      toast.error(t('projectDetails.errors.deleteFailed'));
     }
   };
 
@@ -96,12 +97,12 @@ export const ProjectDetailsPage: React.FC = () => {
   if (!project) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl text-white mb-4">Project not found</h1>
+        <h1 className="text-2xl text-white mb-4">{t('projectDetails.notFound')}</h1>
         <Button 
           color="secondary" 
           onPress={() => navigate(-1)}
         >
-          Go Back
+          {t('common.goBack')}
         </Button>
       </div>
     );
@@ -135,9 +136,8 @@ export const ProjectDetailsPage: React.FC = () => {
             }}
           >
             {isOwner 
-              ? 'Back to Portfolio' 
-              : `Back to ${freelancerName ? `${freelancerName}'s` : ''} Profile`
-            }
+              ? t('projectDetails.backToPortfolio') 
+              : t('projectDetails.backToProfile', { name: freelancerName || '' })}
           </Button>
           
           {isOwner && (
@@ -147,14 +147,14 @@ export const ProjectDetailsPage: React.FC = () => {
                 startContent={<Icon icon="lucide:edit" />}
                 onPress={() => navigate(`/projects/${project.id}/edit`)}
               >
-                Edit
+                {t('common.edit')}
               </Button>
               <Button
                 color="danger"
                 startContent={<Icon icon="lucide:trash" />}
                 onPress={handleDelete}
               >
-                Delete
+                {t('common.delete')}
               </Button>
             </div>
           )}
@@ -241,14 +241,14 @@ export const ProjectDetailsPage: React.FC = () => {
 
             {/* Description */}
             <div className="mb-8">
-              <h2 className="text-xl font-semibold text-white mb-3">Description</h2>
+              <h2 className="text-xl font-semibold text-white mb-3">{t('projectDetails.description')}</h2>
               <p className="text-gray-300 whitespace-pre-wrap">{project.description}</p>
             </div>
 
             {/* Technologies */}
             {project.skills && project.skills.length > 0 && (
               <div className="mb-8">
-                <h2 className="text-xl font-semibold text-white mb-3">Technologies Used</h2>
+                <h2 className="text-xl font-semibold text-white mb-3">{t('projectDetails.technologiesUsed')}</h2>
                 <div className="flex flex-wrap gap-2">
                   {project.skills.map((skill, index) => (
                     <Chip key={index} size="md" variant="flat" className="bg-white/10">
@@ -264,19 +264,19 @@ export const ProjectDetailsPage: React.FC = () => {
               <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
                 {project.client && (
                   <div>
-                    <h3 className="text-sm text-gray-400 mb-1">Client</h3>
+                    <h3 className="text-sm text-gray-400 mb-1">{t('projectDetails.client')}</h3>
                     <p className="text-white">{project.client}</p>
                   </div>
                 )}
                 {project.duration && (
                   <div>
-                    <h3 className="text-sm text-gray-400 mb-1">Duration</h3>
+                    <h3 className="text-sm text-gray-400 mb-1">{t('projectDetails.duration')}</h3>
                     <p className="text-white">{project.duration}</p>
                   </div>
                 )}
                 {project.role && (
                   <div>
-                    <h3 className="text-sm text-gray-400 mb-1">Role</h3>
+                    <h3 className="text-sm text-gray-400 mb-1">{t('projectDetails.role')}</h3>
                     <p className="text-white">{project.role}</p>
                   </div>
                 )}
@@ -288,19 +288,19 @@ export const ProjectDetailsPage: React.FC = () => {
               <div className="mb-8 space-y-4">
                 {project.challenges && (
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Challenges</h3>
+                    <h3 className="text-lg font-semibold text-white mb-2">{t('projectDetails.challenges')}</h3>
                     <p className="text-gray-300">{project.challenges}</p>
                   </div>
                 )}
                 {project.solution && (
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Solution</h3>
+                    <h3 className="text-lg font-semibold text-white mb-2">{t('projectDetails.solution')}</h3>
                     <p className="text-gray-300">{project.solution}</p>
                   </div>
                 )}
                 {project.impact && (
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-2">Impact</h3>
+                    <h3 className="text-lg font-semibold text-white mb-2">{t('projectDetails.impact')}</h3>
                     <p className="text-gray-300">{project.impact}</p>
                   </div>
                 )}
@@ -310,7 +310,7 @@ export const ProjectDetailsPage: React.FC = () => {
             {/* Client Testimonial (if available) */}
             {project.testimonial && (
               <div className="mb-8 p-4 bg-white/5 rounded-lg border-l-4 border-primary">
-                <h3 className="text-lg font-semibold text-white mb-2">Client Testimonial</h3>
+                <h3 className="text-lg font-semibold text-white mb-2">{t('projectDetails.clientTestimonial')}</h3>
                 <p className="text-gray-300 italic">"{project.testimonial}"</p>
               </div>
             )}
@@ -318,7 +318,7 @@ export const ProjectDetailsPage: React.FC = () => {
             {/* Links */}
             {(project.liveUrl || project.githubUrl || project.demoUrl) && (
               <div className="mb-8">
-                <h2 className="text-xl font-semibold text-white mb-3">Links</h2>
+                <h2 className="text-xl font-semibold text-white mb-3">{t('projectDetails.links')}</h2>
                 <div className="flex flex-wrap gap-4">
                   {project.liveUrl && (
                     <Button
@@ -326,7 +326,7 @@ export const ProjectDetailsPage: React.FC = () => {
                       startContent={<Icon icon="lucide:external-link" />}
                       onPress={() => window.open(project.liveUrl, '_blank')}
                     >
-                      View Live Demo
+                      {t('projectDetails.viewLiveDemo')}
                     </Button>
                   )}
                   {project.githubUrl && (
@@ -336,7 +336,7 @@ export const ProjectDetailsPage: React.FC = () => {
                       startContent={<Icon icon="lucide:github" />}
                       onPress={() => window.open(project.githubUrl, '_blank')}
                     >
-                      View Source Code
+                      {t('projectDetails.viewSourceCode')}
                     </Button>
                   )}
                   {project.demoUrl && (
@@ -346,7 +346,7 @@ export const ProjectDetailsPage: React.FC = () => {
                       startContent={<Icon icon="lucide:play-circle" />}
                       onPress={() => window.open(project.demoUrl, '_blank')}
                     >
-                      Watch Demo
+                      {t('projectDetails.watchDemo')}
                     </Button>
                   )}
                 </div>
@@ -355,15 +355,15 @@ export const ProjectDetailsPage: React.FC = () => {
 
             {/* Metadata */}
             <div className="text-sm text-gray-500 border-t border-white/10 pt-4">
-              <p>Created: {project.createdAt?.toLocaleDateString()}</p>
+              <p>{t('projectDetails.created')}: {project.createdAt?.toLocaleDateString()}</p>
               {project.updatedAt && (
-                <p>Last updated: {project.updatedAt.toLocaleDateString()}</p>
+                <p>{t('projectDetails.lastUpdated')}: {project.updatedAt.toLocaleDateString()}</p>
               )}
             </div>
           </CardBody>
         </Card>
       </motion.div>
-            {/* Add this Zoom Modal */}
+      {/* Add this Zoom Modal */}
       <Modal 
         isOpen={isZoomed} 
         onClose={() => setIsZoomed(false)}

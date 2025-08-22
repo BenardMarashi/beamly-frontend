@@ -11,10 +11,13 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp, query, collection, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
+import { OAuthProvider } from 'firebase/auth';
 
 // Initialize Google Auth Provider
 const googleProvider = new GoogleAuthProvider();
-
+const appleProvider = new OAuthProvider('apple.com');
+appleProvider.addScope('email');
+appleProvider.addScope('name');
 export const useSignIn = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,7 +154,102 @@ export const useSignIn = () => {
     }
   };
   
-  return { signInWithEmail, signInWithGoogle, loading, error };
+  const signInWithApple = async (): Promise<User | null> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await signInWithPopup(auth, appleProvider);
+      const user = result.user;
+      
+      // Check if user exists in database
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      
+      if (!userDoc.exists()) {
+        // Check if email is already used with another account
+        if (user.email) {  // Apple might hide email
+          const emailQuery = query(
+            collection(db, 'users'),
+            where('email', '==', user.email)
+          );
+          const emailSnapshot = await getDocs(emailQuery);
+          
+          if (!emailSnapshot.empty) {
+            await auth.currentUser?.delete();
+            throw new Error('This email is already registered. Please sign in with your password.');
+          }
+        }
+        
+        // New user - prompt for account type selection
+        toast('Please complete your profile setup', {
+          icon: 'ℹ️',
+          duration: 4000
+        });
+        
+        // Create initial user document with pending status
+        await setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid,
+          email: user.email || `${user.uid}@privaterelay.appleid.com`, // Apple may hide email
+          displayName: user.displayName || 'Apple User',
+          photoURL: user.photoURL || `https://ui-avatars.com/api/?name=Apple+User&background=000000&color=fff`,
+          userType: 'pending',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          lastActive: serverTimestamp(),
+          profileCompleted: false,
+          isVerified: true, // Apple users are pre-verified
+          completedProjects: 0,
+          rating: 0,
+          totalEarnings: 0,
+          totalSpent: 0,
+          isBlocked: false,
+          authProvider: 'apple',
+          notifications: {
+            email: true,
+            push: true,
+            sms: false
+          }
+        });
+      } else {
+        // Existing user - update last active
+        await setDoc(doc(db, 'users', user.uid), {
+          lastActive: serverTimestamp()
+        }, { merge: true });
+        
+        if (userDoc.data().userType === 'pending') {
+          toast('Please complete your profile setup', {
+            icon: 'ℹ️',
+            duration: 4000
+          });
+        } else {
+          toast.success('Welcome back!');
+        }
+      }
+      
+      return user;
+    } catch (err: any) {
+      console.error('Apple sign in error:', err);
+      let errorMessage = 'Failed to sign in with Apple';
+      
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Sign in cancelled';
+      } else if (err.code === 'auth/popup-blocked') {
+        errorMessage = 'Popup blocked by browser. Please allow popups for this site';
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        errorMessage = 'Another popup is already open';
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { signInWithEmail, signInWithGoogle, signInWithApple, loading, error };
 };
 
 export const useSignUp = () => {

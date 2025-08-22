@@ -4,6 +4,7 @@ import { Card, CardBody, Button, Chip, Switch } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { collection, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
@@ -23,6 +24,7 @@ interface Notification {
 export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificationSettings, setNotificationSettings] = useState({
@@ -63,7 +65,7 @@ export const NotificationsPage: React.FC = () => {
       setNotifications(notificationsData);
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      toast.error('Failed to load notifications');
+      toast.error(t('notifications.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -96,10 +98,10 @@ export const NotificationsPage: React.FC = () => {
       }
       
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      toast.success('All notifications marked as read');
+      toast.success(t('notifications.success.allRead'));
     } catch (error) {
       console.error('Error marking all as read:', error);
-      toast.error('Failed to mark all as read');
+      toast.error(t('notifications.errors.markAllFailed'));
     }
   };
   
@@ -107,10 +109,10 @@ export const NotificationsPage: React.FC = () => {
     try {
       await deleteDoc(doc(db, 'notifications', notificationId));
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      toast.success('Notification deleted');
+      toast.success(t('notifications.success.deleted'));
     } catch (error) {
       console.error('Error deleting notification:', error);
-      toast.error('Failed to delete notification');
+      toast.error(t('notifications.errors.deleteFailed'));
     }
   };
   
@@ -122,10 +124,10 @@ export const NotificationsPage: React.FC = () => {
       await updateDoc(doc(db, 'users', user!.uid), {
         notifications: newSettings
       });
-      toast.success('Notification settings updated');
+      toast.success(t('notifications.success.settingsUpdated'));
     } catch (error) {
       console.error('Error updating settings:', error);
-      toast.error('Failed to update settings');
+      toast.error(t('notifications.errors.settingsFailed'));
     }
   };
   
@@ -140,7 +142,7 @@ export const NotificationsPage: React.FC = () => {
       case 'message':
         return 'lucide:message-square';
       case 'payment_received':
-        return 'lucide:dollar-sign';
+        return 'lucide:euro';
       default:
         return 'lucide:bell';
     }
@@ -160,12 +162,16 @@ export const NotificationsPage: React.FC = () => {
     }
   };
   
+  const getNotificationTypeLabel = (type: string) => {
+    return t(`notifications.types.${type.replace(/_/g, '_')}`);
+  };
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading notifications...</p>
+          <p className="text-gray-400">{t('notifications.loading')}</p>
         </div>
       </div>
     );
@@ -179,14 +185,14 @@ export const NotificationsPage: React.FC = () => {
         transition={{ duration: 0.3 }}
       >
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Notifications</h1>
+          <h1 className="text-3xl font-bold text-white">{t('notifications.title')}</h1>
           {notifications.some(n => !n.read) && (
             <Button
               color="primary"
               variant="flat"
               onClick={markAllAsRead}
             >
-              Mark all as read
+              {t('notifications.markAllRead')}
             </Button>
           )}
         </div>
@@ -194,12 +200,12 @@ export const NotificationsPage: React.FC = () => {
         {/* Notifications List */}
         <Card className="glass-effect border-none mb-8">
           <CardBody className="p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Recent Notifications</h2>
+            <h2 className="text-xl font-semibold text-white mb-4">{t('notifications.recentNotifications')}</h2>
             
             {notifications.length === 0 ? (
               <div className="text-center py-12">
                 <Icon icon="lucide:bell-off" className="text-gray-400 mb-4 mx-auto" width={48} />
-                <p className="text-gray-400">No notifications yet</p>
+                <p className="text-gray-400">{t('notifications.noNotifications')}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -232,7 +238,7 @@ export const NotificationsPage: React.FC = () => {
                             <p className="text-gray-500 text-xs mt-2">
                               {notification.createdAt?.toDate ? 
                                 new Date(notification.createdAt.toDate()).toLocaleString() : 
-                                'Recently'}
+                                t('common.recently')}
                             </p>
                           </div>
                           <Chip
@@ -240,7 +246,7 @@ export const NotificationsPage: React.FC = () => {
                             color={getNotificationColor(notification.type)}
                             variant="flat"
                           >
-                            {notification.type.replace(/_/g, ' ')}
+                            {getNotificationTypeLabel(notification.type)}
                           </Chip>
                         </div>
                         <div className="flex gap-2 mt-3">
@@ -254,7 +260,7 @@ export const NotificationsPage: React.FC = () => {
                                 navigate(notification.link!);
                               }}
                             >
-                              View
+                              {t('notifications.view')}
                             </Button>
                           )}
                           {!notification.read && (
@@ -263,7 +269,7 @@ export const NotificationsPage: React.FC = () => {
                               variant="light"
                               onClick={() => markAsRead(notification.id)}
                             >
-                              Mark as read
+                              {t('notifications.markAsRead')}
                             </Button>
                           )}
                           <Button
@@ -272,7 +278,7 @@ export const NotificationsPage: React.FC = () => {
                             variant="light"
                             onClick={() => deleteNotification(notification.id)}
                           >
-                            Delete
+                            {t('common.delete')}
                           </Button>
                         </div>
                       </div>
@@ -283,15 +289,16 @@ export const NotificationsPage: React.FC = () => {
             )}
           </CardBody>
         </Card>
-                {/* Notification Settings */}
+        
+        {/* Notification Settings */}
         <Card className="glass-effect border-none">
           <CardBody className="p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Notification Settings</h2>
+            <h2 className="text-xl font-semibold text-white mb-4">{t('notifications.settings.title')}</h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-white">Email Notifications</p>
-                  <p className="text-gray-400 text-sm">Receive notifications via email</p>
+                  <p className="text-white">{t('notifications.settings.email')}</p>
+                  <p className="text-gray-400 text-sm">{t('notifications.settings.emailDesc')}</p>
                 </div>
                 <Switch
                   isSelected={notificationSettings.email}
@@ -300,8 +307,8 @@ export const NotificationsPage: React.FC = () => {
               </div>
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-white">Push Notifications</p>
-                  <p className="text-gray-400 text-sm">Receive push notifications in browser</p>
+                  <p className="text-white">{t('notifications.settings.push')}</p>
+                  <p className="text-gray-400 text-sm">{t('notifications.settings.pushDesc')}</p>
                 </div>
                 <Switch
                   isSelected={notificationSettings.push}
@@ -310,8 +317,8 @@ export const NotificationsPage: React.FC = () => {
               </div>
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-white">SMS Notifications</p>
-                  <p className="text-gray-400 text-sm">Receive notifications via SMS</p>
+                  <p className="text-white">{t('notifications.settings.sms')}</p>
+                  <p className="text-gray-400 text-sm">{t('notifications.settings.smsDesc')}</p>
                 </div>
                 <Switch
                   isSelected={notificationSettings.sms}

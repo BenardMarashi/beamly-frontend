@@ -25,6 +25,7 @@ import {
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
@@ -41,10 +42,10 @@ interface Proposal {
   freelancerAvatar?: string;
   freelancerRating?: number;
   coverLetter: string;
-  proposedRate?: number; // This might be the field name in your DB
+  proposedRate?: number;
   bidAmount: number;
   deliveryTime: string;
-  estimatedDuration?: string; // This might be the actual field
+  estimatedDuration?: string;
   status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
   projectStatus?: 'ongoing' | 'completed';
   createdAt: any;
@@ -55,6 +56,7 @@ interface Proposal {
 export const FreelancerProposalsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
@@ -114,14 +116,13 @@ export const FreelancerProposalsPage: React.FC = () => {
         updatedAt: new Date()
       });
       
-      toast.success('Proposal updated successfully');
+      toast.success(t('freelancerProposals.success.updated'));
       onEditClose();
     } catch (error) {
       console.error('Error updating proposal:', error);
-      toast.error('Failed to update proposal');
+      toast.error(t('freelancerProposals.errors.updateFailed'));
     }
   };
-
 
   const getStatusColor = (status: string, projectStatus?: string) => {
     if (status === 'accepted' && projectStatus === 'ongoing') return 'primary';
@@ -138,16 +139,18 @@ export const FreelancerProposalsPage: React.FC = () => {
 
   const getStatusText = (status: string, projectStatus?: string, paymentStatus?: string) => {
     if (status === 'accepted' && projectStatus === 'completed' && paymentStatus === 'released') {
-      return 'Completed - Paid';
+      return t('freelancerProposals.status.completedPaid');
     }
     if (status === 'accepted' && projectStatus === 'completed') {
-      return 'Completed - Awaiting Payment';
+      return t('freelancerProposals.status.completedAwaitingPayment');
     }
     if (status === 'accepted' && paymentStatus === 'escrow') {
-      return 'In Progress - Payment Secured';
+      return t('freelancerProposals.status.inProgressPaymentSecured');
     }
-    if (status === 'accepted' && projectStatus === 'ongoing') return 'In Progress';
-    if (status === 'accepted') return 'Accepted';
+    if (status === 'accepted' && projectStatus === 'ongoing') return t('freelancerProposals.status.inProgress');
+    if (status === 'accepted') return t('freelancerProposals.status.accepted');
+    if (status === 'pending') return t('freelancerProposals.status.pending');
+    if (status === 'rejected') return t('freelancerProposals.status.rejected');
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
@@ -162,22 +165,22 @@ export const FreelancerProposalsPage: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">My Proposals</h1>
-        <p className="text-gray-400">Track and manage your job proposals</p>
+        <h1 className="text-3xl font-bold text-white mb-2">{t('freelancerProposals.title')}</h1>
+        <p className="text-gray-400">{t('freelancerProposals.subtitle')}</p>
       </div>
 
       {proposals.length === 0 ? (
         <Card className="glass-effect">
           <CardBody className="text-center py-12">
             <Icon icon="lucide:file-text" className="text-6xl text-gray-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">No proposals yet</h3>
-            <p className="text-gray-400 mb-6">Start applying to jobs to see your proposals here</p>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('freelancerProposals.noProposals')}</h3>
+            <p className="text-gray-400 mb-6">{t('freelancerProposals.noProposalsDesc')}</p>
             <Button 
               color="secondary"
               onPress={() => navigate('/looking-for-work')}
               startContent={<Icon icon="lucide:search" />}
             >
-              Browse Jobs
+              {t('freelancerProposals.browseJobs')}
             </Button>
           </CardBody>
         </Card>
@@ -192,13 +195,13 @@ export const FreelancerProposalsPage: React.FC = () => {
             }}
           >
             <TableHeader>
-              <TableColumn>JOB TITLE</TableColumn>
-              <TableColumn>CLIENT</TableColumn>
-              <TableColumn>BID AMOUNT</TableColumn>
-              <TableColumn>DELIVERY</TableColumn>
-              <TableColumn>STATUS</TableColumn>
-              <TableColumn>SUBMITTED</TableColumn>
-              <TableColumn>ACTIONS</TableColumn>
+              <TableColumn>{t('freelancerProposals.table.jobTitle')}</TableColumn>
+              <TableColumn>{t('freelancerProposals.table.client')}</TableColumn>
+              <TableColumn>{t('freelancerProposals.table.bidAmount')}</TableColumn>
+              <TableColumn>{t('freelancerProposals.table.delivery')}</TableColumn>
+              <TableColumn>{t('freelancerProposals.table.status')}</TableColumn>
+              <TableColumn>{t('freelancerProposals.table.submitted')}</TableColumn>
+              <TableColumn>{t('freelancerProposals.table.actions')}</TableColumn>
             </TableHeader>
             <TableBody>
               {proposals.map((proposal) => (
@@ -210,7 +213,7 @@ export const FreelancerProposalsPage: React.FC = () => {
                   </TableCell>
                   <TableCell>{proposal.clientName}</TableCell>
                   <TableCell>
-                    <span className="font-semibold">${proposal.bidAmount}</span>
+                    <span className="font-semibold">€{proposal.bidAmount}</span>
                   </TableCell>
                   <TableCell>{proposal.deliveryTime}</TableCell>
                   <TableCell>
@@ -237,7 +240,7 @@ export const FreelancerProposalsPage: React.FC = () => {
                             onPress={() => handleEditProposal(proposal)}
                             startContent={<Icon icon="lucide:edit" />}
                           >
-                            Edit
+                            {t('common.edit')}
                           </Button>
                         </>
                       )}
@@ -249,7 +252,7 @@ export const FreelancerProposalsPage: React.FC = () => {
                           onPress={() => navigate(`/messages?user=${proposal.clientId}`)}
                           startContent={<Icon icon="lucide:message-circle" />}
                         >
-                          Message Client
+                          {t('freelancerProposals.messageClient')}
                         </Button>
                       )}
                       <Button
@@ -257,7 +260,7 @@ export const FreelancerProposalsPage: React.FC = () => {
                         variant="light"
                         onPress={() => navigate(`/job/${proposal.jobId}`)}
                       >
-                        View Job
+                        {t('freelancerProposals.viewJob')}
                       </Button>
                     </div>
                   </TableCell>
@@ -275,7 +278,7 @@ export const FreelancerProposalsPage: React.FC = () => {
             <CardHeader className="flex justify-between">
               <div className="flex-1">
                 <h3 className="font-semibold text-white">{proposal.jobTitle}</h3>
-                <p className="text-sm text-gray-400">Client: {proposal.clientName}</p>
+                <p className="text-sm text-gray-400">{t('freelancerProposals.table.client')}: {proposal.clientName}</p>
               </div>
               <Chip 
                 size="sm"
@@ -288,15 +291,15 @@ export const FreelancerProposalsPage: React.FC = () => {
             <CardBody>
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Bid Amount:</span>
-                  <span className="font-semibold">${proposal.bidAmount}</span>
+                  <span className="text-gray-400">{t('freelancerProposals.table.bidAmount')}:</span>
+                  <span className="font-semibold">€{proposal.bidAmount}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Delivery:</span>
+                  <span className="text-gray-400">{t('freelancerProposals.table.delivery')}:</span>
                   <span>{proposal.deliveryTime}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Submitted:</span>
+                  <span className="text-gray-400">{t('freelancerProposals.table.submitted')}:</span>
                   <span className="text-sm">
                     {formatDistanceToNow(proposal.createdAt?.toDate?.() || new Date(), { addSuffix: true })}
                   </span>
@@ -312,7 +315,7 @@ export const FreelancerProposalsPage: React.FC = () => {
                       onPress={() => handleEditProposal(proposal)}
                       startContent={<Icon icon="lucide:edit" />}
                     >
-                      Edit
+                      {t('common.edit')}
                     </Button>
                   </>
                 )}
@@ -324,7 +327,7 @@ export const FreelancerProposalsPage: React.FC = () => {
                     onPress={() => navigate(`/messages?user=${proposal.clientId}`)}
                     startContent={<Icon icon="lucide:message-circle" />}
                   >
-                    Message Client
+                    {t('freelancerProposals.messageClient')}
                   </Button>
                 )}
                 <Button
@@ -332,7 +335,7 @@ export const FreelancerProposalsPage: React.FC = () => {
                   variant="light"
                   onPress={() => navigate(`/job/${proposal.jobId}`)}
                 >
-                  View Job
+                  {t('freelancerProposals.viewJob')}
                 </Button>
               </div>
             </CardBody>
@@ -343,12 +346,12 @@ export const FreelancerProposalsPage: React.FC = () => {
       {/* Edit Modal */}
       <Modal isOpen={isEditOpen} onClose={onEditClose} size="2xl">
         <ModalContent>
-          <ModalHeader>Edit Proposal</ModalHeader>
+          <ModalHeader>{t('freelancerProposals.editProposal')}</ModalHeader>
           <ModalBody>
             <div className="space-y-4">
               <Textarea
-                label="Cover Letter"
-                placeholder="Update your cover letter..."
+                label={t('freelancerProposals.coverLetter')}
+                placeholder={t('freelancerProposals.updateCoverLetter')}
                 value={editForm.coverLetter}
                 onChange={(e) => setEditForm({ ...editForm, coverLetter: e.target.value })}
                 minRows={5}
@@ -356,15 +359,15 @@ export const FreelancerProposalsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   type="number"
-                  label="Bid Amount ($)"
-                  placeholder="Enter amount"
+                  label={t('freelancerProposals.bidAmountEuro')}
+                  placeholder={t('freelancerProposals.enterAmount')}
                   value={editForm.bidAmount}
                   onChange={(e) => setEditForm({ ...editForm, bidAmount: e.target.value })}
-                  startContent={<span className="text-gray-400">$</span>}
+                  startContent={<span className="text-gray-400">€</span>}
                 />
                 <Input
-                  label="Delivery Time"
-                  placeholder="e.g., 3 days"
+                  label={t('freelancerProposals.deliveryTime')}
+                  placeholder={t('freelancerProposals.deliveryTimePlaceholder')}
                   value={editForm.deliveryTime}
                   onChange={(e) => setEditForm({ ...editForm, deliveryTime: e.target.value })}
                 />
@@ -373,14 +376,14 @@ export const FreelancerProposalsPage: React.FC = () => {
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={onEditClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button 
               color="primary" 
               onPress={handleUpdateProposal}
               isDisabled={!editForm.coverLetter || !editForm.bidAmount || !editForm.deliveryTime}
             >
-              Update Proposal
+              {t('freelancerProposals.updateProposal')}
             </Button>
           </ModalFooter>
         </ModalContent>

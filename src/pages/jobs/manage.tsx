@@ -4,6 +4,7 @@ import { Card, CardBody, Button, Table, TableHeader, TableColumn, TableBody, Tab
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { collection, query, where, orderBy, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
@@ -22,6 +23,7 @@ interface Job {
 export const ManageJobsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, canPostJobs } = useAuth();
+  const { t } = useTranslation();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('all');
@@ -33,7 +35,7 @@ export const ManageJobsPage: React.FC = () => {
     if (!user) {
       navigate('/login');
     } else if (!canPostJobs) {
-      toast.error('Only clients can manage jobs');
+      toast.error(t('manageJobs.errors.onlyClients'));
       navigate('/dashboard');
     } else {
       fetchJobs();
@@ -64,7 +66,7 @@ export const ManageJobsPage: React.FC = () => {
       setJobs(jobsData);
     } catch (error) {
       console.error('Error fetching jobs:', error);
-      toast.error('Failed to load jobs');
+      toast.error(t('manageJobs.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -79,12 +81,12 @@ export const ManageJobsPage: React.FC = () => {
         updatedAt: new Date()
       });
       
-      toast.success('Job closed successfully');
+      toast.success(t('manageJobs.success.jobClosed'));
       fetchJobs();
       onClose();
     } catch (error) {
       console.error('Error closing job:', error);
-      toast.error('Failed to close job');
+      toast.error(t('manageJobs.errors.closeFailed'));
     }
   };
   
@@ -111,7 +113,7 @@ export const ManageJobsPage: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading jobs...</p>
+          <p className="text-gray-400">{t('manageJobs.loading')}</p>
         </div>
       </div>
     );
@@ -126,15 +128,15 @@ export const ManageJobsPage: React.FC = () => {
       >
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Manage Jobs</h1>
-            <p className="text-gray-400">View and manage your posted jobs</p>
+            <h1 className="text-3xl font-bold text-white mb-2">{t('manageJobs.title')}</h1>
+            <p className="text-gray-400">{t('manageJobs.subtitle')}</p>
           </div>
           <Button
             color="primary"
             startContent={<Icon icon="lucide:plus" />}
             onPress={() => navigate('/post-job')}
           >
-            Post New Job
+            {t('manageJobs.postNewJob')}
           </Button>
         </div>
         
@@ -150,17 +152,17 @@ export const ManageJobsPage: React.FC = () => {
                 tabContent: "text-white group-data-[selected=true]:text-white"
               }}
             >
-              <Tab key="all" title={`All (${jobs.length})`} />
-              <Tab key="active" title={`Active (${jobs.filter(j => j.status === 'open' || j.status === 'in-progress').length})`} />
-              <Tab key="completed" title={`Completed (${jobs.filter(j => j.status === 'completed').length})`} />
-              <Tab key="cancelled" title={`Cancelled (${jobs.filter(j => j.status === 'cancelled').length})`} />
+              <Tab key="all" title={`${t('manageJobs.tabs.all')} (${jobs.length})`} />
+              <Tab key="active" title={`${t('manageJobs.tabs.active')} (${jobs.filter(j => j.status === 'open' || j.status === 'in-progress').length})`} />
+              <Tab key="completed" title={`${t('manageJobs.tabs.completed')} (${jobs.filter(j => j.status === 'completed').length})`} />
+              <Tab key="cancelled" title={`${t('manageJobs.tabs.cancelled')} (${jobs.filter(j => j.status === 'cancelled').length})`} />
             </Tabs>
             
             <div className="mt-6">
               {filteredJobs.length === 0 ? (
                 <div className="text-center py-12">
                   <Icon icon="lucide:briefcase" className="text-6xl text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-400">No jobs found</p>
+                  <p className="text-gray-400">{t('manageJobs.noJobs')}</p>
                 </div>
               ) : (
                 <Table
@@ -171,12 +173,12 @@ export const ManageJobsPage: React.FC = () => {
                   }}
                 >
                   <TableHeader>
-                    <TableColumn>TITLE</TableColumn>
-                    <TableColumn>CATEGORY</TableColumn>
-                    <TableColumn>BUDGET</TableColumn>
-                    <TableColumn>PROPOSALS</TableColumn>
-                    <TableColumn>STATUS</TableColumn>
-                    <TableColumn>ACTIONS</TableColumn>
+                    <TableColumn>{t('manageJobs.table.title')}</TableColumn>
+                    <TableColumn>{t('manageJobs.table.category')}</TableColumn>
+                    <TableColumn>{t('manageJobs.table.budget')}</TableColumn>
+                    <TableColumn>{t('manageJobs.table.proposals')}</TableColumn>
+                    <TableColumn>{t('manageJobs.table.status')}</TableColumn>
+                    <TableColumn>{t('manageJobs.table.actions')}</TableColumn>
                   </TableHeader>
                   <TableBody>
                     {filteredJobs.map((job) => (
@@ -192,7 +194,7 @@ export const ManageJobsPage: React.FC = () => {
                         </TableCell>
                         <TableCell>{job.category}</TableCell>
                         <TableCell>
-                          €{job.budget} {job.budgetType === 'hourly' && '/hr'}
+                          €{job.budget} {job.budgetType === 'hourly' && t('common.perHour')}
                         </TableCell>
                         <TableCell>{job.proposals}</TableCell>
                         <TableCell>
@@ -241,16 +243,16 @@ export const ManageJobsPage: React.FC = () => {
         
         <Modal isOpen={isOpen} onClose={onClose}>
           <ModalContent>
-            <ModalHeader>Close Job</ModalHeader>
+            <ModalHeader>{t('manageJobs.modal.closeJob')}</ModalHeader>
             <ModalBody>
-              <p>Are you sure you want to close this job? This action cannot be undone.</p>
+              <p>{t('manageJobs.modal.confirmClose')}</p>
             </ModalBody>
             <ModalFooter>
               <Button variant="light" onPress={onClose}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button color="danger" onPress={handleCloseJob}>
-                Close Job
+                {t('manageJobs.modal.closeJobButton')}
               </Button>
             </ModalFooter>
           </ModalContent>

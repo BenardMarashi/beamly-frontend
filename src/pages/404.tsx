@@ -3,9 +3,11 @@ import { Button, Card, CardBody } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const NotFoundPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -24,11 +26,10 @@ const NotFoundPage: React.FC = () => {
             </div>
             
             <h1 className="text-4xl font-bold mb-2">404</h1>
-            <h2 className="text-2xl font-semibold mb-4">Page Not Found</h2>
+            <h2 className="text-2xl font-semibold mb-4">{t('notFound.title')}</h2>
             
             <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
-              Oops! The page you're looking for seems to have vanished into thin air. 
-              It might have been moved, deleted, or perhaps it never existed.
+              {t('notFound.description')}
             </p>
             
             <div className="flex gap-3 justify-center flex-wrap">
@@ -38,7 +39,7 @@ const NotFoundPage: React.FC = () => {
                 startContent={<Icon icon="solar:home-2-bold-duotone" />}
                 size="lg"
               >
-                Go Home
+                {t('notFound.goHome')}
               </Button>
               <Button 
                 variant="flat"
@@ -46,7 +47,7 @@ const NotFoundPage: React.FC = () => {
                 startContent={<Icon icon="solar:arrow-left-line-duotone" />}
                 size="lg"
               >
-                Go Back
+                {t('notFound.goBack')}
               </Button>
               <Button 
                 variant="flat"
@@ -54,32 +55,32 @@ const NotFoundPage: React.FC = () => {
                 startContent={<Icon icon="solar:question-circle-bold-duotone" />}
                 size="lg"
               >
-                Get Help
+                {t('notFound.getHelp')}
               </Button>
             </div>
             
             <div className="mt-12 pt-8 border-t border-default-200">
               <p className="text-sm text-gray-500 mb-4">
-                Here are some helpful links:
+                {t('notFound.helpfulLinks')}
               </p>
               <div className="flex gap-4 justify-center flex-wrap">
                 <a 
                   onClick={() => navigate('/browse-jobs')}
                   className="text-primary hover:underline cursor-pointer text-sm"
                 >
-                  Browse Jobs
+                  {t('notFound.browseJobs')}
                 </a>
                 <a 
                   onClick={() => navigate('/browse-freelancers')}
                   className="text-primary hover:underline cursor-pointer text-sm"
                 >
-                  Find Freelancers
+                  {t('notFound.findFreelancers')}
                 </a>
                 <a 
                   onClick={() => navigate('/dashboard')}
                   className="text-primary hover:underline cursor-pointer text-sm"
                 >
-                  Dashboard
+                  {t('notFound.dashboard')}
                 </a>
               </div>
             </div>

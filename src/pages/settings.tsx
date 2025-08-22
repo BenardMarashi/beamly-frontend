@@ -109,10 +109,10 @@ const SettingsPage: React.FC = () => {
       }
       
       await updateDoc(doc(db, 'users', user!.uid), updateData);
-      toast.success(t('common.success')); // Use translation for success message
+      toast.success(t('common.success'));
     } catch (error) {
       console.error('Error updating settings:', error);
-      toast.error(t('common.error')); // Use translation for error message
+      toast.error(t('common.error'));
     }
   };
   
@@ -231,18 +231,18 @@ const SettingsPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h1 className="text-3xl font-bold text-white mb-8">{t('nav.settings') || 'Settings'}</h1>
+        <h1 className="text-3xl font-bold text-white mb-8">{t('nav.settings')}</h1>
         
         {/* Appearance Settings */}
         <Card className="glass-effect mb-6">
           <CardBody className="p-6">
             <h2 className="text-xl font-semibold text-white mb-4">
-              {t('settings.appearance.title') || 'Appearance'}
+              {t('settings.appearance.title')}
             </h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-white">{t('settings.appearance.theme') || 'Theme'}</p>
+                  <p className="text-white">{t('settings.appearance.theme')}</p>
                   <p className="text-gray-400 text-sm">{t('settings.appearance.themeDescription')}</p>
                 </div>
                 <Select
@@ -250,7 +250,7 @@ const SettingsPage: React.FC = () => {
                   onSelectionChange={handleThemeChange}
                   className="w-40"
                   variant="bordered"
-                  aria-label={t('settings.appearance.toggleTheme') || 'Toggle theme'}
+                  aria-label={t('settings.appearance.toggleTheme')}
                   classNames={{
                     trigger: "bg-gray-900/50 border-gray-600 text-white",
                     value: "text-white",
@@ -259,18 +259,18 @@ const SettingsPage: React.FC = () => {
                   }}
                 >
                   <SelectItem key="light" value="light">
-                    {t('settings.appearance.light') || 'Light'}
+                    {t('settings.appearance.light')}
                   </SelectItem>
                   <SelectItem key="dark" value="dark">
-                    {t('settings.appearance.dark') || 'Dark'}
+                    {t('settings.appearance.dark')}
                   </SelectItem>
                 </Select>
               </div>
               
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-white">{t('settings.language.title') || 'Language'}</p>
-                  <p className="text-gray-400 text-sm">{t('settings.language.select') || 'Select Language'}</p>
+                  <p className="text-white">{t('settings.language.title')}</p>
+                  <p className="text-gray-400 text-sm">{t('settings.language.select')}</p>
                 </div>
                 <Select
                   selectedKeys={[settings.language]}
@@ -282,7 +282,7 @@ const SettingsPage: React.FC = () => {
                   }}
                   className="w-40"
                   variant="bordered"
-                  aria-label={t('settings.language.select') || 'Select Language'}
+                  aria-label={t('settings.language.select')}
                   classNames={{
                     trigger: "bg-gray-900/50 border-gray-600 text-white",
                     value: "text-white",
@@ -306,7 +306,7 @@ const SettingsPage: React.FC = () => {
         <Card className="glass-effect mb-6">
           <CardBody className="p-6">
             <h2 className="text-xl font-semibold text-white mb-4">
-              {t('settings.account.title') || 'Account'}
+              {t('settings.account.title')}
             </h2>
             <div className="space-y-4">
               <Button
@@ -317,7 +317,7 @@ const SettingsPage: React.FC = () => {
                 fullWidth
                 className="text-white"
               >
-                Change Password
+                {t('settings.changePassword')}
               </Button>
             </div>
           </CardBody>
@@ -327,10 +327,10 @@ const SettingsPage: React.FC = () => {
         <Card className="border border-danger/50 bg-danger/10">
           <CardBody className="p-6">
             <h2 className="text-xl font-semibold text-white mb-2">
-              {t('settings.account.dangerZone') || 'Danger Zone'}
+              {t('settings.account.dangerZone')}
             </h2>
             <p className="text-gray-400 text-sm mb-4">
-              {t('settings.account.dangerZoneDescription') || 'These actions are irreversible. Please proceed with caution.'}
+              {t('settings.account.dangerZoneDescription')}
             </p>
             <Button
               color="danger"
@@ -374,7 +374,7 @@ const SettingsPage: React.FC = () => {
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={onPasswordClose} disabled={loading}>
-              {t('common.cancel') || 'Cancel'}
+              {t('common.cancel')}
             </Button>
             <Button 
               color="primary" 
@@ -399,7 +399,7 @@ const SettingsPage: React.FC = () => {
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={onDeleteClose} disabled={loading}>
-              {t('common.cancel') || 'Cancel'}
+              {t('common.cancel')}
             </Button>
             <Button 
               color="danger" 

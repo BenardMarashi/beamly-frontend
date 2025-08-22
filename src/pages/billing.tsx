@@ -26,14 +26,13 @@ import {
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { StripeService } from '../services/stripe-service';
 import { ProSubscription } from '../components/payments/ProSubscription';
 import { StripeConnectOnboarding } from '../components/payments/StripeConnectOnboarding';
-
-
 
 interface Transaction {
   id: string;
@@ -47,6 +46,7 @@ interface Transaction {
 export const BillingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const [balance, setBalance] = useState({ available: 0, pending: 0 });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -67,7 +67,7 @@ export const BillingPage: React.FC = () => {
     
     // Only allow freelancers and 'both' user types
     if (userData && userData.userType === 'client') {
-      toast.error('This page is only available for freelancers');
+      toast.error(t('billing.errors.freelancersOnly'));
       navigate('/dashboard');
       return;
     }
@@ -132,7 +132,7 @@ export const BillingPage: React.FC = () => {
       
     } catch (error) {
       console.error('Error fetching billing data:', error);
-      toast.error('Failed to load billing data');
+      toast.error(t('billing.errors.loadFailed'));
     }
   };
   
@@ -140,12 +140,12 @@ export const BillingPage: React.FC = () => {
     const amount = parseFloat(withdrawAmount);
     
     if (!amount || amount <= 0) {
-      toast.error('Please enter a valid amount');
+      toast.error(t('billing.errors.invalidAmount'));
       return;
     }
     
     if (amount > balance.available) {
-      toast.error('Insufficient balance');
+      toast.error(t('billing.errors.insufficientBalance'));
       return;
     }
     
@@ -155,16 +155,16 @@ export const BillingPage: React.FC = () => {
     try {
       const result = await StripeService.createPayout(user.uid, amount);
       if (result.success) {
-        toast.success(`Withdrawal of €${amount} initiated`);
+        toast.success(t('billing.success.withdrawInitiated', { amount }));
         onWithdrawClose();
         setWithdrawAmount('');
         fetchBalance();
         fetchBillingData();
       } else {
-        toast.error('Withdrawal failed');
+        toast.error(t('billing.errors.withdrawFailed'));
       }
     } catch (error) {
-      toast.error('An error occurred');
+      toast.error(t('billing.errors.errorOccurred'));
     } finally {
       setLoading(false);
     }
@@ -213,8 +213,8 @@ export const BillingPage: React.FC = () => {
       >
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Billing & Payments</h1>
-            <p className="text-gray-400">Manage your payments and transactions</p>
+            <h1 className="text-3xl font-bold text-white mb-2">{t('billing.title')}</h1>
+            <p className="text-gray-400">{t('billing.subtitle')}</p>
           </div>
         </div>
         
@@ -226,7 +226,7 @@ export const BillingPage: React.FC = () => {
             tab: "min-w-fit"
           }}
         >
-          <Tab key="earnings" title="Earnings">
+          <Tab key="earnings" title={t('billing.tabs.earnings')}>
             <div className="space-y-6">
               {/* Balance Overview */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -235,7 +235,7 @@ export const BillingPage: React.FC = () => {
                     <div className="flex items-center justify-between mb-4">
                       <Icon icon="lucide:wallet" className="text-green-400" width={32} />
                     </div>
-                    <h3 className="text-gray-400 text-sm">Available Balance</h3>
+                    <h3 className="text-gray-400 text-sm">{t('billing.availableBalance')}</h3>
                     <p className="text-3xl font-bold text-white">{formatCurrency(balance.available)}</p>
                   </CardBody>
                 </Card>
@@ -245,7 +245,7 @@ export const BillingPage: React.FC = () => {
                     <div className="flex items-center justify-between mb-4">
                       <Icon icon="lucide:clock" className="text-yellow-400" width={32} />
                     </div>
-                    <h3 className="text-gray-400 text-sm">Pending Balance</h3>
+                    <h3 className="text-gray-400 text-sm">{t('billing.pendingBalance')}</h3>
                     <p className="text-3xl font-bold text-white">{formatCurrency(balance.pending)}</p>
                   </CardBody>
                 </Card>
@@ -255,7 +255,7 @@ export const BillingPage: React.FC = () => {
                     <div className="flex items-center justify-between mb-4">
                       <Icon icon="lucide:trending-up" className="text-blue-400" width={32} />
                     </div>
-                    <h3 className="text-gray-400 text-sm">Total Earnings</h3>
+                    <h3 className="text-gray-400 text-sm">{t('billing.totalEarnings')}</h3>
                     <p className="text-3xl font-bold text-white">{formatCurrency(totalEarnings)}</p>
                   </CardBody>
                 </Card>
@@ -273,13 +273,13 @@ export const BillingPage: React.FC = () => {
               {connectStatus.isComplete && balance.available > 0 && (
                 <Card className="glass-effect border-none">
                   <CardHeader>
-                    <h2 className="text-xl font-semibold text-white">Withdraw Funds</h2>
+                    <h2 className="text-xl font-semibold text-white">{t('billing.withdrawFunds')}</h2>
                   </CardHeader>
                   <CardBody>
                     <div className="flex gap-4 items-end">
                       <div className="flex-1">
                         <label className="text-sm text-gray-400 mb-1 block">
-                          Amount to withdraw
+                          {t('billing.amountToWithdraw')}
                         </label>
                         <Input
                           type="number"
@@ -295,11 +295,11 @@ export const BillingPage: React.FC = () => {
                         onPress={onWithdrawOpen}
                         isDisabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0}
                       >
-                        Withdraw
+                        {t('billing.withdraw')}
                       </Button>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                      Withdrawals typically arrive within 2-7 business days
+                      {t('billing.withdrawalTime')}
                     </p>
                   </CardBody>
                 </Card>
@@ -307,18 +307,18 @@ export const BillingPage: React.FC = () => {
             </div>
           </Tab>
           
-          <Tab key="subscription" title="Pro Subscription">
+          <Tab key="subscription" title={t('billing.tabs.proSubscription')}>
             <ProSubscription />
           </Tab>
           
-          <Tab key="transactions" title="Transactions">
+          <Tab key="transactions" title={t('billing.tabs.transactions')}>
             <Card className="glass-effect border-none">
               <CardHeader>
-                <h2 className="text-xl font-semibold text-white">Transaction History</h2>
+                <h2 className="text-xl font-semibold text-white">{t('billing.transactionHistory')}</h2>
               </CardHeader>
               <CardBody>
                 {transactions.length === 0 ? (
-                  <p className="text-gray-400 text-center py-8">No transactions yet</p>
+                  <p className="text-gray-400 text-center py-8">{t('billing.noTransactions')}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <Table
@@ -329,12 +329,12 @@ export const BillingPage: React.FC = () => {
                       }}
                     >
                       <TableHeader>
-                        <TableColumn>TYPE</TableColumn>
-                        <TableColumn>DESCRIPTION</TableColumn>
-                        <TableColumn>AMOUNT</TableColumn>
-                        <TableColumn>STATUS</TableColumn>
-                        <TableColumn>DATE</TableColumn>
-                        <TableColumn>ACTION</TableColumn>
+                        <TableColumn>{t('billing.table.type')}</TableColumn>
+                        <TableColumn>{t('billing.table.description')}</TableColumn>
+                        <TableColumn>{t('billing.table.amount')}</TableColumn>
+                        <TableColumn>{t('billing.table.status')}</TableColumn>
+                        <TableColumn>{t('billing.table.date')}</TableColumn>
+                        <TableColumn>{t('billing.table.action')}</TableColumn>
                       </TableHeader>
                       <TableBody>
                         {transactions.map((transaction) => (
@@ -361,14 +361,14 @@ export const BillingPage: React.FC = () => {
                                   'danger'
                                 }
                               >
-                                {transaction.status}
+                                {t(`billing.status.${transaction.status}`)}
                               </Chip>
                             </TableCell>
                             <TableCell>
                               <p className="text-sm">
                                 {transaction.createdAt?.toDate ? 
                                   new Date(transaction.createdAt.toDate()).toLocaleDateString() : 
-                                  'Recently'}
+                                  t('common.recently')}
                               </p>
                             </TableCell>
                             <TableCell>
@@ -393,25 +393,25 @@ export const BillingPage: React.FC = () => {
         
         <Modal isOpen={isWithdrawOpen} onClose={onWithdrawClose}>
           <ModalContent>
-            <ModalHeader>Confirm Withdrawal</ModalHeader>
+            <ModalHeader>{t('billing.confirmWithdrawal')}</ModalHeader>
             <ModalBody>
               <p className="text-gray-400 mb-4">
-                You are about to withdraw <strong className="text-white">{formatCurrency(parseFloat(withdrawAmount || '0'))}</strong>
+                {t('billing.withdrawalConfirmText', { amount: formatCurrency(parseFloat(withdrawAmount || '0')) })}
               </p>
               <p className="text-sm text-gray-400">
-                This amount will be transferred to your bank account within 2-7 business days.
+                {t('billing.withdrawalTimeInfo')}
               </p>
             </ModalBody>
             <ModalFooter>
               <Button variant="light" onPress={onWithdrawClose}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button 
                 color="primary" 
                 onPress={handleWithdraw}
                 isLoading={loading}
               >
-                Confirm Withdrawal
+                {t('billing.confirmWithdrawalButton')}
               </Button>
             </ModalFooter>
           </ModalContent>

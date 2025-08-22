@@ -23,6 +23,7 @@ import { Icon } from '@iconify/react';
 import { increment } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, getDoc, addDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
@@ -42,10 +43,10 @@ interface Proposal {
   freelancerAvatar?: string;
   freelancerRating?: number;
   coverLetter: string;
-  proposedRate?: number; // This might be the field name in your DB
+  proposedRate?: number;
   bidAmount: number;
   deliveryTime?: string;
-  estimatedDuration?: string; // This might be the actual field
+  estimatedDuration?: string;
   status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
   projectStatus?: 'ongoing' | 'completed';
   createdAt: any;
@@ -62,6 +63,7 @@ interface Job {
 export const ClientProposalsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +124,7 @@ export const ClientProposalsPage: React.FC = () => {
             proposalsData.push({
               id: docSnapshot.id,
               ...data,
-              freelancerName: freelancerData?.displayName || 'Unknown',
+              freelancerName: freelancerData?.displayName || t('common.unknown'),
               freelancerAvatar: freelancerData?.photoURL,
               freelancerRating: freelancerData?.rating || 0
             } as Proposal);
@@ -132,7 +134,7 @@ export const ClientProposalsPage: React.FC = () => {
             proposalsData.push({
               id: docSnapshot.id,
               ...data,
-              freelancerName: data.freelancerName || 'Unknown',
+              freelancerName: data.freelancerName || t('common.unknown'),
               freelancerAvatar: '',
               freelancerRating: 0
             } as Proposal);
@@ -152,72 +154,71 @@ export const ClientProposalsPage: React.FC = () => {
     };
   }, [user, navigate]);
 
-// In handleAcceptProposal function, replace with:
-const handleAcceptProposal = async (proposal: any) => {
-  // Debug and validate amount
-  console.log('Full proposal data:', proposal);
-  
-  // Try multiple fields to get the amount
-  let amount = 0;
-  
-  // Check different possible field names
-  if (proposal.bidAmount !== undefined && proposal.bidAmount !== null) {
-    amount = parseFloat(proposal.bidAmount.toString());
-  } else if (proposal.proposedRate !== undefined && proposal.proposedRate !== null) {
-    amount = parseFloat(proposal.proposedRate.toString());
-  } else if (proposal.amount !== undefined && proposal.amount !== null) {
-    amount = parseFloat(proposal.amount.toString());
-  }
-  
-  console.log('Parsed amount:', amount);
+  const handleAcceptProposal = async (proposal: any) => {
+    // Debug and validate amount
+    console.log('Full proposal data:', proposal);
+    
+    // Try multiple fields to get the amount
+    let amount = 0;
+    
+    // Check different possible field names
+    if (proposal.bidAmount !== undefined && proposal.bidAmount !== null) {
+      amount = parseFloat(proposal.bidAmount.toString());
+    } else if (proposal.proposedRate !== undefined && proposal.proposedRate !== null) {
+      amount = parseFloat(proposal.proposedRate.toString());
+    } else if (proposal.amount !== undefined && proposal.amount !== null) {
+      amount = parseFloat(proposal.amount.toString());
+    }
+    
+    console.log('Parsed amount:', amount);
 
-  // Validate amount - Stripe minimum is €0.50
-  if (isNaN(amount) || amount < 0.50) {
-    toast.error(`Invalid amount. Must be at least €0.50. Current: €${amount || 0}`);
-    return;
-  }
-  
-  setSelectedProposal(proposal);
-  setProcessingPayment(true);
-  
-  try {
-    // Navigate to payment page with validated amount
-    navigate('/client/payment', {
-      state: {
-        proposalId: proposal.id,
-        jobId: proposal.jobId,
-        jobTitle: proposal.jobTitle,
-        freelancerId: proposal.freelancerId,
-        freelancerName: proposal.freelancerName,
-        amount: amount, // This is now guaranteed to be a valid number >= 0.50
-        budgetType: proposal.budgetType || 'fixed'
-      }
-    });
-  } catch (error) {
-    console.error('Error:', error);
-    toast.error('Failed to process payment');
-  } finally {
-    setProcessingPayment(false);
-  }
-};
+    // Validate amount - Stripe minimum is €0.50
+    if (isNaN(amount) || amount < 0.50) {
+      toast.error(t('clientProposals.errors.invalidAmount', { amount: amount || 0 }));
+      return;
+    }
+    
+    setSelectedProposal(proposal);
+    setProcessingPayment(true);
+    
+    try {
+      // Navigate to payment page with validated amount
+      navigate('/client/payment', {
+        state: {
+          proposalId: proposal.id,
+          jobId: proposal.jobId,
+          jobTitle: proposal.jobTitle,
+          freelancerId: proposal.freelancerId,
+          freelancerName: proposal.freelancerName,
+          amount: amount, // This is now guaranteed to be a valid number >= 0.50
+          budgetType: proposal.budgetType || 'fixed'
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(t('clientProposals.errors.paymentFailed'));
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
 
   const handleRejectProposal = async (proposalId: string) => {
-    if (!window.confirm('Are you sure you want to reject this proposal?')) return;
+    if (!window.confirm(t('clientProposals.confirmReject'))) return;
 
     try {
       await updateDoc(doc(db, 'proposals', proposalId), {
         status: 'rejected',
         rejectedAt: new Date()
       });
-      toast.success('Proposal rejected');
+      toast.success(t('clientProposals.success.rejected'));
     } catch (error) {
       console.error('Error rejecting proposal:', error);
-      toast.error('Failed to reject proposal');
+      toast.error(t('clientProposals.errors.rejectFailed'));
     }
   };
 
   const handleMarkAsFinished = async (proposalId: string) => {
-    if (!window.confirm('Mark this project as completed? This will release the payment to the freelancer.')) {
+    if (!window.confirm(t('clientProposals.confirmFinish'))) {
       return;
     }
 
@@ -225,7 +226,7 @@ const handleAcceptProposal = async (proposal: any) => {
       // First, release the payment
       const proposal = proposals.find(p => p.id === proposalId);
       if (!proposal) {
-        toast.error('Proposal not found');
+        toast.error(t('clientProposals.errors.proposalNotFound'));
         return;
       }
 
@@ -254,7 +255,7 @@ const handleAcceptProposal = async (proposal: any) => {
           completedProjects: increment(1)
         });
 
-        toast.success('Project completed and payment released!');
+        toast.success(t('clientProposals.success.completed'));
         
         // Open rating modal
         setSelectedProposal(proposal);
@@ -264,41 +265,41 @@ const handleAcceptProposal = async (proposal: any) => {
       }
     } catch (error) {
       console.error('Error completing project:', error);
-      toast.error('Failed to complete project. Please try again.');
+      toast.error(t('clientProposals.errors.completeFailed'));
     }
   };
 
-    const handleCompleteProject = async (proposalId: string) => {
-      if (!window.confirm('Mark this project as completed? You will be able to rate the freelancer.')) return;
+  const handleCompleteProject = async (proposalId: string) => {
+    if (!window.confirm(t('clientProposals.confirmComplete'))) return;
 
-      try {
-        // Get the proposal first
-        const proposal = proposals.find(p => p.id === proposalId);
-        if (!proposal) {
-          toast.error('Proposal not found');
-          return;
-        }
-
-        await updateDoc(doc(db, 'proposals', proposalId), {
-          projectStatus: 'completed',
-          completedAt: new Date()
-        });
-        
-        // ADD THIS HERE - Increment freelancer's completed projects
-        await updateDoc(doc(db, 'users', proposal.freelancerId), {
-          completedProjects: increment(1)
-        });
-        
-        // Open rating modal
-        if (proposal) {
-          setSelectedProposal(proposal);
-          onRatingOpen();
-        }
-      } catch (error) {
-        console.error('Error completing project:', error);
-        toast.error('Failed to complete project');
+    try {
+      // Get the proposal first
+      const proposal = proposals.find(p => p.id === proposalId);
+      if (!proposal) {
+        toast.error(t('clientProposals.errors.proposalNotFound'));
+        return;
       }
-    };
+
+      await updateDoc(doc(db, 'proposals', proposalId), {
+        projectStatus: 'completed',
+        completedAt: new Date()
+      });
+      
+      // ADD THIS HERE - Increment freelancer's completed projects
+      await updateDoc(doc(db, 'users', proposal.freelancerId), {
+        completedProjects: increment(1)
+      });
+      
+      // Open rating modal
+      if (proposal) {
+        setSelectedProposal(proposal);
+        onRatingOpen();
+      }
+    } catch (error) {
+      console.error('Error completing project:', error);
+      toast.error(t('clientProposals.errors.completeFailed'));
+    }
+  };
 
   const handleSubmitRating = async () => {
     if (!selectedProposal || !rating) return;
@@ -308,7 +309,7 @@ const handleAcceptProposal = async (proposal: any) => {
       await addDoc(collection(db, 'reviews'), {
         freelancerId: selectedProposal.freelancerId,
         clientId: user!.uid,
-        clientName: userData?.displayName || 'Client',
+        clientName: userData?.displayName || t('common.client'),
         proposalId: selectedProposal.id,
         jobId: selectedProposal.jobId,
         rating: parseInt(rating),
@@ -329,13 +330,13 @@ const handleAcceptProposal = async (proposal: any) => {
         ratingCount: currentCount + 1
       });
 
-      toast.success('Review submitted successfully');
+      toast.success(t('clientProposals.success.reviewSubmitted'));
       onRatingClose();
       setRating('');
       setReview('');
     } catch (error) {
       console.error('Error submitting review:', error);
-      toast.error('Failed to submit review');
+      toast.error(t('clientProposals.errors.reviewFailed'));
     }
   };
 
@@ -359,8 +360,8 @@ const handleAcceptProposal = async (proposal: any) => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Proposals Received</h1>
-        <p className="text-gray-400">Review and manage proposals from freelancers</p>
+        <h1 className="text-3xl font-bold text-white mb-2">{t('clientProposals.title')}</h1>
+        <p className="text-gray-400">{t('clientProposals.subtitle')}</p>
       </div>
 
       {/* Job Filter */}
@@ -370,7 +371,7 @@ const handleAcceptProposal = async (proposal: any) => {
           onChange={(e) => setSelectedJob(e.target.value)}
           className="bg-white/10 text-white border border-white/20 rounded-lg px-4 py-2"
         >
-          <option value="all">All Jobs</option>
+          <option value="all">{t('clientProposals.allJobs')}</option>
           {jobs.map((job) => (
             <option key={job.id} value={job.id}>{job.title}</option>
           ))}
@@ -381,18 +382,18 @@ const handleAcceptProposal = async (proposal: any) => {
         <Card className="glass-effect">
           <CardBody className="text-center py-12">
             <Icon icon="lucide:inbox" className="text-6xl text-gray-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">No proposals yet</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('clientProposals.noProposals')}</h3>
             <p className="text-gray-400 mb-6">
               {selectedJob === 'all' 
-                ? "You haven't received any proposals for your jobs"
-                : "No proposals for this job yet"}
+                ? t('clientProposals.noProposalsDesc')
+                : t('clientProposals.noProposalsForJob')}
             </p>
             <Button 
               color="secondary"
               onPress={() => navigate('/post-job')}
               startContent={<Icon icon="lucide:plus" />}
             >
-              Post a Job
+              {t('clientProposals.postJob')}
             </Button>
           </CardBody>
         </Card>
@@ -420,7 +421,7 @@ const handleAcceptProposal = async (proposal: any) => {
                           {proposal.freelancerName}
                         </h3>
                         <p className="text-sm text-gray-400">
-                          For: {proposal.jobTitle}
+                          {t('clientProposals.for')}: {proposal.jobTitle}
                         </p>
                         {proposal.freelancerRating !== undefined && proposal.freelancerRating > 0 && (
                           <div className="flex items-center gap-1 mt-1">
@@ -440,98 +441,100 @@ const handleAcceptProposal = async (proposal: any) => {
                         }
                         variant="flat"
                       >
-                        {proposal.status === 'accepted' && proposal.projectStatus === 'completed' && proposal.paymentStatus === 'released' ? 'Completed & Paid' :
-                        proposal.status === 'accepted' && proposal.projectStatus === 'ongoing' ? 'In Progress' :
-                        proposal.status === 'accepted' && proposal.projectStatus === 'completed' ? 'Completed - Payment Pending' :
-                        proposal.status.charAt(0).toUpperCase() + proposal.status.slice(1)}
+                        {proposal.status === 'accepted' && proposal.projectStatus === 'completed' && proposal.paymentStatus === 'released' ? t('clientProposals.status.completedPaid') :
+                        proposal.status === 'accepted' && proposal.projectStatus === 'ongoing' ? t('clientProposals.status.inProgress') :
+                        proposal.status === 'accepted' && proposal.projectStatus === 'completed' ? t('clientProposals.status.completedPending') :
+                        proposal.status === 'pending' ? t('clientProposals.status.pending') :
+                        proposal.status === 'rejected' ? t('clientProposals.status.rejected') :
+                        proposal.status}
                       </Chip>
                     </div>
                     
-                  <div className="flex flex-wrap gap-4 mb-4">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-gray-400">Bid Amount:</p>
-                      <p className="font-semibold text-white">€{proposal.bidAmount || proposal.proposedRate || 0}</p>
+                    <div className="flex flex-wrap gap-4 mb-4">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-400">{t('clientProposals.bidAmount')}:</p>
+                        <p className="font-semibold text-white">€{proposal.bidAmount || proposal.proposedRate || 0}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-400">{t('clientProposals.delivery')}:</p>
+                        <p className="text-white">{proposal.deliveryTime || proposal.estimatedDuration || t('clientProposals.notSpecified')}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-400">{t('clientProposals.submitted')}:</p>
+                        <p className="text-white text-sm">
+                          {formatDistanceToNow(proposal.createdAt?.toDate?.() || new Date(), { addSuffix: true })}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-gray-400">Delivery:</p>
-                      <p className="text-white">{proposal.deliveryTime || proposal.estimatedDuration || 'Not specified'}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-gray-400">Submitted:</p>
-                      <p className="text-white text-sm">
-                        {formatDistanceToNow(proposal.createdAt?.toDate?.() || new Date(), { addSuffix: true })}
-                      </p>
-                    </div>
-                  </div>
                     
                     <p className="text-gray-300 mb-4 line-clamp-2">{proposal.coverLetter}</p>
                     
                     <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="light"
-                      onPress={() => viewProposalDetails(proposal)}
-                    >
-                      View Details
-                    </Button>
-                    
-                    {proposal.status === 'pending' && (
-                      <>
-                        <Button
-                          size="sm"
-                          color="secondary"
-                          onPress={() => handleAcceptProposal(proposal)}
-                          isLoading={processingPayment}
-                        >
-                          Accept & Pay
-                        </Button>
-                        <Button
-                          size="sm"
-                          color="danger"
-                          variant="flat"
-                          onPress={() => handleRejectProposal(proposal.id)}
-                        >
-                          Reject
-                        </Button>
-                      </>
-                    )}
-                    
-                    {proposal.status === 'accepted' && proposal.projectStatus !== 'completed' && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="flat"
-                          color="primary"
-                          startContent={<Icon icon="lucide:message-circle" />}
-                          onPress={() => navigate(`/messages?user=${proposal.freelancerId}`)}
-                        >
-                          Message
-                        </Button>
-                        <Button
-                          size="sm"
-                          color="success"
-                          startContent={<Icon icon="lucide:check-circle" />}
-                          onPress={() => handleMarkAsFinished(proposal.id)}
-                        >
-                          Mark as Finished
-                        </Button>
-                      </>
-                    )}
-                    
-                    {proposal.status === 'accepted' && proposal.projectStatus === 'completed' && (
                       <Button
                         size="sm"
-                        variant="flat"
-                        startContent={<Icon icon="lucide:star" />}
-                        onPress={() => {
-                          setSelectedProposal(proposal);
-                          onRatingOpen();
-                        }}
+                        variant="light"
+                        onPress={() => viewProposalDetails(proposal)}
                       >
-                        Rate Freelancer
+                        {t('clientProposals.viewDetails')}
                       </Button>
-                    )}
-                  </div>
+                      
+                      {proposal.status === 'pending' && (
+                        <>
+                          <Button
+                            size="sm"
+                            color="secondary"
+                            onPress={() => handleAcceptProposal(proposal)}
+                            isLoading={processingPayment}
+                          >
+                            {t('clientProposals.acceptPay')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            color="danger"
+                            variant="flat"
+                            onPress={() => handleRejectProposal(proposal.id)}
+                          >
+                            {t('clientProposals.reject')}
+                          </Button>
+                        </>
+                      )}
+                      
+                      {proposal.status === 'accepted' && proposal.projectStatus !== 'completed' && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            color="primary"
+                            startContent={<Icon icon="lucide:message-circle" />}
+                            onPress={() => navigate(`/messages?user=${proposal.freelancerId}`)}
+                          >
+                            {t('clientProposals.message')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            color="success"
+                            startContent={<Icon icon="lucide:check-circle" />}
+                            onPress={() => handleMarkAsFinished(proposal.id)}
+                          >
+                            {t('clientProposals.markFinished')}
+                          </Button>
+                        </>
+                      )}
+                      
+                      {proposal.status === 'accepted' && proposal.projectStatus === 'completed' && (
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          startContent={<Icon icon="lucide:star" />}
+                          onPress={() => {
+                            setSelectedProposal(proposal);
+                            onRatingOpen();
+                          }}
+                        >
+                          {t('clientProposals.rateFreelancer')}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardBody>
@@ -543,7 +546,7 @@ const handleAcceptProposal = async (proposal: any) => {
       {/* Proposal Details Modal */}
       <Modal isOpen={isDetailOpen} onClose={onDetailClose} size="2xl">
         <ModalContent>
-          <ModalHeader>Proposal Details</ModalHeader>
+          <ModalHeader>{t('clientProposals.proposalDetails')}</ModalHeader>
           <ModalBody>
             {selectedProposal && (
               <div className="space-y-4">
@@ -555,24 +558,24 @@ const handleAcceptProposal = async (proposal: any) => {
                   />
                   <div>
                     <h3 className="font-semibold text-white">{selectedProposal.freelancerName}</h3>
-                    <p className="text-sm text-gray-400">For: {selectedProposal.jobTitle}</p>
+                    <p className="text-sm text-gray-400">{t('clientProposals.for')}: {selectedProposal.jobTitle}</p>
                   </div>
                 </div>
                 
                 <Divider />
                 
                 <div>
-                  <h4 className="font-semibold text-white mb-2">Cover Letter</h4>
+                  <h4 className="font-semibold text-white mb-2">{t('clientProposals.coverLetter')}</h4>
                   <p className="text-gray-300 whitespace-pre-wrap">{selectedProposal.coverLetter}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-400">Bid Amount</p>
+                    <p className="text-sm text-gray-400">{t('clientProposals.bidAmount')}</p>
                     <p className="font-semibold text-white text-lg">€{selectedProposal.bidAmount}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-400">Delivery Time</p>
+                    <p className="text-sm text-gray-400">{t('clientProposals.deliveryTime')}</p>
                     <p className="font-semibold text-white text-lg">{selectedProposal.deliveryTime}</p>
                   </div>
                 </div>
@@ -581,7 +584,7 @@ const handleAcceptProposal = async (proposal: any) => {
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={onDetailClose}>
-              Close
+              {t('common.close')}
             </Button>
             {selectedProposal?.status === 'pending' && (
               <>
@@ -593,7 +596,7 @@ const handleAcceptProposal = async (proposal: any) => {
                     onDetailClose();
                   }}
                 >
-                  Reject
+                  {t('clientProposals.reject')}
                 </Button>
                 <Button
                   color="secondary"
@@ -603,7 +606,7 @@ const handleAcceptProposal = async (proposal: any) => {
                   }}
                   isLoading={processingPayment}
                 >
-                  Accept & Pay
+                  {t('clientProposals.acceptPay')}
                 </Button>
               </>
             )}
@@ -614,18 +617,18 @@ const handleAcceptProposal = async (proposal: any) => {
       {/* Rating Modal */}
       <Modal isOpen={isRatingOpen} onClose={onRatingClose}>
         <ModalContent>
-          <ModalHeader>Rate Freelancer</ModalHeader>
+          <ModalHeader>{t('clientProposals.rateFreelancer')}</ModalHeader>
           <ModalBody>
             <div className="space-y-4">
               <div className="text-center">
-                <p className="text-gray-400 mb-2">How was your experience with</p>
+                <p className="text-gray-400 mb-2">{t('clientProposals.howWasExperience')}</p>
                 <h3 className="font-semibold text-white text-lg">
                   {selectedProposal?.freelancerName}?
                 </h3>
               </div>
               
               <RadioGroup
-                label="Rating"
+                label={t('clientProposals.rating')}
                 value={rating}
                 onValueChange={setRating}
                 orientation="horizontal"
@@ -643,8 +646,8 @@ const handleAcceptProposal = async (proposal: any) => {
               </RadioGroup>
               
               <Textarea
-                label="Review (Optional)"
-                placeholder="Share your experience..."
+                label={t('clientProposals.reviewOptional')}
+                placeholder={t('clientProposals.shareExperience')}
                 value={review}
                 onChange={(e) => setReview(e.target.value)}
                 minRows={3}
@@ -653,14 +656,14 @@ const handleAcceptProposal = async (proposal: any) => {
           </ModalBody>
           <ModalFooter>
             <Button variant="light" onPress={onRatingClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button 
               color="primary" 
               onPress={handleSubmitRating}
               isDisabled={!rating}
             >
-              Submit Review
+              {t('clientProposals.submitReview')}
             </Button>
           </ModalFooter>
         </ModalContent>

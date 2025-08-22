@@ -7,7 +7,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { toast } from "react-hot-toast";
-import { useAuth } from "../contexts/AuthContext"; // Add this import
+import { useAuth } from "../contexts/AuthContext";
 
 interface FreelancerData {
   id: string;
@@ -35,9 +35,8 @@ interface Project {
   images: string[];
   thumbnailUrl: string;
   skills: string[];
-  category: string; // Add category
+  category: string;
   liveUrl?: string;
-  githubUrl?: string;
 }
 
 interface Review {
@@ -46,8 +45,8 @@ interface Review {
   clientName: string;
   clientPhotoURL: string;
   rating: number;
-  text?: string;      // Add alternative field names
-  content?: string;   // that might be in Firestore
+  text?: string;
+  content?: string;
   comment: string;
   review?: string;
   message?: string;
@@ -64,19 +63,20 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth(); // Add this to get current user
+  const { user } = useAuth();
   
   const [freelancer, setFreelancer] = useState<FreelancerData | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [freelancerIsPro, setFreelancerIsPro] = useState(false);
   
   console.log('FreelancerProfilePage loaded with ID:', id);
 
   useEffect(() => {
     if (!id) {
       console.error('FreelancerProfilePage: No ID provided');
-      toast.error('Invalid freelancer profile');
+      toast.error(t('freelancerProfile.errors.invalidProfile'));
       navigate('/browse-freelancers');
       return;
     }
@@ -95,8 +95,8 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
         const userData = userDoc.data();
         setFreelancer({
           id: userDoc.id,
-          displayName: userData.displayName || 'Anonymous',
-          bio: userData.bio || 'No bio available',
+          displayName: userData.displayName || t('common.anonymous'),
+          bio: userData.bio || t('freelancerProfile.noBio'),
           photoURL: userData.photoURL || `https://ui-avatars.com/api/?name=${userData.displayName || 'User'}&background=FCE90D&color=011241`,
           hourlyRate: userData.hourlyRate || 0,
           rating: userData.rating || 0,
@@ -111,7 +111,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
           joinedAt: userData.createdAt,
           lastActive: userData.lastActive || userData.updatedAt || new Date()
         });
-
+        setFreelancerIsPro(userData.isPro === true);
         // Fetch freelancer's projects
         const projectsQuery = query(
           collection(db, 'projects'),
@@ -136,23 +136,22 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
         const reviewsSnapshot = await getDocs(reviewsQuery);
         const reviewsData = reviewsSnapshot.docs.map(doc => {
           const data = doc.data();
-          console.log('Review data:', data); // Debug log to see field names
+          console.log('Review data:', data);
           return {
             id: doc.id,
             ...data,
-            // Ensure we get the comment from various possible field names
             comment: data.comment || data.text || data.content || data.message || data.review || ''
           } as Review;
         });
         setReviews(reviewsData);
         
       } else {
-        toast.error('Freelancer not found');
+        toast.error(t('freelancerProfile.errors.notFound'));
         navigate('/browse-freelancers');
       }
     } catch (error) {
       console.error('Error fetching freelancer data:', error);
-      toast.error('Failed to load freelancer profile');
+      toast.error(t('freelancerProfile.errors.loadFailed'));
       navigate('/browse-freelancers');
     } finally {
       setLoading(false);
@@ -160,7 +159,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
   };
 
   const formatJoinDate = (date: any) => {
-    if (!date) return 'Recently joined';
+    if (!date) return t('freelancerProfile.recentlyJoined');
     const joinDate = date.toDate ? date.toDate() : new Date(date);
     return joinDate.toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -169,41 +168,41 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
   };
 
   const formatLastActive = (date: any) => {
-    if (!date) return 'Recently active';
+    if (!date) return t('freelancerProfile.recentlyActive');
     const lastActive = date.toDate ? date.toDate() : new Date(date);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60));
     
-    if (diffInHours < 1) return 'Active now';
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
-    if (diffInHours < 48) return 'Yesterday';
-    return `${Math.floor(diffInHours / 24)} days ago`;
+    if (diffInHours < 1) return t('freelancerProfile.activeNow');
+    if (diffInHours < 24) return t('freelancerProfile.hoursAgo', { hours: diffInHours });
+    if (diffInHours < 48) return t('freelancerProfile.yesterday');
+    return t('freelancerProfile.daysAgo', { days: Math.floor(diffInHours / 24) });
   };
 
   const formatReviewDate = (date: any) => {
-    if (!date) return 'Recently';
+    if (!date) return t('common.recently');
     const reviewDate = date.toDate ? date.toDate() : new Date(date);
     const now = new Date();
     const diffInDays = Math.floor((now.getTime() - reviewDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
-    return `${Math.floor(diffInDays / 365)} years ago`;
+    if (diffInDays === 0) return t('common.today');
+    if (diffInDays === 1) return t('common.yesterday');
+    if (diffInDays < 7) return t('common.daysAgo', { days: diffInDays });
+    if (diffInDays < 30) return t('common.weeksAgo', { weeks: Math.floor(diffInDays / 7) });
+    if (diffInDays < 365) return t('common.monthsAgo', { months: Math.floor(diffInDays / 30) });
+    return t('common.yearsAgo', { years: Math.floor(diffInDays / 365) });
   };
 
   const getExperienceLevelLabel = (level: string) => {
     switch (level) {
       case 'entry':
-        return 'Entry Level';
+        return t('freelancerProfile.experienceLevels.entry');
       case 'intermediate':
-        return 'Intermediate';
+        return t('freelancerProfile.experienceLevels.intermediate');
       case 'expert':
-        return 'Expert';
+        return t('freelancerProfile.experienceLevels.expert');
       default:
-        return 'Freelancer';
+        return t('freelancerProfile.experienceLevels.freelancer');
     }
   };
 
@@ -222,12 +221,12 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
       <div className="container mx-auto px-4 py-8">
         <Card className="glass-effect">
           <CardBody className="text-center p-8">
-            <h2 className="text-xl font-semibold text-white mb-4">Freelancer not found</h2>
+            <h2 className="text-xl font-semibold text-white mb-4">{t('freelancerProfile.notFound')}</h2>
             <Button 
               color="secondary" 
               onPress={() => navigate('/browse-freelancers')}
             >
-              Browse Freelancers
+              {t('freelancerProfile.browseFreelancers')}
             </Button>
           </CardBody>
         </Card>
@@ -255,9 +254,9 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                 {getExperienceLevelLabel(freelancer.experienceLevel)}
               </p>
               {freelancer.isAvailable ? (
-                <Chip color="success" size="sm" className="mb-4">Available</Chip>
+                <Chip color="success" size="sm" className="mb-4">{t('freelancerProfile.available')}</Chip>
               ) : (
-                <Chip color="default" size="sm" className="mb-4">Not Available</Chip>
+                <Chip color="default" size="sm" className="mb-4">{t('freelancerProfile.notAvailable')}</Chip>
               )}
               <div className="flex items-center mb-4">
                 <div className="flex">
@@ -276,29 +275,31 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
               
               <div className="w-full border-t border-white/10 pt-4 mt-2">
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">Member Since:</span>
+                  <span className="text-gray-300">{t('freelancerProfile.memberSince')}:</span>
                   <span className="text-white">{formatJoinDate(freelancer.joinedAt)}</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">Last Active:</span>
+                  <span className="text-gray-300">{t('freelancerProfile.lastActive')}:</span>
                   <span className="text-white">{formatLastActive(freelancer.lastActive)}</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">Hourly Rate:</span>
+                  <span className="text-gray-300">{t('freelancerProfile.hourlyRate')}:</span>
                   <span className="text-beamly-secondary font-bold">
-                    ${freelancer.hourlyRate}/hr
+                    €{freelancer.hourlyRate}/hr
                   </span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">Completed:</span>
-                  <span className="text-white">{freelancer.completedProjects} projects</span>
+                  <span className="text-gray-300">{t('freelancerProfile.completed')}:</span>
+                  <span className="text-white">{freelancer.completedProjects} {t('freelancerProfile.projects')}</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="text-gray-300">Languages:</span>
+                  <span className="text-gray-300">{t('freelancerProfile.languages')}:</span>
                   <span className="text-white">{freelancer.languages.join(', ')}</span>
                 </div>
               </div>
               
+            {/* Only show Send Message button if the FREELANCER is Pro or user viewing own profile */}
+            {(freelancerIsPro || user?.uid === id) && (
               <div className="w-full mt-6 space-y-3">
                 <Button 
                   variant="bordered" 
@@ -307,23 +308,24 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   onPress={() => navigate(`/messages?user=${freelancer.id}`)}
                   isDisabled={user?.uid === id}
                 >
-                  Send Message
+                  {t('freelancerProfile.sendMessage')}
                 </Button>
               </div>
+            )}
             </div>
           </div>
         </div>
         
         <div className="md:w-2/3">
           <div className="glass-effect p-6 rounded-xl mb-6">
-            <h2 className="text-xl font-bold text-white mb-4">About Me</h2>
+            <h2 className="text-xl font-bold text-white mb-4">{t('freelancerProfile.aboutMe')}</h2>
             <p className="text-gray-300 whitespace-pre-wrap">
               {freelancer.bio}
             </p>
           </div>
           
           <div className="glass-effect p-6 rounded-xl mb-6">
-            <h2 className="text-xl font-bold text-white mb-4">Skills</h2>
+            <h2 className="text-xl font-bold text-white mb-4">{t('freelancerProfile.skills')}</h2>
             <div className="flex flex-wrap gap-2">
               {freelancer.skills.length > 0 ? freelancer.skills.map((skill) => (
                 <Chip 
@@ -333,14 +335,14 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   {skill}
                 </Chip>
               )) : (
-                <p className="text-gray-400">No skills listed</p>
+                <p className="text-gray-400">{t('freelancerProfile.noSkills')}</p>
               )}
             </div>
           </div>
           
           <div className="glass-effect p-6 rounded-xl mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">Portfolio</h2>
+              <h2 className="text-xl font-bold text-white">{t('freelancerProfile.portfolio')}</h2>
               {user?.uid === id && (
                 <Button
                   color="secondary"
@@ -348,7 +350,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   startContent={<Icon icon="lucide:plus" />}
                   onPress={() => navigate('/post-project')}
                 >
-                  Add Project
+                  {t('freelancerProfile.addProject')}
                 </Button>
               )}
             </div>
@@ -397,21 +399,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                                 window.open(project.liveUrl, '_blank');
                               }}
                             >
-                              Live
-                            </Button>
-                          )}
-                          {project.githubUrl && (
-                            <Button 
-                              size="sm" 
-                              variant="bordered"
-                              className="border-white/30"
-                              startContent={<Icon icon="mdi:github" className="w-3 h-3" />}
-                              onPress={(e: any) => {
-                                e.stopPropagation();
-                                window.open(project.githubUrl, '_blank');
-                              }}
-                            >
-                              Code
+                              {t('freelancerProfile.live')}
                             </Button>
                           )}
                         </div>
@@ -428,8 +416,8 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                 />
                 <p className="text-gray-400">
                   {user?.uid === id 
-                    ? "You haven't posted any projects yet" 
-                    : "No projects in portfolio yet"}
+                    ? t('freelancerProfile.noProjectsOwn')
+                    : t('freelancerProfile.noProjects')}
                 </p>
                 {user?.uid === id && (
                   <Button
@@ -438,7 +426,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                     className="mt-4"
                     onPress={() => navigate('/post-project')}
                   >
-                    Post Your First Project
+                    {t('freelancerProfile.postFirstProject')}
                   </Button>
                 )}
               </div>
@@ -451,7 +439,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   className="text-white"
                   onPress={() => navigate(`/freelancer/${id}/projects`)}
                 >
-                  View All Projects
+                  {t('freelancerProfile.viewAllProjects')}
                 </Button>
               </div>
             )}
@@ -459,7 +447,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
           
           {freelancer.experience && (
             <div className="glass-effect p-6 rounded-xl mb-6">
-              <h2 className="text-xl font-bold text-white mb-4">Professional Experience</h2>
+              <h2 className="text-xl font-bold text-white mb-4">{t('freelancerProfile.professionalExperience')}</h2>
               <p className="text-gray-300 whitespace-pre-wrap">
                 {freelancer.experience}
               </p>
@@ -469,7 +457,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
           {reviews.length > 0 && (
             <div className="glass-effect p-6 rounded-xl">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Reviews</h2>
+                <h2 className="text-xl font-bold text-white">{t('freelancerProfile.reviews')}</h2>
                 <div className="flex items-center gap-2">
                   <div className="flex">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -484,7 +472,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                     {freelancer.rating.toFixed(1)}
                   </span>
                   <span className="text-gray-400 text-sm">
-                    ({freelancer.ratingCount} {freelancer.ratingCount === 1 ? 'review' : 'reviews'})
+                    ({freelancer.ratingCount} {freelancer.ratingCount === 1 ? t('freelancerProfile.review') : t('freelancerProfile.reviews')})
                   </span>
                 </div>
               </div>
@@ -513,10 +501,9 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                               />
                             ))}
                           </div>
-                          {/* Display the review comment with proper styling */}
                           <p className="text-gray-300 text-sm leading-relaxed">
                             {review.comment || review.text || review.content || review.message || review.review || 
-                            <span className="italic text-gray-500">No comment provided</span>}
+                            <span className="italic text-gray-500">{t('freelancerProfile.noComment')}</span>}
                           </p>
                         </div>
                       </div>
@@ -532,7 +519,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                     className="text-beamly-secondary"
                     onPress={() => navigate(`/freelancer/${id}/reviews`)}
                   >
-                    View all {freelancer.ratingCount} reviews
+                    {t('freelancerProfile.viewAllReviews', { count: freelancer.ratingCount })}
                   </Button>
                 </div>
               )}

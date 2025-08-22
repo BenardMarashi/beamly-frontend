@@ -66,25 +66,25 @@ const BrowseFreelancersPage: React.FC = () => {
   }, [urlSearchParams]);
     
   const categories = [
-    { value: 'all', label: 'All Categories' },
-    { value: 'design', label: 'Design & Creative' },
-    { value: 'development', label: 'Web & Software Development' },
-    { value: 'writing', label: 'Writing & Translation' },
-    { value: 'marketing', label: 'Digital Marketing' },
-    { value: 'video', label: 'Video & Animation' },
-    { value: 'music', label: 'Music & Audio' },
-    { value: 'business', label: 'Business & Consulting' },
-    { value: 'data', label: 'Data Science & Analytics' },
-    { value: 'photography', label: 'Photography' },
-    { value: 'translation', label: 'Translation & Languages' }
+    { value: 'all', label: t('freelancers.categories.all') },
+    { value: 'design', label: t('freelancers.categories.design') },
+    { value: 'development', label: t('freelancers.categories.development') },
+    { value: 'writing', label: t('freelancers.categories.writing') },
+    { value: 'marketing', label: t('freelancers.categories.marketing') },
+    { value: 'video', label: t('freelancers.categories.video') },
+    { value: 'music', label: t('freelancers.categories.music') },
+    { value: 'business', label: t('freelancers.categories.business') },
+    { value: 'data', label: t('freelancers.categories.data') },
+    { value: 'photography', label: t('freelancers.categories.photography') },
+    { value: 'translation', label: t('freelancers.categories.translation') }
   ];
 
   const budgetRanges = [
-    { value: 'all', label: 'Any Budget' },
-    { value: '0-25', label: 'Under €25/hr' },
-    { value: '25-50', label: '€25-€50/hr' },
-    { value: '50-100', label: '€50-€100/hr' },
-    { value: '100+', label: '€100+/hr' }
+    { value: 'all', label: t('freelancers.budget.all') },
+    { value: '0-25', label: t('freelancers.budget.under25') },
+    { value: '25-50', label: t('freelancers.budget.25to50') },
+    { value: '50-100', label: t('freelancers.budget.50to100') },
+    { value: '100+', label: t('freelancers.budget.100plus') }
   ];
   
   const getCategorySkills = (category: string) => {
@@ -354,13 +354,13 @@ const BrowseFreelancersPage: React.FC = () => {
   const getExperienceLevelLabel = (level: string) => {
     switch (level) {
       case 'entry':
-        return 'Entry Level';
+        return t('freelancers.experienceLevel.entry');
       case 'intermediate':
-        return 'Intermediate';
+        return t('freelancers.experienceLevel.intermediate');
       case 'expert':
-        return 'Expert';
+        return t('freelancers.experienceLevel.expert');
       default:
-        return 'Professional';
+        return t('freelancers.experienceLevel.professional');
     }
   };
 
@@ -383,8 +383,8 @@ const BrowseFreelancersPage: React.FC = () => {
     <div className="container mx-auto px-4 py-6 pb-20 pt-20">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-white">Browse Freelancers</h1>
-        <p className="text-gray-300 mb-6">Find talented professionals for your projects</p>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-white">{t('freelancers.title')}</h1>
+        <p className="text-gray-300 mb-6">{t('freelancers.subtitle')}</p>
         
         {/* Search and Filters */}
         <div className="glass-effect p-4 md:p-6 rounded-xl mb-8">
@@ -393,7 +393,7 @@ const BrowseFreelancersPage: React.FC = () => {
               <Input
                 size="lg"
                 variant="bordered"
-                placeholder="Search freelancers by name, skills, or bio..."
+                placeholder={t('freelancers.searchPlaceholder')}
                 value={searchQuery}
                 onValueChange={setSearchQuery}
                 startContent={<Icon icon="lucide:search" className="text-gray-400" />}
@@ -409,14 +409,14 @@ const BrowseFreelancersPage: React.FC = () => {
                 size="lg"
                 className="font-medium text-beamly-third md:px-8"
               >
-                Search
+                {t('common.search')}
               </Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Category Select */}
             <Select
-              label="Category"
+              label={t('freelancers.filters.category')}
               selectedKeys={[selectedCategory]}
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys)[0] as string;
@@ -441,7 +441,7 @@ const BrowseFreelancersPage: React.FC = () => {
 
             {/* Budget Range Select */}
             <Select
-              label="Budget Range"
+              label={t('freelancers.filters.budgetRange')}
               selectedKeys={[budgetFilter]}
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys)[0] as string;
@@ -466,7 +466,7 @@ const BrowseFreelancersPage: React.FC = () => {
 
             {/* Sort By Select - WITH DEFAULT OPTION */}
             <Select
-              label="Sort By"
+              label={t('freelancers.filters.sortBy')}
               selectedKeys={sortBy ? [sortBy] : []}
               onSelectionChange={(keys) => {
                 const selected = Array.from(keys)[0] as string;
@@ -480,12 +480,12 @@ const BrowseFreelancersPage: React.FC = () => {
                 value: "text-white",
                 label: "text-gray-400"
               }}
-              placeholder="Select sorting"
+              placeholder={t('freelancers.filters.selectSorting')}
             >
-              <SelectItem key="rating" value="rating">Highest Rated</SelectItem>
-              <SelectItem key="completedJobs" value="completedJobs">Most Projects</SelectItem>
-              <SelectItem key="hourlyRate" value="hourlyRate">Lowest Price</SelectItem>
-              <SelectItem key="newest" value="newest">Newest</SelectItem>
+              <SelectItem key="rating" value="rating">{t('freelancers.sort.highestRated')}</SelectItem>
+              <SelectItem key="completedJobs" value="completedJobs">{t('freelancers.sort.mostProjects')}</SelectItem>
+              <SelectItem key="hourlyRate" value="hourlyRate">{t('freelancers.sort.lowestPrice')}</SelectItem>
+              <SelectItem key="newest" value="newest">{t('freelancers.sort.newest')}</SelectItem>
             </Select>
             </div>
           </form>
@@ -509,8 +509,8 @@ const BrowseFreelancersPage: React.FC = () => {
           <Card className="glass-effect">
             <CardBody className="text-center py-12">
               <Icon icon="lucide:users-x" className="text-4xl text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No freelancers found</h3>
-              <p className="text-gray-400">Try adjusting your filters or search terms</p>
+              <h3 className="text-xl font-semibold mb-2">{t('freelancers.noResults')}</h3>
+              <p className="text-gray-400">{t('freelancers.tryAdjusting')}</p>
             </CardBody>
           </Card>
         ) : (
@@ -547,7 +547,7 @@ const BrowseFreelancersPage: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-white truncate flex-1">
-                              {freelancer.displayName || 'Anonymous Freelancer'}
+                              {freelancer.displayName || t('freelancers.anonymousFreelancer')}
                             </h3>
                             {freelancer.isPro && (
                               <Chip
@@ -557,7 +557,7 @@ const BrowseFreelancersPage: React.FC = () => {
                                 className="flex-shrink-0"
                                 startContent={<Icon icon="lucide:crown" className="text-xs" />}
                               >
-                                PRO
+                                {t('common.pro')}
                               </Chip>
                             )}
                           </div>
@@ -594,12 +594,12 @@ const BrowseFreelancersPage: React.FC = () => {
                           <Icon icon="lucide:star" className="text-yellow-500 flex-shrink-0" />
                           <span className="text-white whitespace-nowrap">{freelancer.rating || '0.0'}</span>
                           <span className="text-gray-400 truncate"> {/* Add truncate */}
-                            ({freelancer.completedJobs || 0} {freelancer.completedJobs === 1 ? 'job' : 'jobs'})
+                            ({freelancer.completedJobs || 0} {freelancer.completedJobs === 1 ? t('freelancers.job') : t('freelancers.jobs')})
                           </span>
                         </div>
                         {freelancer.hourlyRate && (
                           <span className="text-beamly-secondary font-semibold whitespace-nowrap"> {/* Add whitespace-nowrap */}
-                            ${freelancer.hourlyRate}/hr
+                            €{freelancer.hourlyRate}{t('common.perHour')}
                           </span>
                         )}
                       </div>
@@ -608,7 +608,7 @@ const BrowseFreelancersPage: React.FC = () => {
                         <div className="mt-3 pt-3 border-t border-white/10">
                           <p className="text-xs text-gray-400 flex items-center gap-1">
                             <Icon icon="lucide:alert-circle" className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">Profile incomplete</span>
+                            <span className="truncate">{t('freelancers.profileIncomplete')}</span>
                           </p>
                         </div>
                       )}
@@ -627,7 +627,7 @@ const BrowseFreelancersPage: React.FC = () => {
                   disabled={loading}
                   className="font-medium"
                 >
-                  Load More
+                  {t('common.loadMore')}
                 </Button>
               </div>
             )}
@@ -637,7 +637,7 @@ const BrowseFreelancersPage: React.FC = () => {
               <div className="text-center mt-8">
                 <div className="inline-flex items-center gap-2 text-gray-400">
                   <Icon icon="eos-icons:loading" className="animate-spin text-2xl" />
-                  <span>Loading more...</span>
+                  <span>{t('common.loadingMore')}</span>
                 </div>
               </div>
             )}
@@ -646,7 +646,7 @@ const BrowseFreelancersPage: React.FC = () => {
               <div className="text-center mt-8">
                 <div className="inline-flex items-center gap-2 text-gray-400">
                   <Icon icon="eos-icons:loading" className="animate-spin text-2xl" />
-                  <span>Loading more...</span>
+                  <span>{t('common.loadingMore')}</span>
                 </div>
               </div>
             )}

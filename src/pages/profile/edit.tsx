@@ -23,10 +23,12 @@ import { toast } from 'react-hot-toast';
 import { VerificationSection } from '../../components/profile/VerificationSection';
 import { ImageCropper } from '../../components/ImageCropper';
 import { StripeConnectOnboarding } from '../../components/payments/StripeConnectOnboarding';
+import { useTranslation } from 'react-i18next';
 
 export const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
@@ -55,35 +57,35 @@ export const EditProfilePage: React.FC = () => {
   const [languageInput, setLanguageInput] = useState('');
   
   const experienceLevels = [
-    { value: 'entry', label: 'Entry Level (0-2 years)' },
-    { value: 'intermediate', label: 'Intermediate (2-5 years)' },
-    { value: 'expert', label: 'Expert (5+ years)' }
+    { value: 'entry', label: t('editProfile.experienceLevels.entry') },
+    { value: 'intermediate', label: t('editProfile.experienceLevels.intermediate') },
+    { value: 'expert', label: t('editProfile.experienceLevels.expert') }
   ];
   
   const industries = [
-    { value: 'technology', label: 'Technology' },
-    { value: 'finance', label: 'Finance' },
-    { value: 'healthcare', label: 'Healthcare' },
-    { value: 'education', label: 'Education' },
-    { value: 'retail', label: 'Retail' },
-    { value: 'manufacturing', label: 'Manufacturing' },
-    { value: 'marketing', label: 'Marketing' },
-    { value: 'design', label: 'Design' },
-    { value: 'consulting', label: 'Consulting' },
-    { value: 'other', label: 'Other' }
+    { value: 'technology', label: t('editProfile.industries.technology') },
+    { value: 'finance', label: t('editProfile.industries.finance') },
+    { value: 'healthcare', label: t('editProfile.industries.healthcare') },
+    { value: 'education', label: t('editProfile.industries.education') },
+    { value: 'retail', label: t('editProfile.industries.retail') },
+    { value: 'manufacturing', label: t('editProfile.industries.manufacturing') },
+    { value: 'marketing', label: t('editProfile.industries.marketing') },
+    { value: 'design', label: t('editProfile.industries.design') },
+    { value: 'consulting', label: t('editProfile.industries.consulting') },
+    { value: 'other', label: t('editProfile.industries.other') }
   ];
   
   const freelancerCategories = [
-  { value: 'design', label: 'Design & Creative' },
-  { value: 'development', label: 'Web & Software Development' },
-  { value: 'writing', label: 'Writing & Translation' },
-  { value: 'marketing', label: 'Digital Marketing' },
-  { value: 'video', label: 'Video & Animation' },
-  { value: 'music', label: 'Music & Audio' },
-  { value: 'business', label: 'Business & Consulting' },
-  { value: 'data', label: 'Data Science & Analytics' },
-  { value: 'photography', label: 'Photography' },
-  { value: 'translation', label: 'Translation & Languages' }
+  { value: 'design', label: t('editProfile.categories.design') },
+  { value: 'development', label: t('editProfile.categories.development') },
+  { value: 'writing', label: t('editProfile.categories.writing') },
+  { value: 'marketing', label: t('editProfile.categories.marketing') },
+  { value: 'video', label: t('editProfile.categories.video') },
+  { value: 'music', label: t('editProfile.categories.music') },
+  { value: 'business', label: t('editProfile.categories.business') },
+  { value: 'data', label: t('editProfile.categories.data') },
+  { value: 'photography', label: t('editProfile.categories.photography') },
+  { value: 'translation', label: t('editProfile.categories.translation') }
 ];
   const showFreelancerFields = userData?.userType === 'freelancer' || userData?.userType === 'both';
   const showClientFields = userData?.userType === 'client' || userData?.userType === 'both';
@@ -110,13 +112,13 @@ export const EditProfilePage: React.FC = () => {
     
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
+      toast.error(t('editProfile.errors.imageTooLarge'));
       return;
     }
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
+      toast.error(t('editProfile.errors.invalidImageType'));
       return;
     }
     
@@ -153,7 +155,7 @@ export const EditProfilePage: React.FC = () => {
         updatedAt: serverTimestamp()
       });
       
-      toast.success('Photo uploaded successfully!');
+      toast.success(t('editProfile.success.photoUploaded'));
       
       // Clean up
       URL.revokeObjectURL(tempImageUrl);
@@ -162,11 +164,11 @@ export const EditProfilePage: React.FC = () => {
       console.error('Error uploading photo:', error);
       
       if (error.code === 'storage/unauthorized') {
-        toast.error('Permission denied. Please check Firebase Storage rules.');
+        toast.error(t('editProfile.errors.permissionDenied'));
       } else if (error.code === 'storage/canceled') {
-        toast.error('Upload was cancelled');
+        toast.error(t('editProfile.errors.uploadCancelled'));
       } else {
-        toast.error('Failed to upload photo. Please try again.');
+        toast.error(t('editProfile.errors.uploadFailed'));
       }
     } finally {
       setUploadingPhoto(false);
@@ -181,7 +183,7 @@ export const EditProfilePage: React.FC = () => {
       });
       setSkillInput('');
     } else if (profileData.skills.length >= 15) {
-      toast.error('Maximum 15 skills allowed');
+      toast.error(t('editProfile.errors.maxSkills'));
     }
   };
   
@@ -200,7 +202,7 @@ export const EditProfilePage: React.FC = () => {
       });
       setLanguageInput('');
     } else if (profileData.languages.length >= 5) {
-      toast.error('Maximum 5 languages allowed');
+      toast.error(t('editProfile.errors.maxLanguages'));
     }
   };
   
@@ -211,32 +213,32 @@ export const EditProfilePage: React.FC = () => {
         languages: profileData.languages.filter(lang => lang !== languageToRemove)
       });
     } else {
-      toast.error('At least one language is required');
+      toast.error(t('editProfile.errors.minLanguages'));
     }
   };
   
   const validateProfile = () => {
     if (!profileData.displayName.trim()) {
-      toast.error('Display name is required');
+      toast.error(t('editProfile.errors.displayNameRequired'));
       return false;
     }
     
     if (!profileData.bio.trim()) {
-      toast.error('Bio is required');
+      toast.error(t('editProfile.errors.bioRequired'));
       return false;
     }
     if (!profileData.category) {
-      toast.error('Please select a category');
+      toast.error(t('editProfile.errors.categoryRequired'));
       return false;
     }
 
     if ((userData?.userType === 'freelancer' || userData?.userType === 'both') && profileData.skills.length === 0) {
-      toast.error('Please add at least one skill');
+      toast.error(t('editProfile.errors.skillsRequired'));
       return false;
     }
     
     if ((userData?.userType === 'freelancer' || userData?.userType === 'both') && profileData.hourlyRate <= 0) {
-      toast.error('Please set a valid hourly rate');
+      toast.error(t('editProfile.errors.hourlyRateRequired'));
       return false;
     }
     
@@ -276,11 +278,11 @@ export const EditProfilePage: React.FC = () => {
       
       await updateDoc(doc(db, 'users', user.uid), updateData);
       
-      toast.success('Profile updated successfully!');
+      toast.success(t('editProfile.success.profileUpdated'));
       navigate('/dashboard');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile. Please try again.');
+      toast.error(t('editProfile.errors.updateFailed'));
     } finally {
       setLoading(false);
     }
@@ -294,15 +296,15 @@ export const EditProfilePage: React.FC = () => {
         className="container mx-auto max-w-4xl px-4 py-8"
       >
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Edit Profile</h1>
-          <p className="text-gray-400">Update your profile information</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('editProfile.title')}</h1>
+          <p className="text-gray-400">{t('editProfile.subtitle')}</p>
         </div>
         
         <div className="space-y-6">
           {/* Profile Photo */}
           <Card className="glass-effect border-none">
             <CardBody className="p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Profile Photo</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">{t('editProfile.profilePhoto')}</h2>
               <div className="flex items-center gap-6">
                 <Avatar
                   src={profileData.photoURL || `https://ui-avatars.com/api/?name=${profileData.displayName}&background=FCE90D&color=011241`}
@@ -318,15 +320,15 @@ export const EditProfilePage: React.FC = () => {
                   onPress={() => {
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = 'image/*';
+                    input.accept = 'image/jpeg,image/png,image/gif,image/webp';
                     input.onchange = (e: any) => handlePhotoSelect(e);
                     input.click();
                   }}
                 >
-                  {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                  {uploadingPhoto ? t('editProfile.uploading') : t('editProfile.changePhoto')}
                 </Button>
                   <p className="text-gray-400 text-sm mt-2">
-                    JPG, PNG or GIF. Max size 5MB
+                    {t('editProfile.photoHelp')}
                   </p>
                 </div>
               </div>
@@ -336,15 +338,15 @@ export const EditProfilePage: React.FC = () => {
           {/* Basic Information */}
           <Card className="form-section">
             <CardBody className="p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Basic Information</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">{t('editProfile.basicInfo')}</h2>
               <div className="space-y-4">
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Display Name *
+                    {t('editProfile.displayName')} *
                   </label>
                   <Input
                     // Remove the label prop
-                    placeholder="Enter your display name"
+                    placeholder={t('editProfile.displayNamePlaceholder')}
                     value={profileData.displayName}
                     onChange={(e) => setProfileData({ ...profileData, displayName: e.target.value })}
                     isRequired
@@ -357,11 +359,11 @@ export const EditProfilePage: React.FC = () => {
                 
                 <div className="form-field">
                   <label className="text-white text-sm font-medium mb-2 block">
-                    Bio *
+                    {t('editProfile.bio')} *
                   </label>
                   <Textarea
                     // Remove the label prop
-                    placeholder="Tell others about yourself..."
+                    placeholder={t('editProfile.bioPlaceholder')}
                     value={profileData.bio}
                     onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                     minRows={4}
@@ -382,18 +384,18 @@ export const EditProfilePage: React.FC = () => {
             <>
               <Card className="form-section">
                 <CardBody className="p-6">
-                  <h2 className="text-xl font-semibold text-white mb-4">Professional Details</h2>
+                  <h2 className="text-xl font-semibold text-white mb-4">{t('editProfile.professionalDetails')}</h2>
                   <div className="space-y-4">
 
                     {/* Category - ADD THIS SECTION FIRST */}
                     {/* Category */}
                     <div className="form-field">
                     <label className="text-white text-sm font-medium mb-2 block">
-                      Primary Category *
+                      {t('editProfile.primaryCategory')} *
                     </label>
 
                     <Select
-                      placeholder="Select your primary category"
+                      placeholder={t('editProfile.categoryPlaceholder')}
                       selectionMode="single"
                       selectedKeys={selectedCategoryKeys}
                       onSelectionChange={(keys) => {
@@ -420,11 +422,11 @@ export const EditProfilePage: React.FC = () => {
                     {/* Skills */}
                     <div>
                       <label className="text-white text-sm font-medium mb-2 block">
-                        Skills * (Max 15)
+                        {t('editProfile.skills')}
                       </label>
                       <div className="flex gap-2 mb-2">
                         <Input
-                          placeholder="Add a skill..."
+                          placeholder={t('editProfile.skillsPlaceholder')}
                           value={skillInput}
                           onChange={(e) => setSkillInput(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
@@ -460,16 +462,16 @@ export const EditProfilePage: React.FC = () => {
                     {/* Hourly Rate */}
                     <div className="form-field">
                       <label className="text-white text-sm font-medium mb-2 block">
-                        Hourly Rate (EUR) *
+                        {t('editProfile.hourlyRate')} *
                       </label>
                       <Input
                         // Remove the label prop
                         type="number"
-                        placeholder="Enter hourly rate"
+                        placeholder={t('editProfile.hourlyRatePlaceholder')}
                         value={profileData.hourlyRate.toString()}
                         onChange={(e) => setProfileData({ ...profileData, hourlyRate: Number(e.target.value) })}
-                        startContent="$"
-                        endContent="/hr"
+                        startContent="€"
+                        endContent={t('editProfile.perHour')}
                         isRequired
                         classNames={{
                           input: "text-white",
@@ -480,7 +482,7 @@ export const EditProfilePage: React.FC = () => {
                     {/* Experience Level */}
                     <div className="form-field">
                       <label className="text-white text-sm font-medium mb-2 block">
-                        Experience Level *
+                        {t('editProfile.experienceLevel')} *
                       </label>
                       <Select
                         // Remove the label prop
@@ -507,11 +509,11 @@ export const EditProfilePage: React.FC = () => {
                     {/* Experience Description */}
                     <div className="form-field">
                       <label className="text-white text-sm font-medium mb-2 block">
-                        Experience Summary
+                        {t('editProfile.experienceSummary')}
                       </label>
                       <Textarea
                         // Remove the label prop
-                        placeholder="Describe your professional experience..."
+                        placeholder={t('editProfile.experiencePlaceholder')}
                         value={profileData.experience}
                         onChange={(e) => setProfileData({ ...profileData, experience: e.target.value })}
                         minRows={3}
@@ -526,11 +528,11 @@ export const EditProfilePage: React.FC = () => {
                     {/* Languages */}
                     <div>
                       <label className="text-white text-sm font-medium mb-2 block">
-                        Languages (Max 5)
+                        {t('editProfile.languages')}
                       </label>
                       <div className="flex gap-2 mb-2">
                         <Input
-                          placeholder="Add a language..."
+                          placeholder={t('editProfile.languagesPlaceholder')}
                           value={languageInput}
                           onChange={(e) => setLanguageInput(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleAddLanguage()}
@@ -566,9 +568,9 @@ export const EditProfilePage: React.FC = () => {
                     {/* Availability */}
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white font-medium">Available for work</p>
+                        <p className="text-white font-medium">{t('editProfile.availableForWork')}</p>
                         <p className="text-gray-400 text-sm">
-                          Let clients know you're open to new projects
+                          {t('editProfile.availableDescription')}
                         </p>
                       </div>
                       <Switch
@@ -587,14 +589,14 @@ export const EditProfilePage: React.FC = () => {
           {showClientFields && (
             <Card className="form-section">
               <CardBody className="p-6">
-                <h2 className="text-xl font-semibold text-white mb-4">Company Information</h2>
+                <h2 className="text-xl font-semibold text-white mb-4">{t('editProfile.companyInfo')}</h2>
                 <div className="space-y-4">
                   <div className="form-field">
                     <label className="text-white text-sm font-medium mb-2 block">
-                      Company Name
+                      {t('editProfile.companyName')}
                     </label>
                     <Input
-                      placeholder="Enter company name"
+                      placeholder={t('editProfile.companyNamePlaceholder')}
                       value={profileData.companyName}
                       onChange={(e) => setProfileData({ ...profileData, companyName: e.target.value })}
                       classNames={{
@@ -606,10 +608,10 @@ export const EditProfilePage: React.FC = () => {
                   
                   <div className="form-field">
                     <label className="text-white text-sm font-medium mb-2 block">
-                      Industry
+                      {t('editProfile.industry')}
                     </label>
                     <Select
-                      placeholder="Select an industry"
+                      placeholder={t('editProfile.industryPlaceholder')}
                       selectedKeys={profileData.industry ? new Set([profileData.industry]) : new Set([])}
                       onSelectionChange={(keys) => {
                         const selected = Array.from(keys)[0] as string;
@@ -636,13 +638,13 @@ export const EditProfilePage: React.FC = () => {
           {(userData?.userType === 'freelancer' || userData?.userType === 'both') && (
             <Card className="form-section">
               <CardHeader>
-                <h3 className="text-xl font-semibold">Payment Account</h3>
+                <h3 className="text-xl font-semibold">{t('editProfile.paymentAccount')}</h3>
               </CardHeader>
               <CardBody>
                 <StripeConnectOnboarding 
                   onComplete={() => {
                     // Refresh user data after completing onboarding
-                    toast.success('Payment account setup complete!');
+                    toast.success(t('editProfile.success.paymentSetup'));
                     // You might want to refetch user data here
                   }} 
                 />
@@ -660,7 +662,7 @@ export const EditProfilePage: React.FC = () => {
               disabled={loading}
               className="flex-1"
             >
-              {loading ? 'Saving...' : 'Save Changes'}
+              {loading ? t('editProfile.saving') : t('editProfile.saveChanges')}
             </Button>
             <Button
               variant="bordered"
@@ -668,7 +670,7 @@ export const EditProfilePage: React.FC = () => {
               onPress={() => navigate(-1)}
               disabled={loading}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
           </div>
         </div>
