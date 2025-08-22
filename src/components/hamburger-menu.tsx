@@ -6,6 +6,7 @@ import { Button } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useTheme } from '../contexts/theme-context';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
@@ -27,6 +28,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
 }) => {
   const { isDarkMode } = useTheme();
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const previousLocation = useRef(location.pathname);
@@ -93,77 +95,79 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      toast.success('Signed out successfully');
+      toast.success(t('menu.signedOutSuccess'));
       if (onLogout) onLogout();
       onClose();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
-      toast.error('Failed to sign out');
+      toast.error(t('menu.signOutFailed'));
     }
   };
   
   const userType = userData?.userType || 'freelancer';
   const isFreelancer = userType === 'freelancer' || userType === 'both';
   const isClient = userType === 'client' || userType === 'both';
+  
   const getProposalsLink = () => {
-  if (userData?.userType === 'freelancer') {
-    return { path: '/freelancer/proposals', label: 'My Proposals' };
-  } else if (userData?.userType === 'client') {
-    return { path: '/client/proposals', label: 'View Proposals' };
-  } else if (userData?.userType === 'both') {
-    // For users who are both, you might want to show both links
-    // or have a toggle to switch between views
-    return [
-      { path: '/freelancer/proposals', label: 'My Proposals (Freelancer)' },
-      { path: '/client/proposals', label: 'View Proposals (Client)' }
-    ];
-  }
-  return null;
-};
+    if (userData?.userType === 'freelancer') {
+      return { path: '/freelancer/proposals', label: t('menu.myProposals') };
+    } else if (userData?.userType === 'client') {
+      return { path: '/client/proposals', label: t('menu.viewProposals') };
+    } else if (userData?.userType === 'both') {
+      // For users who are both, you might want to show both links
+      // or have a toggle to switch between views
+      return [
+        { path: '/freelancer/proposals', label: t('menu.myProposalsFreelancer') },
+        { path: '/client/proposals', label: t('menu.viewProposalsClient') }
+      ];
+    }
+    return null;
+  };
+  
   // Menu items based on authentication state
   const getMenuItems = () => {
     if (!isLoggedIn || !user) {
       return [
-        { name: "Home", path: "/", icon: "lucide:home" },
-        { name: "Browse Freelancers", path: "/browse-freelancers", icon: "lucide:users" },
-        { name: "Looking for Work", path: "/looking-for-work", icon: "lucide:briefcase" },
-        { name: "How it Works", path: "/how-it-works", icon: "lucide:help-circle" } // KEEP IT HERE for logged out
+        { name: t('nav.home'), path: "/", icon: "lucide:home" },
+        { name: t('nav.browseFreelancers'), path: "/browse-freelancers", icon: "lucide:users" },
+        { name: t('nav.lookingForWork'), path: "/looking-for-work", icon: "lucide:briefcase" },
+        { name: t('nav.howItWorks'), path: "/how-it-works", icon: "lucide:help-circle" }
       ];
     }
 
     const menuItems = [
-      { name: "Home", path: "/", icon: "lucide:home" },
-      { name: "Browse Freelancers", path: "/browse-freelancers", icon: "lucide:users" },
-      { name: "Looking for Work", path: "/looking-for-work", icon: "lucide:briefcase" },
-      { name: "Dashboard", path: "/dashboard", icon: "lucide:layout-dashboard" },
-      { name: "Messages", path: "/messages", icon: "lucide:message-circle" }
+      { name: t('nav.home'), path: "/", icon: "lucide:home" },
+      { name: t('nav.browseFreelancers'), path: "/browse-freelancers", icon: "lucide:users" },
+      { name: t('nav.lookingForWork'), path: "/looking-for-work", icon: "lucide:briefcase" },
+      { name: t('nav.dashboard'), path: "/dashboard", icon: "lucide:layout-dashboard" },
+      { name: t('nav.messages'), path: "/messages", icon: "lucide:message-circle" }
     ];
 
     // Add user type specific items
     if (isFreelancer) {
       menuItems.push(
-        { name: "Post Project", path: "/post-project", icon: "lucide:folder-plus" },
-        { name: "Portfolio", path: "/portfolio", icon: "lucide:folder" },
-        { name: "My Proposals", path: "/freelancer/proposals", icon: "lucide:file-text" },
-        { name: "Billing", path: "/billing", icon: "lucide:credit-card" }
+        { name: t('nav.postProject'), path: "/post-project", icon: "lucide:folder-plus" },
+        { name: t('nav.portfolio'), path: "/portfolio", icon: "lucide:folder" },
+        { name: t('menu.myProposals'), path: "/freelancer/proposals", icon: "lucide:file-text" },
+        { name: t('nav.billing'), path: "/billing", icon: "lucide:credit-card" }
       );
     }
 
     if (isClient) {
       menuItems.push(
-        { name: "Post Job", path: "/post-job", icon: "lucide:plus-circle" },
-        { name: "My Jobs", path: "/job/manage", icon: "lucide:briefcase" },
-        { name: "View Proposals", path: "/client/proposals", icon: "lucide:file-text" }
+        { name: t('nav.postJob'), path: "/post-job", icon: "lucide:plus-circle" },
+        { name: t('nav.myJobs'), path: "/job/manage", icon: "lucide:briefcase" },
+        { name: t('menu.viewProposals'), path: "/client/proposals", icon: "lucide:file-text" }
       );
     }
 
     // Add common items for all logged-in users
     menuItems.push(
-      { name: "Analytics", path: "/analytics", icon: "lucide:bar-chart" },
-      { name: "Notifications", path: "/notifications", icon: "lucide:bell" },
-      { name: "Settings", path: "/settings", icon: "lucide:settings" },
-      { name: "How it Works", path: "/how-it-works", icon: "lucide:help-circle" } 
+      { name: t('nav.analytics'), path: "/analytics", icon: "lucide:bar-chart" },
+      { name: t('nav.notifications'), path: "/notifications", icon: "lucide:bell" },
+      { name: t('nav.settings'), path: "/settings", icon: "lucide:settings" },
+      { name: t('nav.howItWorks'), path: "/how-it-works", icon: "lucide:help-circle" }
     );
 
     return menuItems;
@@ -188,7 +192,6 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
             onClick={onClose}
             aria-hidden="true"
           />
-
                     
           {/* Menu Panel */}
           <motion.div
@@ -214,7 +217,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold">Menu</h2>
+              <h2 className="text-xl font-semibold">{t('menu.title')}</h2>
               <button
                 onClick={onClose}
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -231,9 +234,9 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
               >
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
-                    <h3 className="font-semibold">{userData?.displayName || 'User'}</h3>
+                    <h3 className="font-semibold">{userData?.displayName || t('common.user')}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                      {userType === 'both' ? 'Freelancer & Client' : userType}
+                      {userType === 'both' ? t('menu.freelancerAndClient') : t(`menu.${userType}`)}
                     </p>
                   </div>
                   <Icon icon="lucide:chevron-right" className="w-5 h-5 text-gray-400" />
@@ -266,7 +269,7 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
                       onPress={handleLogout}
                       startContent={<Icon icon="lucide:log-out" />}
                     >
-                      Sign Out
+                      {t('menu.signOut')}
                     </Button>
                   </>
                 )}
@@ -281,14 +284,14 @@ const HamburgerMenu: React.FC<HamburgerMenuProps> = React.memo(({
                   className="w-full"
                   onPress={() => handleNavigation('/login')}
                 >
-                  Sign In
+                  {t('menu.signIn')}
                 </Button>
                 <Button
                   variant="bordered"
                   className="w-full"
                   onPress={() => handleNavigation('/signup')}
                 >
-                  Sign Up
+                  {t('menu.signUp')}
                 </Button>
               </div>
             )}

@@ -4,6 +4,7 @@ import { Card, CardBody, Input, Button, Avatar, Badge } from '@nextui-org/react'
 import { Icon } from '@iconify/react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../lib/firebase';
@@ -32,6 +33,7 @@ export const ChatPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -81,7 +83,7 @@ export const ChatPage: React.FC = () => {
       // Fetch user data for the conversation
       const userDoc = await getDoc(doc(db, 'users', userId));
       if (!userDoc.exists()) {
-        toast.error('User not found');
+        toast.error(t('chat.errors.userNotFound'));
         return;
       }
       
@@ -93,8 +95,8 @@ export const ChatPage: React.FC = () => {
         id: conversationId,
         participants: [user!.uid, userId],
         participantNames: {
-          [user!.uid]: userData?.displayName || user!.displayName || 'You',
-          [userId]: targetUser.displayName || 'User'
+          [user!.uid]: userData?.displayName || user!.displayName || t('common.you'),
+          [userId]: targetUser.displayName || t('common.user')
         },
         participantPhotos: {
           [user!.uid]: userData?.photoURL || user!.photoURL || '',
@@ -106,10 +108,10 @@ export const ChatPage: React.FC = () => {
       };
       
       setSelectedConversation(newConversation);
-      toast.success(`Started conversation with ${targetUser.displayName}`);
+      toast.success(t('chat.startedConversation', { name: targetUser.displayName }));
     } catch (error) {
       console.error('Error creating conversation:', error);
-      toast.error('Failed to start conversation');
+      toast.error(t('chat.errors.failedToStart'));
     }
   };
   
@@ -221,7 +223,7 @@ export const ChatPage: React.FC = () => {
       
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      toast.error(t('chat.errors.failedToSend'));
       // Rollback message input if error
       setNewMessage(messageText);
     }
@@ -231,7 +233,7 @@ export const ChatPage: React.FC = () => {
     const otherParticipantId = conversation.participants.find(p => p !== user?.uid);
     return {
       id: otherParticipantId || '',
-      name: conversation.participantNames[otherParticipantId || ''] || 'Unknown',
+      name: conversation.participantNames[otherParticipantId || ''] || t('common.unknown'),
       photo: conversation.participantPhotos[otherParticipantId || ''] || ''
     };
   };
@@ -241,7 +243,7 @@ export const ChatPage: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading conversations...</p>
+          <p className="text-gray-400">{t('chat.loadingConversations')}</p>
         </div>
       </div>
     );
@@ -255,7 +257,7 @@ export const ChatPage: React.FC = () => {
         transition={{ duration: 0.3 }}
         className="h-[calc(100vh-200px)]"
       >
-        <h1 className="text-3xl font-bold text-white mb-8">Messages</h1>
+        <h1 className="text-3xl font-bold text-white mb-8">{t('chat.title')}</h1>
         
         <div className="grid grid-cols-12 gap-6 h-full">
           {/* Conversations List */}
@@ -265,7 +267,7 @@ export const ChatPage: React.FC = () => {
                 {conversations.length === 0 ? (
                   <div className="text-center py-12">
                     <Icon icon="lucide:message-square" className="text-gray-400 mb-4 mx-auto" width={48} />
-                    <p className="text-gray-400">No conversations yet</p>
+                    <p className="text-gray-400">{t('chat.noConversations')}</p>
                   </div>
                 ) : (
                   conversations.map((conversation) => {
@@ -303,7 +305,7 @@ export const ChatPage: React.FC = () => {
                           <div className="text-xs text-gray-500">
                             {conversation.lastMessageTime?.toDate ? 
                               new Date(conversation.lastMessageTime.toDate()).toLocaleDateString() : 
-                              'Recently'}
+                              t('common.recently')}
                           </div>
                         </div>
                       </div>
@@ -353,7 +355,7 @@ export const ChatPage: React.FC = () => {
                           <p className="text-xs opacity-70 mt-1">
                             {message.createdAt?.toDate ? 
                               new Date(message.createdAt.toDate()).toLocaleTimeString() : 
-                              'Sending...'}
+                              t('chat.sending')}
                           </p>
                         </div>
                       </div>
@@ -367,7 +369,7 @@ export const ChatPage: React.FC = () => {
                       <Input
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type a message..."
+                        placeholder={t('chat.typeMessage')}
                         variant="bordered"
                         className="flex-1"
                       />
@@ -386,7 +388,7 @@ export const ChatPage: React.FC = () => {
                 <CardBody className="flex items-center justify-center">
                   <div className="text-center">
                     <Icon icon="lucide:message-square" className="text-gray-400 mb-4 mx-auto" width={64} />
-                    <p className="text-gray-400">Select a conversation to start messaging</p>
+                    <p className="text-gray-400">{t('chat.selectConversation')}</p>
                   </div>
                 </CardBody>
               )}

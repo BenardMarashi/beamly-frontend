@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
@@ -35,6 +36,7 @@ interface DashboardStats {
 const DashboardPage: React.FC = () => {
   const { user, userData } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>([]);
   const [recentProposals, setRecentProposals] = useState<RecentProposal[]>([]);
@@ -174,7 +176,7 @@ const DashboardPage: React.FC = () => {
     if (job.budgetType === 'fixed') {
       return `€${job.budgetMin}`;
     }
-    return `€${job.budgetMin} -€${job.budgetMax}/hr`;
+    return `€${job.budgetMin} -€${job.budgetMax}${t('common.perHour')}`;
   };
   
   if (loading) {
@@ -182,7 +184,7 @@ const DashboardPage: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading dashboard...</p>
+          <p className="text-gray-400">{t('dashboard.loading')}</p>
         </div>
       </div>
     );
@@ -199,10 +201,10 @@ const DashboardPage: React.FC = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white">
-              Welcome back, {userData?.displayName || 'User'}!
+              {t('dashboard.welcomeBack', { name: userData?.displayName || t('common.user') })}
             </h1>
             <p className="text-gray-400 mt-1">
-              Here's what's happening with your account today.
+              {t('dashboard.subtitle')}
             </p>
           </div>
         </div>
@@ -214,10 +216,10 @@ const DashboardPage: React.FC = () => {
               <div className="flex items-center justify-between mb-4">
                 <Icon icon="lucide:briefcase" className="text-blue-400" width={32} />
                 <Chip color="primary" size="sm" variant="flat">
-                  {userData?.userType === 'client' ? 'Posted' : 'Active'}
+                  {userData?.userType === 'client' ? t('dashboard.posted') : t('dashboard.active')}
                 </Chip>
               </div>
-              <h3 className="text-gray-400 text-sm">Active Jobs</h3>
+              <h3 className="text-gray-400 text-sm">{t('dashboard.activeJobs')}</h3>
               <p className="text-2xl font-bold text-white">{stats.activeJobs}</p>
             </CardBody>
           </Card>
@@ -226,9 +228,9 @@ const DashboardPage: React.FC = () => {
             <CardBody className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <Icon icon="lucide:clock" className="text-yellow-400" width={32} />
-                <Chip color="warning" size="sm" variant="flat">Pending</Chip>
+                <Chip color="warning" size="sm" variant="flat">{t('dashboard.pending')}</Chip>
               </div>
-              <h3 className="text-gray-400 text-sm">Pending Proposals</h3>
+              <h3 className="text-gray-400 text-sm">{t('dashboard.pendingProposals')}</h3>
               <p className="text-2xl font-bold text-white">{stats.pendingProposals}</p>
             </CardBody>
           </Card>
@@ -241,14 +243,14 @@ const DashboardPage: React.FC = () => {
             <CardBody className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-white">
-                  {userData?.userType === 'client' ? 'Recent Jobs' : 'Recent Proposals'}
+                  {userData?.userType === 'client' ? t('dashboard.recentJobs') : t('dashboard.recentProposals')}
                 </h3>
                 <Button
                   size="sm"
                   variant="light"
                   onPress={() => navigate(userData?.userType === 'client' ? '/job/manage' : '/proposals')}
                 >
-                  View All
+                  {t('common.viewAll')}
                 </Button>
               </div>
               <div className="space-y-3">
@@ -269,7 +271,7 @@ const DashboardPage: React.FC = () => {
                     <div key={proposal.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
                       <div>
                         <p className="text-white font-medium">{proposal.jobTitle}</p>
-                        <p className="text-gray-400 text-sm">${proposal.proposedRate}/hr</p>
+                        <p className="text-gray-400 text-sm">€{proposal.proposedRate}{t('common.perHour')}</p>
                       </div>
                       <Chip color={getStatusColor(proposal.status)} size="sm" variant="flat">
                         {proposal.status}
@@ -278,7 +280,7 @@ const DashboardPage: React.FC = () => {
                   ))
                 )}
                 {(recentJobs.length === 0 && recentProposals.length === 0) && (
-                  <p className="text-gray-400 text-center py-8">No recent activity</p>
+                  <p className="text-gray-400 text-center py-8">{t('dashboard.noRecentActivity')}</p>
                 )}
               </div>
             </CardBody>
@@ -287,7 +289,7 @@ const DashboardPage: React.FC = () => {
           {/* Quick Actions */}
           <Card className="glass-effect border-none">
             <CardBody className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">{t('dashboard.quickActions')}</h3>
               <div className="grid grid-cols-2 gap-3">
                 {userData?.userType === 'freelancer' && (
                   <>
@@ -298,7 +300,7 @@ const DashboardPage: React.FC = () => {
                       onPress={() => navigate('/browse-jobs')}
                       className="h-auto py-4 flex-col gap-2"
                     >
-                      <span>Find Work</span>
+                      <span>{t('dashboard.findWork')}</span>
                     </Button>
                     <Button
                       variant="flat"
@@ -307,7 +309,7 @@ const DashboardPage: React.FC = () => {
                       onPress={() => navigate('/post-project')}
                       className="h-auto py-4 flex-col gap-2"
                     >
-                      <span>Post Project</span>
+                      <span>{t('dashboard.postProject')}</span>
                     </Button>
                     <Button
                       variant="flat"
@@ -316,7 +318,7 @@ const DashboardPage: React.FC = () => {
                       onPress={() => navigate('/edit-profile')}
                       className="h-auto py-4 flex-col gap-2"
                     >
-                      <span>Edit Profile</span>
+                      <span>{t('dashboard.editProfile')}</span>
                     </Button>
                     
                   </>
@@ -331,7 +333,7 @@ const DashboardPage: React.FC = () => {
                       onPress={() => navigate('/post-job')}
                       className="h-auto py-4 flex-col gap-2"
                     >
-                      <span>Post Job</span>
+                      <span>{t('dashboard.postJob')}</span>
                     </Button>
                     <Button
                       variant="flat"
@@ -340,7 +342,7 @@ const DashboardPage: React.FC = () => {
                       onPress={() => navigate('/browse-freelancers')}
                       className="h-auto py-4 flex-col gap-2"
                     >
-                      <span>Find Talent</span>
+                      <span>{t('dashboard.findTalent')}</span>
                     </Button>
                   </>
                 )}
@@ -354,7 +356,7 @@ const DashboardPage: React.FC = () => {
                       onPress={() => navigate('/browse-jobs')}
                       className="h-auto py-4 flex-col gap-2"
                     >
-                      <span>Find Work</span>
+                      <span>{t('dashboard.findWork')}</span>
                     </Button>
                     <Button
                       variant="flat"
@@ -363,7 +365,7 @@ const DashboardPage: React.FC = () => {
                       onPress={() => navigate('/post-job')}
                       className="h-auto py-4 flex-col gap-2"
                     >
-                      <span>Post Job</span>
+                      <span>{t('dashboard.postJob')}</span>
                     </Button>
                     <Button
                       variant="flat"
@@ -372,7 +374,7 @@ const DashboardPage: React.FC = () => {
                       onPress={() => navigate('/post-project')}
                       className="h-auto py-4 flex-col gap-2"
                     >
-                      <span>Post Project</span>
+                      <span>{t('dashboard.postProject')}</span>
                     </Button>
                   </>
                 )}
@@ -384,7 +386,7 @@ const DashboardPage: React.FC = () => {
                   onPress={() => navigate('/messages')}
                   className="h-auto py-4 flex-col gap-2"
                 >
-                  <span>Messages</span>
+                  <span>{t('dashboard.messages')}</span>
                 </Button>
                 
                 <Button
@@ -394,7 +396,7 @@ const DashboardPage: React.FC = () => {
                   onPress={() => navigate('/analytics')}
                   className="h-auto py-4 flex-col gap-2"
                 >
-                  <span>Analytics</span>
+                  <span>{t('dashboard.analytics')}</span>
                 </Button>
               </div>
             </CardBody>
@@ -405,7 +407,7 @@ const DashboardPage: React.FC = () => {
         {userData && (!userData.profileCompleted || !userData.bio || !userData.skills?.length) && (
           <Card className="yellow-glass">
             <CardBody className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Complete Your Profile</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">{t('dashboard.completeProfile')}</h3>
               <Progress 
                 value={userData.bio ? 50 : 25} 
                 color="warning" 
@@ -413,7 +415,7 @@ const DashboardPage: React.FC = () => {
                 aria-label="Profile completion progress"
               />
               <p className="text-gray-300 mb-4">
-                A complete profile helps you stand out and attract more opportunities.
+                {t('dashboard.profileCompletionText')}
               </p>
               <ul className="space-y-2 mb-4">
                 <li className="flex items-center gap-2">
@@ -421,28 +423,28 @@ const DashboardPage: React.FC = () => {
                     icon={userData?.displayName ? "lucide:check-circle" : "lucide:circle"} 
                     className={userData?.displayName ? "text-green-400" : "text-gray-400"}
                   />
-                  <span className="text-gray-300">Add display name</span>
+                  <span className="text-gray-300">{t('dashboard.addDisplayName')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Icon 
                     icon={userData?.bio ? "lucide:check-circle" : "lucide:circle"} 
                     className={userData?.bio ? "text-green-400" : "text-gray-400"}
                   />
-                  <span className="text-gray-300">Write a bio</span>
+                  <span className="text-gray-300">{t('dashboard.writeBio')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Icon 
                     icon={userData?.skills && userData.skills.length > 0 ? "lucide:check-circle" : "lucide:circle"} 
                     className={userData?.skills && userData.skills.length > 0 ? "text-green-400" : "text-gray-400"}
                   />
-                  <span className="text-gray-300">Add skills</span>
+                  <span className="text-gray-300">{t('dashboard.addSkills')}</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Icon 
                     icon={userData?.hourlyRate && userData.hourlyRate > 0 ? "lucide:check-circle" : "lucide:circle"} 
                     className={userData?.hourlyRate && userData.hourlyRate > 0 ? "text-green-400" : "text-gray-400"}
                   />
-                  <span className="text-gray-300">Set hourly rate</span>
+                  <span className="text-gray-300">{t('dashboard.setHourlyRate')}</span>
                 </li>
               </ul>
               <Button
@@ -450,7 +452,7 @@ const DashboardPage: React.FC = () => {
                 fullWidth
                 onPress={() => navigate('/edit-profile')}
               >
-                Complete Profile
+                {t('dashboard.completeProfileButton')}
               </Button>
             </CardBody>
           </Card>

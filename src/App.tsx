@@ -54,6 +54,7 @@ const ProjectDetailsPage = lazy(() => import('./pages/portfolio/details'));
 const ProjectEditPage = lazy(() => import('./pages/portfolio/edit'));
 const ClientPaymentPage = lazy(() => import('./pages/client/payment'));
 const BillingPage = lazy(() => import('./pages/billing'));
+const HowItWorksPage = lazy(() => import('./pages/howitworks'));
 
 
 // Loading component
@@ -181,6 +182,7 @@ const AppRoutes = () => {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/help" element={<HelpPage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/looking-for-work" element={<Navigate to="/browse-jobs" replace />} />
           <Route path="/profile/edit" element={<Navigate to="/edit-profile" replace />} />
           <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />

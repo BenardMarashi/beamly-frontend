@@ -3,22 +3,24 @@ import { motion } from 'framer-motion';
 import { Card, CardBody, Select, SelectItem, Progress } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 interface AnalyticsData {
-  totalEarnings?: number; // Only for freelancers
+  totalEarnings?: number;
   totalJobs: number;
   completedJobs: number;
   avgRating: number;
   totalProposals: number;
   acceptedProposals: number;
-  monthlyEarnings?: { month: string; amount: number }[]; // Only for freelancers
+  monthlyEarnings?: { month: string; amount: number }[];
   categoryBreakdown: { name: string; value: number }[];
 }
 
 const AnalyticsPage: React.FC = () => {
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const [timeRange, setTimeRange] = useState('last30days');
   const [loading, setLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
@@ -318,7 +320,7 @@ const AnalyticsPage: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading analytics...</p>
+          <p className="text-gray-400">{t('analytics.loading')}</p>
         </div>
       </div>
     );
@@ -335,30 +337,30 @@ const AnalyticsPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-                <div className="mb-8">
-                  <h1 className="text-3xl font-bold text-white mb-4">Analytics Dashboard</h1>
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-400 text-sm">Time Range</span>
-                    <Select
-                      selectedKeys={[timeRange]}
-                      onSelectionChange={(keys) => setTimeRange(Array.from(keys)[0] as string)}
-                      className="w-48"
-                      variant="bordered"
-                      size="sm"
-                      classNames={{
-                        trigger: "h-10 bg-gray-900/50 border-gray-600",
-                        value: "text-white text-sm",
-                        listbox: "bg-gray-900",
-                        popoverContent: "bg-gray-900 border border-gray-700",
-                      }}
-                    >
-                      <SelectItem key="last7days" value="last7days">Last 7 days</SelectItem>
-                      <SelectItem key="last30days" value="last30days">Last 30 days</SelectItem>
-                      <SelectItem key="last90days" value="last90days">Last 90 days</SelectItem>
-                      <SelectItem key="lastyear" value="lastyear">Last year</SelectItem>
-                    </Select>
-                  </div>
-                </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-4">{t('analytics.title')}</h1>
+          <div className="flex items-center gap-3">
+            <span className="text-gray-400 text-sm">{t('analytics.timeRange')}</span>
+            <Select
+              selectedKeys={[timeRange]}
+              onSelectionChange={(keys) => setTimeRange(Array.from(keys)[0] as string)}
+              className="w-48"
+              variant="bordered"
+              size="sm"
+              classNames={{
+                trigger: "h-10 bg-gray-900/50 border-gray-600",
+                value: "text-white text-sm",
+                listbox: "bg-gray-900",
+                popoverContent: "bg-gray-900 border border-gray-700",
+              }}
+            >
+              <SelectItem key="last7days" value="last7days">{t('analytics.last7days')}</SelectItem>
+              <SelectItem key="last30days" value="last30days">{t('analytics.last30days')}</SelectItem>
+              <SelectItem key="last90days" value="last90days">{t('analytics.last90days')}</SelectItem>
+              <SelectItem key="lastyear" value="lastyear">{t('analytics.lastYear')}</SelectItem>
+            </Select>
+          </div>
+        </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -366,14 +368,14 @@ const AnalyticsPage: React.FC = () => {
             <Card className="glass-effect border-none">
               <CardBody className="p-6">
                 <div className="flex items-start justify-between mb-2">
-                  <Icon icon="lucide:dollar-sign" className="text-green-400 flex-shrink-0" width={32} />
+                  <Icon icon="lucide:euro" className="text-green-400 flex-shrink-0" width={32} />
                   <span className="text-green-400 text-sm ml-2">
                     {analyticsData.totalEarnings > 0 ? '↑' : '—'}
                   </span>
                 </div>
                 <div className="mt-4">
-                  <h3 className="text-gray-400 text-sm mb-1">Total Earnings</h3>
-                  <p className="text-2xl font-bold text-white">${analyticsData.totalEarnings.toLocaleString()}</p>
+                  <h3 className="text-gray-400 text-sm mb-1">{t('analytics.totalEarnings')}</h3>
+                  <p className="text-2xl font-bold text-white">€{analyticsData.totalEarnings.toLocaleString()}</p>
                 </div>
               </CardBody>
             </Card>
@@ -387,7 +389,7 @@ const AnalyticsPage: React.FC = () => {
               </div>
               <div className="mt-4">
                 <h3 className="text-gray-400 text-sm mb-1">
-                  Total {userData?.userType === 'client' ? 'Jobs Posted' : 'Projects'}
+                  {userData?.userType === 'client' ? t('analytics.totalJobsPosted') : t('analytics.totalProjects')}
                 </h3>
                 <p className="text-2xl font-bold text-white">{analyticsData.totalJobs}</p>
               </div>
@@ -407,7 +409,7 @@ const AnalyticsPage: React.FC = () => {
                 />
               </div>
               <div className="mt-4">
-                <h3 className="text-gray-400 text-sm mb-1">Completed</h3>
+                <h3 className="text-gray-400 text-sm mb-1">{t('analytics.completed')}</h3>
                 <p className="text-2xl font-bold text-white">{analyticsData.completedJobs}</p>
               </div>
             </CardBody>
@@ -428,7 +430,7 @@ const AnalyticsPage: React.FC = () => {
                 </div>
               </div>
               <div className="mt-4">
-                <h3 className="text-gray-400 text-sm mb-1">Average Rating</h3>
+                <h3 className="text-gray-400 text-sm mb-1">{t('analytics.averageRating')}</h3>
                 <p className="text-2xl font-bold text-white">{analyticsData.avgRating.toFixed(1)}</p>
               </div>
             </CardBody>
@@ -441,7 +443,7 @@ const AnalyticsPage: React.FC = () => {
           {analyticsData.monthlyEarnings && analyticsData.monthlyEarnings.length > 0 && (
             <Card className="glass-effect border-none">
               <CardBody className="p-6">
-                <h3 className="text-xl font-semibold text-white mb-4">Earnings Over Time</h3>
+                <h3 className="text-xl font-semibold text-white mb-4">{t('analytics.earningsOverTime')}</h3>
                 <div className="h-64 flex flex-col justify-end bg-gray-800/50 rounded-lg p-4">
                   <div className="flex items-end justify-around h-full gap-2">
                     {analyticsData.monthlyEarnings.map((data, index) => {
@@ -452,7 +454,7 @@ const AnalyticsPage: React.FC = () => {
                         <div key={`${data.month}-${index}`} className="flex-1 flex flex-col items-center justify-end">
                           <div className="relative w-full flex flex-col items-center">
                             <span className="text-xs text-white mb-1">
-                              ${data.amount > 1000 ? `${(data.amount/1000).toFixed(1)}k` : data.amount}
+                              €{data.amount > 1000 ? `${(data.amount/1000).toFixed(1)}k` : data.amount}
                             </span>
                             <div 
                               className="w-full bg-gradient-to-t from-blue-500 to-purple-500 rounded-t transition-all duration-500 chart-bar"
@@ -476,11 +478,11 @@ const AnalyticsPage: React.FC = () => {
           {userData?.userType !== 'client' && (!analyticsData.monthlyEarnings || analyticsData.monthlyEarnings.length === 0) && (
             <Card className="glass-effect border-none">
               <CardBody className="p-6">
-                <h3 className="text-xl font-semibold text-white mb-4">Earnings Over Time</h3>
+                <h3 className="text-xl font-semibold text-white mb-4">{t('analytics.earningsOverTime')}</h3>
                 <div className="h-64 flex items-center justify-center bg-gray-800/50 rounded-lg">
                   <div className="text-center">
                     <Icon icon="lucide:line-chart" className="text-gray-400 mb-2" width={48} />
-                    <p className="text-gray-400">No earnings data available yet</p>
+                    <p className="text-gray-400">{t('analytics.noEarningsData')}</p>
                   </div>
                 </div>
               </CardBody>
@@ -490,7 +492,7 @@ const AnalyticsPage: React.FC = () => {
           {/* Category Breakdown */}
           <Card className="glass-effect border-none">
             <CardBody className="p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Category Breakdown</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">{t('analytics.categoryBreakdown')}</h3>
               {analyticsData.categoryBreakdown.length > 0 ? (
                 <div className="space-y-3">
                   {analyticsData.categoryBreakdown.map((category, index) => {
@@ -519,7 +521,7 @@ const AnalyticsPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="h-64 flex items-center justify-center">
-                  <p className="text-gray-400 text-center">No data available yet</p>
+                  <p className="text-gray-400 text-center">{t('analytics.noDataAvailable')}</p>
                 </div>
               )}
             </CardBody>
@@ -530,11 +532,11 @@ const AnalyticsPage: React.FC = () => {
         {(userData?.userType === 'freelancer' || userData?.userType === 'both') && (
           <Card className="glass-effect border-none">
             <CardBody className="p-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Proposal Success Rate</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">{t('analytics.proposalSuccessRate')}</h3>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-gray-400">Acceptance Rate</span>
+                    <span className="text-gray-400">{t('analytics.acceptanceRate')}</span>
                     <span className="text-white">
                       {analyticsData.totalProposals > 0 
                         ? `${((analyticsData.acceptedProposals / analyticsData.totalProposals) * 100).toFixed(0)}%`
@@ -553,17 +555,17 @@ const AnalyticsPage: React.FC = () => {
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold text-white">{analyticsData.totalProposals}</p>
-                    <p className="text-gray-400 text-sm">Total Proposals</p>
+                    <p className="text-gray-400 text-sm">{t('analytics.totalProposals')}</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-green-400">{analyticsData.acceptedProposals}</p>
-                    <p className="text-gray-400 text-sm">Accepted</p>
+                    <p className="text-gray-400 text-sm">{t('analytics.accepted')}</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-red-400">
                       {analyticsData.totalProposals - analyticsData.acceptedProposals}
                     </p>
-                    <p className="text-gray-400 text-sm">Pending/Rejected</p>
+                    <p className="text-gray-400 text-sm">{t('analytics.pendingRejected')}</p>
                   </div>
                 </div>
               </div>

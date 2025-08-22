@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Input, Avatar, Spinner, Badge } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { ConversationService } from '../services/firebase-services';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -31,6 +32,7 @@ interface MessagesViewProps {
 export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBack }) => {
   const navigate = useNavigate();
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -63,12 +65,12 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
           // Mark messages as read
           await ConversationService.markMessagesAsRead(conversationId, user.uid);
         } else {
-          toast.error('Conversation not found');
+          toast.error(t('messages.conversationNotFound'));
           navigate('/messages');
         }
       } catch (error) {
         console.error('Error loading conversation:', error);
-        toast.error('Failed to load conversation');
+        toast.error(t('messages.failedToLoad'));
       } finally {
         setLoading(false);
       }
@@ -121,7 +123,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
       const result = await ConversationService.sendMessage({
         conversationId,
         senderId: user!.uid,
-        senderName: userData?.displayName || 'User',
+        senderName: userData?.displayName || t('common.user'),
         recipientId: otherUser.id,
         text: messageText
       });
@@ -129,12 +131,12 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
       if (!result.success) {
         // Restore message if send failed
         setNewMessage(messageText);
-        toast.error('Failed to send message');
+        toast.error(t('messages.failedToSend'));
       }
     } catch (error) {
       console.error('Error sending message:', error);
       setNewMessage(messageText); // Restore message on error
-      toast.error('Failed to send message');
+      toast.error(t('messages.failedToSend'));
     } finally {
       setSending(false);
       // Refocus input after sending
@@ -177,14 +179,14 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
         <div className="text-center">
           <Icon icon="lucide:message-x" className="text-6xl text-gray-500 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-white mb-2">
-            Conversation not found
+            {t('messages.conversationNotFound')}
           </h3>
           <Button
             onPress={handleBack}
             startContent={<Icon icon="lucide:arrow-left" />}
             className="bg-white/10 text-white hover:bg-white/20"
           >
-            Back to Messages
+            {t('messages.backToMessages')}
           </Button>
         </div>
       </div>
@@ -230,7 +232,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
             </h3>
             <p className="text-xs text-gray-400 capitalize">
               {otherUser.userType}
-              {otherUser.isOnline && ' • Online'}
+              {otherUser.isOnline && ` • ${t('messages.online')}`}
             </p>
           </div>
         </div>
@@ -242,7 +244,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Icon icon="lucide:message-circle" className="text-6xl text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400">No messages yet. Start the conversation!</p>
+              <p className="text-gray-400">{t('messages.noMessages')}</p>
             </div>
           </div>
         ) : (
@@ -294,7 +296,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
         <form onSubmit={handleSendMessage} className="flex gap-2">
           <Input
             ref={messageInputRef}
-            placeholder="Type a message..."
+            placeholder={t('messages.typeMessage')}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyPress={handleKeyPress}

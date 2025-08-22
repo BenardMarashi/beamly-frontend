@@ -7,24 +7,15 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { Project } from '../../types/firestore.types';
 import { toast } from 'react-hot-toast';
-
-const categories = [
-  'Web Development',
-  'Mobile Development',
-  'UI/UX Design',
-  'Graphic Design',
-  'Data Science',
-  'Machine Learning',
-  'DevOps',
-  'Other'
-];
 
 export const ProjectEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
@@ -39,6 +30,17 @@ export const ProjectEditPage: React.FC = () => {
   const [githubUrl, setGithubUrl] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
+
+  const categories = [
+    t('projectEdit.categories.webDevelopment'),
+    t('projectEdit.categories.mobileDevelopment'),
+    t('projectEdit.categories.uiUxDesign'),
+    t('projectEdit.categories.graphicDesign'),
+    t('projectEdit.categories.dataScience'),
+    t('projectEdit.categories.machineLearning'),
+    t('projectEdit.categories.devops'),
+    t('projectEdit.categories.other')
+  ];
 
   useEffect(() => {
     if (id) {
@@ -60,7 +62,7 @@ export const ProjectEditPage: React.FC = () => {
         
         // Check if user owns this project
         if (projectData.freelancerId !== user?.uid) {
-          toast.error('You do not have permission to edit this project');
+          toast.error(t('projectEdit.errors.noPermission'));
           navigate('/portfolio');
           return;
         }
@@ -74,12 +76,12 @@ export const ProjectEditPage: React.FC = () => {
         setGithubUrl(projectData.githubUrl || '');
         setImages(projectData.images || []);
       } else {
-        toast.error('Project not found');
+        toast.error(t('projectEdit.errors.notFound'));
         navigate('/portfolio');
       }
     } catch (error) {
       console.error('Error fetching project:', error);
-      toast.error('Failed to load project');
+      toast.error(t('projectEdit.errors.loadFailed'));
       navigate('/portfolio');
     } finally {
       setLoading(false);
@@ -104,7 +106,7 @@ export const ProjectEditPage: React.FC = () => {
     );
     
     if (validFiles.length !== files.length) {
-      toast.error('Some files were skipped. Only images under 5MB are allowed.');
+      toast.error(t('projectEdit.errors.invalidFiles'));
     }
     
     setNewImages([...newImages, ...validFiles]);
@@ -126,12 +128,12 @@ export const ProjectEditPage: React.FC = () => {
     e.preventDefault();
     
     if (!title.trim() || !description.trim() || !category || skills.length === 0) {
-      toast.error('Please fill in all required fields');
+      toast.error(t('projectEdit.errors.fillRequired'));
       return;
     }
 
     if (images.length + newImages.length === 0) {
-      toast.error('Please add at least one image');
+      toast.error(t('projectEdit.errors.addImage'));
       return;
     }
 
@@ -161,11 +163,11 @@ export const ProjectEditPage: React.FC = () => {
         updatedAt: new Date()
       });
 
-      toast.success('Project updated successfully!');
+      toast.success(t('projectEdit.success.updated'));
       navigate(`/projects/${id}`);
     } catch (error) {
       console.error('Error updating project:', error);
-      toast.error('Failed to update project. Please try again.');
+      toast.error(t('projectEdit.errors.updateFailed'));
     } finally {
       setSaving(false);
     }
@@ -179,8 +181,8 @@ export const ProjectEditPage: React.FC = () => {
     );
   }
 
-return (
-    <div className="min-h-screen py-20 px-4"> {/* Proper padding */}
+  return (
+    <div className="min-h-screen py-20 px-4">
       <div className="container mx-auto max-w-3xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -190,17 +192,17 @@ return (
           <Card className="glass-effect border border-white/10">
             <CardBody className="p-6 md:p-8">
               <h1 className="text-2xl md:text-3xl font-bold text-white mb-8">
-                Edit Project
+                {t('projectEdit.title')}
               </h1>
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Title */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Project Title *
+                    {t('projectEdit.projectTitle')} *
                   </label>
                   <Input
-                    placeholder="Enter project title"
+                    placeholder={t('projectEdit.projectTitlePlaceholder')}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     variant="bordered"
@@ -215,10 +217,10 @@ return (
                 {/* Description */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Project Description *
+                    {t('projectEdit.projectDescription')} *
                   </label>
                   <Textarea
-                    placeholder="Describe your project in detail..."
+                    placeholder={t('projectEdit.projectDescriptionPlaceholder')}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     minRows={5}
@@ -234,10 +236,10 @@ return (
                 {/* Category */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Select a category *
+                    {t('projectEdit.selectCategory')} *
                   </label>
                   <Select
-                    placeholder="Choose category"
+                    placeholder={t('projectEdit.chooseCategory')}
                     selectedKeys={category ? [category] : []}
                     onChange={(e) => setCategory(e.target.value)}
                     variant="bordered"
@@ -260,11 +262,11 @@ return (
                 {/* Skills */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Technologies Used *
+                    {t('projectEdit.technologiesUsed')} *
                   </label>
                   <div className="flex gap-2 mb-3">
                     <Input
-                      placeholder="Add a skill (e.g., React, Node.js)"
+                      placeholder={t('projectEdit.addSkillPlaceholder')}
                       value={newSkill}
                       onChange={(e) => setNewSkill(e.target.value)}
                       onKeyPress={(e) => {
@@ -305,78 +307,79 @@ return (
                     </div>
                   )}
                 </div>
-              {/* Images Section - Add this back */}
-<div>
-  <label className="block text-sm font-medium text-gray-300 mb-2">
-    Project Images *
-  </label>
-  
-  {/* Existing Images */}
-  {images.length > 0 && (
-    <div className="p-4 bg-white/5 rounded-lg border border-white/10 mb-4">
-      <p className="text-xs text-gray-400 mb-3">Current Images</p>
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-        {images.map((image, index) => (
-          <div key={index} className="relative group aspect-square">
-            <img
-              src={image}
-              alt={`Project ${index + 1}`}
-              className="w-full h-full object-cover rounded-lg"
-            />
-            <button
-              type="button"
-              onClick={() => handleRemoveImage(index)}
-              className="absolute top-1 right-1 p-1.5 bg-red-500/90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Icon icon="lucide:x" className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  )}
 
-  {/* New Images Preview */}
-  {newImages.length > 0 && (
-    <div className="p-4 bg-white/5 rounded-lg border border-white/10 mb-4">
-      <p className="text-xs text-gray-400 mb-3">New Images to Upload</p>
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-        {newImages.map((file, index) => (
-          <div key={index} className="relative group aspect-square">
-            <img
-              src={URL.createObjectURL(file)}
-              alt={`New ${index + 1}`}
-              className="w-full h-full object-cover rounded-lg"
-            />
-            <button
-              type="button"
-              onClick={() => handleRemoveNewImage(index)}
-              className="absolute top-1 right-1 p-1.5 bg-red-500/90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <Icon icon="lucide:x" className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  )}
+                {/* Images Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    {t('projectEdit.projectImages')} *
+                  </label>
+                  
+                  {/* Existing Images */}
+                  {images.length > 0 && (
+                    <div className="p-4 bg-white/5 rounded-lg border border-white/10 mb-4">
+                      <p className="text-xs text-gray-400 mb-3">{t('projectEdit.currentImages')}</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                        {images.map((image, index) => (
+                          <div key={index} className="relative group aspect-square">
+                            <img
+                              src={image}
+                              alt={`Project ${index + 1}`}
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(index)}
+                              className="absolute top-1 right-1 p-1.5 bg-red-500/90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Icon icon="lucide:x" className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-  <input
-    type="file"
-    accept="image/*"
-    multiple
-    onChange={handleImageUpload}
-    className="hidden"
-    id="image-upload"
-  />
-  <label
-    htmlFor="image-upload"
-    className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-  >
-    <Icon icon="lucide:upload" className="text-lg" />
-    <span>Add Images</span>
-  </label>
-</div>
+                  {/* New Images Preview */}
+                  {newImages.length > 0 && (
+                    <div className="p-4 bg-white/5 rounded-lg border border-white/10 mb-4">
+                      <p className="text-xs text-gray-400 mb-3">{t('projectEdit.newImages')}</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                        {newImages.map((file, index) => (
+                          <div key={index} className="relative group aspect-square">
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={`New ${index + 1}`}
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveNewImage(index)}
+                              className="absolute top-1 right-1 p-1.5 bg-red-500/90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Icon icon="lucide:x" className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label
+                    htmlFor="image-upload"
+                    className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <Icon icon="lucide:upload" className="text-lg" />
+                    <span>{t('projectEdit.addImages')}</span>
+                  </label>
+                </div>
 
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-white/10">
@@ -386,7 +389,7 @@ return (
                     size="lg"
                     className="w-full sm:w-auto bg-white/10 text-white"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     type="submit"
@@ -395,7 +398,7 @@ return (
                     size="lg"
                     className="w-full sm:w-auto font-semibold"
                   >
-                    Save Changes
+                    {t('projectEdit.saveChanges')}
                   </Button>
                 </div>
               </form>

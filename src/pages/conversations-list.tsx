@@ -4,12 +4,13 @@ import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { Card, CardBody, Avatar, Chip, Spinner, Input, Button } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
 import { ConversationService } from '../services/firebase-services';
 import { toast } from 'react-hot-toast';
-import { MessagesView } from '../components/MessagesView'; // We'll create this
+import { MessagesView } from '../components/MessagesView';
 
 interface ConversationWithUser {
   id: string;
@@ -28,8 +29,9 @@ interface ConversationWithUser {
 export const ConversationsListPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { conversationId } = useParams(); // For desktop view
+  const { conversationId } = useParams();
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState<ConversationWithUser[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -88,16 +90,16 @@ export const ConversationsListPage: React.FC = () => {
       if (result.success && result.conversationId) {
         handleConversationClick(result.conversationId);
         if (result.isNew) {
-          toast.success('Conversation started!');
+          toast.success(t('conversations.conversationStarted'));
         }
         // Clear the URL parameter to prevent re-triggering
         navigate(location.pathname, { replace: true });
       } else {
-        toast.error('Failed to start conversation');
+        toast.error(t('conversations.errors.failedToStart'));
       }
     } catch (error) {
       console.error('Error starting conversation:', error);
-      toast.error('Failed to start conversation');
+      toast.error(t('conversations.errors.failedToStart'));
     } finally {
       setCreatingConversation(false);
     }
@@ -144,7 +146,7 @@ export const ConversationsListPage: React.FC = () => {
           if (userDoc.exists()) {
             const freshUserData = userDoc.data();
             otherUserData = {
-              displayName: freshUserData.displayName || freshUserData.name || 'User',
+              displayName: freshUserData.displayName || freshUserData.name || t('common.user'),
               photoURL: freshUserData.photoURL || freshUserData.photo,
               userType: freshUserData.userType,
               isOnline: freshUserData.isOnline
@@ -154,12 +156,12 @@ export const ConversationsListPage: React.FC = () => {
           if (otherUserData) {
             conversationsData.push({
               id: docSnapshot.id,
-              lastMessage: data.lastMessage || 'No messages yet',
+              lastMessage: data.lastMessage || t('conversations.noMessages'),
               lastMessageTime: data.lastMessageTime,
               unreadCount: data.participantDetails?.[user.uid]?.unreadCount || 0,
               otherUser: {
                 id: otherUserId,
-                displayName: otherUserData.displayName || 'Unknown User',
+                displayName: otherUserData.displayName || t('common.unknownUser'),
                 photoURL: otherUserData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUserData.displayName || 'User')}&background=FCE90D&color=011241`,
                 userType: otherUserData.userType || 'freelancer',
                 isOnline: otherUserData.isOnline || false
@@ -188,7 +190,7 @@ export const ConversationsListPage: React.FC = () => {
         <div className="text-center">
           <Spinner size="lg" />
           <p className="text-gray-400 mt-4">
-            {creatingConversation ? 'Starting conversation...' : 'Loading conversations...'}
+            {creatingConversation ? t('conversations.startingConversation') : t('conversations.loadingConversations')}
           </p>
         </div>
       </div>
@@ -199,35 +201,35 @@ export const ConversationsListPage: React.FC = () => {
     conv.otherUser.displayName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-const conversationsList = (
-  <div className="h-full flex flex-col">
-    <div className="p-4 pb-14">
-      <h1 className="text-2xl font-bold text-white mb-2">Messages</h1>
-      <p className="text-gray-400 text-sm mb-3">Your conversations with freelancers and clients</p>
-      <Input
-        placeholder="Search conversations..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        startContent={<Icon icon="lucide:search" className="text-gray-400" />}
-        classNames={{
-          input: "text-white",
-          inputWrapper: "bg-white/5 border-white/20 hover:border-white/30"
-        }}
-      />
-    </div>
+  const conversationsList = (
+    <div className="h-full flex flex-col">
+      <div className="p-4 pb-14">
+        <h1 className="text-2xl font-bold text-white mb-2">{t('conversations.title')}</h1>
+        <p className="text-gray-400 text-sm mb-3">{t('conversations.subtitle')}</p>
+        <Input
+          placeholder={t('conversations.searchPlaceholder')}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          startContent={<Icon icon="lucide:search" className="text-gray-400" />}
+          classNames={{
+            input: "text-white",
+            inputWrapper: "bg-white/5 border-white/20 hover:border-white/30"
+          }}
+        />
+      </div>
 
       <div className="border-t border-white/10 flex-1 overflow-y-auto">
         {filteredConversations.length === 0 ? (
           <div className="text-center py-12 px-4">
             <Icon icon="lucide:message-circle" className="text-6xl text-gray-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">No conversations yet</h3>
-            <p className="text-gray-400 mb-6">Start a conversation by messaging a freelancer</p>
+            <h3 className="text-lg font-semibold text-white mb-2">{t('conversations.noConversationsYet')}</h3>
+            <p className="text-gray-400 mb-6">{t('conversations.startConversationDesc')}</p>
             <Button
               color="secondary"
               onPress={() => navigate('/browse-freelancers')}
               startContent={<Icon icon="lucide:search" />}
             >
-              Browse Freelancers
+              {t('conversations.browseFreelancers')}
             </Button>
           </div>
         ) : (
@@ -318,10 +320,10 @@ const conversationsList = (
               <div className="text-center">
                 <Icon icon="lucide:message-square" className="text-6xl text-gray-500 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">
-                  Select a conversation
+                  {t('conversations.selectConversation')}
                 </h3>
                 <p className="text-gray-400">
-                  Choose a conversation from the list to start messaging
+                  {t('conversations.chooseConversation')}
                 </p>
               </div>
             </div>

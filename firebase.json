@@ -15,11 +15,22 @@
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {
+          "source": "/.well-known/apple-developer-domain-association",
+          "destination": "/.well-known/apple-developer-domain-association"
+        },
+        {
           "source": "!**/*.{css,js,png,jpg,jpeg,gif,svg,ico,woff,woff2,ttf,eot,map,json}",
           "destination": "/index.html"
         }
       ],
       "headers": [
+        {
+          "source": "/.well-known/apple-developer-domain-association",
+          "headers": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
         {
           "source": "**/*.css",
           "headers": [
@@ -51,11 +62,22 @@
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "rewrites": [
         {
+          "source": "/.well-known/apple-developer-domain-association",
+          "destination": "/.well-known/apple-developer-domain-association"
+        },
+        {
           "source": "!**/*.{css,js,png,jpg,jpeg,gif,svg,ico,woff,woff2,ttf,eot,map,json}",
           "destination": "/index.html"
         }
       ],
       "headers": [
+        {
+          "source": "/.well-known/apple-developer-domain-association",
+          "headers": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "Cache-Control", "value": "no-cache" }
+          ]
+        },
         {
           "source": "**/*.css",
           "headers": [

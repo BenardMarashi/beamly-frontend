@@ -16,6 +16,7 @@ import { Icon } from "@iconify/react";
 import { ProposalService } from "../services/firebase-services";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/theme-context";
+import { useTranslation } from "react-i18next";
 import { doc, getDoc } from "firebase/firestore";
 import { db, storage } from "../lib/firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -32,7 +33,7 @@ interface JobApplicationModalProps {
     id: string;
     title: string;
     clientId: string;
-    clientName?: string; // Make clientName optional
+    clientName?: string;
     budgetMin: number;
     budgetMax: number;
     budgetType: string;
@@ -56,6 +57,7 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
 }) => {
   const { user } = useAuth();
   const { isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -68,13 +70,12 @@ export const JobApplicationModal: React.FC<JobApplicationModalProps> = ({
   const [currentImageFile, setCurrentImageFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [proposalLimit, setProposalLimit] = useState<{
-  canSubmit: boolean;
-  remaining: number;
-  isPro: boolean;
-  current?: number;
-
-}>({ canSubmit: true, remaining: 5, isPro: false });
-const [checkingLimit, setCheckingLimit] = useState(false);
+    canSubmit: boolean;
+    remaining: number;
+    isPro: boolean;
+    current?: number;
+  }>({ canSubmit: true, remaining: 5, isPro: false });
+  const [checkingLimit, setCheckingLimit] = useState(false);
   const [formData, setFormData] = useState({
     coverLetter: "",
     proposedRate: "",
@@ -82,7 +83,6 @@ const [checkingLimit, setCheckingLimit] = useState(false);
   });
   
   // Image cropper configuration
-  // Set to true after importing ImageCropper correctly
   const USE_IMAGE_CROPPER = false;
   
   // Debug effect
@@ -106,23 +106,23 @@ const [checkingLimit, setCheckingLimit] = useState(false);
   
   const validateForm = () => {
     if (!formData.coverLetter.trim()) {
-      return "Please write a cover letter";
+      return t('jobApplication.errors.coverLetterRequired');
     }
     if (!formData.proposedRate || parseFloat(formData.proposedRate) <= 0) {
-      return "Please enter a valid rate";
+      return t('jobApplication.errors.validRateRequired');
     }
     if (!formData.estimatedDuration.trim()) {
-      return "Please provide an estimated duration";
+      return t('jobApplication.errors.durationRequired');
     }
     
     const rate = parseFloat(formData.proposedRate);
     if (job.budgetType === "fixed") {
       if (rate > job.budgetMax * 1.5) {
-        return "Your proposed rate is significantly higher than the budget";
+        return t('jobApplication.errors.rateToohigh');
       }
     } else {
       if (rate > job.budgetMax * 1.5) {
-        return "Your hourly rate is significantly higher than the budget";
+        return t('jobApplication.errors.hourlyRateTooHigh');
       }
     }
     
@@ -130,40 +130,40 @@ const [checkingLimit, setCheckingLimit] = useState(false);
   };
   
   // Check proposal limit when modal opens
-useEffect(() => {
-  if (isOpen && user) {
-    checkProposalLimit();
-  }
-}, [isOpen, user]);
-
-const checkProposalLimit = async () => {
-  if (!user) return;
-  
-  setCheckingLimit(true);
-  try {
-    const checkLimit = httpsCallable(fns, 'checkProposalLimit');
-    const result = await checkLimit() as any;
-    console.log('Proposal limit check:', result.data);
-    setProposalLimit(result.data);
-    
-    // If user can't submit, show error immediately
-    if (!result.data.canSubmit) {
-      setError("You've reached your monthly limit of 5 proposals. Upgrade to Pro for unlimited proposals.");
+  useEffect(() => {
+    if (isOpen && user) {
+      checkProposalLimit();
     }
-  } catch (error) {
-    console.error('Error checking proposal limit:', error);
-    // Don't block submission if check fails
-    setProposalLimit({ canSubmit: true, remaining: -1, isPro: false });
-  } finally {
-    setCheckingLimit(false);
-  }
-};
+  }, [isOpen, user]);
+
+  const checkProposalLimit = async () => {
+    if (!user) return;
+    
+    setCheckingLimit(true);
+    try {
+      const checkLimit = httpsCallable(fns, 'checkProposalLimit');
+      const result = await checkLimit() as any;
+      console.log('Proposal limit check:', result.data);
+      setProposalLimit(result.data);
+      
+      // If user can't submit, show error immediately
+      if (!result.data.canSubmit) {
+        setError(t('jobApplication.errors.limitReached'));
+      }
+    } catch (error) {
+      console.error('Error checking proposal limit:', error);
+      // Don't block submission if check fails
+      setProposalLimit({ canSubmit: true, remaining: -1, isPro: false });
+    } finally {
+      setCheckingLimit(false);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
-    console.log('Files selected:', files.length); // Debug log
+    console.log('Files selected:', files.length);
     const newAttachments: AttachmentFile[] = [];
     
     for (let i = 0; i < files.length; i++) {
@@ -187,13 +187,13 @@ const checkProposalLimit = async () => {
       const allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
       
       if (!allowedTypes.includes(file.type) && (!fileExtension || !allowedExtensions.includes(fileExtension))) {
-        toast.error(`${file.name} is not a supported file type`);
+        toast.error(t('jobApplication.errors.unsupportedFileType', { fileName: file.name }));
         continue;
       }
       
       // Check file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} is too large. Maximum size is 10MB`);
+        toast.error(t('jobApplication.errors.fileTooLarge', { fileName: file.name }));
         continue;
       }
       
@@ -205,7 +205,6 @@ const checkProposalLimit = async () => {
         console.log('Processing image file:', file.name);
         
         // For now, add images directly without cropping
-        // TODO: Enable this when ImageCropper is working
         if (!USE_IMAGE_CROPPER) {
           newAttachments.push({
             file,
@@ -213,7 +212,7 @@ const checkProposalLimit = async () => {
             size: file.size,
             type: file.type
           });
-          toast.success(`Image "${file.name}" added`);
+          toast.success(t('jobApplication.success.imageAdded', { fileName: file.name }));
           continue;
         }
         
@@ -228,12 +227,12 @@ const checkProposalLimit = async () => {
             console.log('Cropper state set to show');
           } else {
             console.error('Failed to read image data');
-            toast.error('Failed to read image file');
+            toast.error(t('jobApplication.errors.failedToReadImage'));
           }
         };
         reader.onerror = (error) => {
           console.error('Error reading file:', error);
-          toast.error('Error reading image file');
+          toast.error(t('jobApplication.errors.errorReadingImage'));
         };
         reader.readAsDataURL(file);
       } else {
@@ -244,7 +243,7 @@ const checkProposalLimit = async () => {
           size: file.size,
           type: file.type
         });
-        toast.success(`Document "${file.name}" added`);
+        toast.success(t('jobApplication.success.documentAdded', { fileName: file.name }));
       }
     }
     
@@ -268,7 +267,7 @@ const checkProposalLimit = async () => {
   const removeAttachment = (index: number) => {
     const removedFile = attachments[index];
     setAttachments(prev => prev.filter((_, i) => i !== index));
-    toast.success(`Removed "${removedFile.name}"`);
+    toast.success(t('jobApplication.success.fileRemoved', { fileName: removedFile.name }));
   };
   
   const handleImageCropped = async (croppedBlob: Blob) => {
@@ -286,7 +285,7 @@ const checkProposalLimit = async () => {
       type: croppedFile.type
     }]);
     
-    toast.success(`Image "${croppedFile.name}" cropped and added`);
+    toast.success(t('jobApplication.success.imageCropped', { fileName: croppedFile.name }));
     
     setShowImageCropper(false);
     setImageToCrop(null);
@@ -361,7 +360,7 @@ const checkProposalLimit = async () => {
         });
       } catch (error) {
         console.error('Error uploading file:', attachment.name, error);
-        toast.error(`Failed to upload ${attachment.name}`);
+        toast.error(t('jobApplication.errors.failedToUpload', { fileName: attachment.name }));
         // Continue with other files even if one fails
       }
     }
@@ -371,196 +370,196 @@ const checkProposalLimit = async () => {
     return urls;
   };
   
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  // Check proposal limit first
-  if (!proposalLimit.canSubmit) {
-    setError("You've reached your monthly limit of 5 proposals. Upgrade to Pro for unlimited proposals.");
-    // Navigate to billing after a delay
-    setTimeout(() => {
-      onClose();
-      navigate('/billing');
-      toast.error("Please upgrade to Pro for unlimited proposals");
-    }, 2000);
-    return;
-  }
-  
-  const validationError = validateForm();
-  if (validationError) {
-    setError(validationError);
-    return;
-  }
-  
-  if (!user) {
-    setError("You must be logged in to apply");
-    return;
-  }
-  
-  setLoading(true);
-  setError(null);
-  
-  try {
-    // Get user profile data
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    const userData = userDoc.data();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (!userData) {
-      throw new Error('User profile not found. Please complete your profile first.');
-    }
-    
-    // Validate freelancer profile
-    if (userData.userType === 'freelancer' || userData.userType === 'both') {
-      const missingFields = [];
-      if (!userData.displayName?.trim()) missingFields.push('Display Name');
-      if (!userData.bio?.trim()) missingFields.push('Bio');
-      if (!userData.skills || userData.skills.length === 0) missingFields.push('Skills');
-      if (!userData.hourlyRate || userData.hourlyRate <= 0) missingFields.push('Hourly Rate');
-      
-      if (missingFields.length > 0) {
-        throw new Error(`Please complete your profile before applying. Missing: ${missingFields.join(', ')}`);
-      }
-    }
-    
-    // Check if user already applied for this job
-    try {
-      const existingProposalCheck = await ProposalService.checkExistingProposal(job.id, user.uid);
-      if (existingProposalCheck.success && existingProposalCheck.exists) {
-        throw new Error('You have already applied for this job.');
-      }
-    } catch (checkError: any) {
-      console.warn('Could not check for existing proposal:', checkError);
-      // Continue anyway if check fails
-    }
-    
-    // Upload attachments if any
-    const attachmentUrls = await uploadAttachments();
-    
-    // Validate required fields
-    if (!job.id || !job.clientId) {
-      throw new Error('Job information is incomplete. Please refresh and try again.');
-    }
-    
-    // UPDATED: Use the Firebase Function directly instead of ProposalService
-    const submitProposalFn = httpsCallable(fns, 'submitProposal');
-    
-    const proposalData = {
-      jobId: job.id,
-      coverLetter: formData.coverLetter,
-      proposedRate: parseFloat(formData.proposedRate),
-      estimatedDuration: formData.estimatedDuration,
-      attachments: attachmentUrls,
-    };
-    
-    console.log('Submitting proposal with data:', proposalData);
-    
-    const result = await submitProposalFn(proposalData) as any;
-    
-    if (result.data?.success) {
-      toast.success("Application submitted successfully!");
-      
-      // UPDATED: Update the local state with the new count from the response
-      if (!userData.isPro && result.data.remaining !== undefined) {
-        setProposalLimit(prev => ({
-          ...prev,
-          remaining: result.data.remaining,
-          current: result.data.newProposalCount
-        }));
-      }
-      
-      // Delay the check to ensure Firebase has propagated the changes
-      setTimeout(() => {
-        checkProposalLimit();
-      }, 2000);
-      
-      onSuccess?.();
-      onClose();
-      
-      // Reset form
-      setFormData({
-        coverLetter: "",
-        proposedRate: "",
-        estimatedDuration: ""
-      });
-      setAttachments([]);
-    } else {
-      setError("Failed to submit application. Please try again.");
-    }
-  } catch (err: any) {
-    console.error("Error submitting application:", err);
-    console.error("Error details:", {
-      code: err.code,
-      message: err.message,
-      details: err.details
-    });
-    
-    const errorMessage = err.message || "An error occurred while submitting your application.";
-    
-    // Check for specific error types
-    if (err.code === 'functions/resource-exhausted' || errorMessage.includes('reached your monthly limit')) {
-      setError("You've reached your monthly limit of 5 proposals. Upgrade to Pro for unlimited proposals.");
+    // Check proposal limit first
+    if (!proposalLimit.canSubmit) {
+      setError(t('jobApplication.errors.limitReached'));
+      // Navigate to billing after a delay
       setTimeout(() => {
         onClose();
         navigate('/billing');
+        toast.error(t('jobApplication.errors.upgradeToPro'));
       }, 2000);
-    } else if (err.code === 'functions/already-exists' || errorMessage.includes('already applied')) {
-      setError("You have already applied for this job.");
-    } else if (err.code === 'permission-denied' || errorMessage.includes('Missing or insufficient permissions')) {
-      setError("You don't have permission to apply for this job. Please make sure you're logged in and try again.");
-    } else {
-      setError(errorMessage);
+      return;
     }
     
-    // If profile is incomplete, navigate to settings after a delay
-    if (errorMessage.includes('complete your profile')) {
-      setTimeout(() => {
-        onClose();
-        navigate('/settings');
-        toast.error("Please complete your profile first");
-      }, 2000);
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
     }
-  } finally {
-    setLoading(false);
-    setUploadProgress(0);
-  }
-};
+    
+    if (!user) {
+      setError(t('jobApplication.errors.mustBeLoggedIn'));
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Get user profile data
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
+      
+      if (!userData) {
+        throw new Error(t('jobApplication.errors.profileNotFound'));
+      }
+      
+      // Validate freelancer profile
+      if (userData.userType === 'freelancer' || userData.userType === 'both') {
+        const missingFields = [];
+        if (!userData.displayName?.trim()) missingFields.push(t('jobApplication.fields.displayName'));
+        if (!userData.bio?.trim()) missingFields.push(t('jobApplication.fields.bio'));
+        if (!userData.skills || userData.skills.length === 0) missingFields.push(t('jobApplication.fields.skills'));
+        if (!userData.hourlyRate || userData.hourlyRate <= 0) missingFields.push(t('jobApplication.fields.hourlyRate'));
+        
+        if (missingFields.length > 0) {
+          throw new Error(t('jobApplication.errors.completeProfile', { fields: missingFields.join(', ') }));
+        }
+      }
+      
+      // Check if user already applied for this job
+      try {
+        const existingProposalCheck = await ProposalService.checkExistingProposal(job.id, user.uid);
+        if (existingProposalCheck.success && existingProposalCheck.exists) {
+          throw new Error(t('jobApplication.errors.alreadyApplied'));
+        }
+      } catch (checkError: any) {
+        console.warn('Could not check for existing proposal:', checkError);
+        // Continue anyway if check fails
+      }
+      
+      // Upload attachments if any
+      const attachmentUrls = await uploadAttachments();
+      
+      // Validate required fields
+      if (!job.id || !job.clientId) {
+        throw new Error(t('jobApplication.errors.jobInfoIncomplete'));
+      }
+      
+      // UPDATED: Use the Firebase Function directly instead of ProposalService
+      const submitProposalFn = httpsCallable(fns, 'submitProposal');
+      
+      const proposalData = {
+        jobId: job.id,
+        coverLetter: formData.coverLetter,
+        proposedRate: parseFloat(formData.proposedRate),
+        estimatedDuration: formData.estimatedDuration,
+        attachments: attachmentUrls,
+      };
+      
+      console.log('Submitting proposal with data:', proposalData);
+      
+      const result = await submitProposalFn(proposalData) as any;
+      
+      if (result.data?.success) {
+        toast.success(t('jobApplication.success.submitted'));
+        
+        // UPDATED: Update the local state with the new count from the response
+        if (!userData.isPro && result.data.remaining !== undefined) {
+          setProposalLimit(prev => ({
+            ...prev,
+            remaining: result.data.remaining,
+            current: result.data.newProposalCount
+          }));
+        }
+        
+        // Delay the check to ensure Firebase has propagated the changes
+        setTimeout(() => {
+          checkProposalLimit();
+        }, 2000);
+        
+        onSuccess?.();
+        onClose();
+        
+        // Reset form
+        setFormData({
+          coverLetter: "",
+          proposedRate: "",
+          estimatedDuration: ""
+        });
+        setAttachments([]);
+      } else {
+        setError(t('jobApplication.errors.submitFailed'));
+      }
+    } catch (err: any) {
+      console.error("Error submitting application:", err);
+      console.error("Error details:", {
+        code: err.code,
+        message: err.message,
+        details: err.details
+      });
+      
+      const errorMessage = err.message || t('jobApplication.errors.errorOccurred');
+      
+      // Check for specific error types
+      if (err.code === 'functions/resource-exhausted' || errorMessage.includes('reached your monthly limit')) {
+        setError(t('jobApplication.errors.limitReached'));
+        setTimeout(() => {
+          onClose();
+          navigate('/billing');
+        }, 2000);
+      } else if (err.code === 'functions/already-exists' || errorMessage.includes('already applied')) {
+        setError(t('jobApplication.errors.alreadyApplied'));
+      } else if (err.code === 'permission-denied' || errorMessage.includes('Missing or insufficient permissions')) {
+        setError(t('jobApplication.errors.noPermission'));
+      } else {
+        setError(errorMessage);
+      }
+      
+      // If profile is incomplete, navigate to settings after a delay
+      if (errorMessage.includes('complete your profile')) {
+        setTimeout(() => {
+          onClose();
+          navigate('/settings');
+          toast.error(t('jobApplication.errors.completeProfileFirst'));
+        }, 2000);
+      }
+    } finally {
+      setLoading(false);
+      setUploadProgress(0);
+    }
+  };
   
   return (
     <>
-<Modal
-  isOpen={isOpen}
-  onClose={onClose}
-  size="full" // Use full size on mobile
-  scrollBehavior="inside"
-  classNames={{
-    wrapper: "p-0 m-0",
-    base: "m-0 sm:m-4 max-h-[100dvh] sm:max-h-[90vh]", // Use dvh for dynamic viewport
-    body: "p-4 overflow-y-auto",
-    header: "border-b border-gray-200 dark:border-gray-700",
-    footer: "border-t border-gray-200 dark:border-gray-700",
-    closeButton: "right-4 top-4 z-10"
-  }}
-  motionProps={{
-    variants: {
-      enter: {
-        y: 0,
-        opacity: 1,
-        transition: {
-          duration: 0.3,
-          ease: "easeOut"
-        }
-      },
-      exit: {
-        y: 20,
-        opacity: 0,
-        transition: {
-          duration: 0.2,
-          ease: "easeIn"
-        }
-      }
-    }
-  }}
->
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        size="full"
+        scrollBehavior="inside"
+        classNames={{
+          wrapper: "p-0 m-0",
+          base: "m-0 sm:m-4 max-h-[100dvh] sm:max-h-[90vh]",
+          body: "p-4 overflow-y-auto",
+          header: "border-b border-gray-200 dark:border-gray-700",
+          footer: "border-t border-gray-200 dark:border-gray-700",
+          closeButton: "right-4 top-4 z-10"
+        }}
+        motionProps={{
+          variants: {
+            enter: {
+              y: 0,
+              opacity: 1,
+              transition: {
+                duration: 0.3,
+                ease: "easeOut"
+              }
+            },
+            exit: {
+              y: 20,
+              opacity: 0,
+              transition: {
+                duration: 0.2,
+                ease: "easeIn"
+              }
+            }
+          }
+        }}
+      >
         <ModalContent 
           className={isDarkMode ? 'bg-beamly-third' : 'bg-white'}
           style={isDarkMode ? { backgroundColor: '#011241' } : {}}
@@ -568,7 +567,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           <form onSubmit={handleSubmit}>
             <ModalHeader className="flex flex-col gap-1">
               <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                Apply for Job
+                {t('jobApplication.title')}
               </h3>
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 {job.title}
@@ -581,7 +580,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-[#010b29] border border-white/10' : 'bg-gray-50 border border-gray-200'}`}>
                   <div className="flex items-center justify-between">
                     <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      Client's Budget:
+                      {t('jobApplication.clientBudget')}:
                     </span>
                     <Chip 
                       color="secondary" 
@@ -593,12 +592,13 @@ const handleSubmit = async (e: React.FormEvent) => {
                     >
                       {job.budgetType === "fixed" 
                         ? `€${job.budgetMin.toLocaleString()}`
-                        : `€${job.budgetMin} - $${job.budgetMax}/hr`
+                        : `€${job.budgetMin} - €${job.budgetMax}/hr`
                       }
                     </Chip>
                   </div>
                 </div>
-                {/* Proposal Limit Info - ADD THIS */}
+                
+                {/* Proposal Limit Info */}
                 {!checkingLimit && !proposalLimit.isPro && (
                   <div className={`p-4 rounded-lg ${
                     proposalLimit.remaining <= 2 
@@ -620,12 +620,12 @@ const handleSubmit = async (e: React.FormEvent) => {
                             ? 'text-amber-500' 
                             : isDarkMode ? 'text-blue-400' : 'text-blue-600'
                         }`}>
-                          Proposal Limit
+                          {t('jobApplication.proposalLimit')}
                         </p>
                         <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                           {proposalLimit.remaining > 0 
-                            ? `You have ${proposalLimit.remaining} proposal${proposalLimit.remaining === 1 ? '' : 's'} remaining this month.`
-                            : 'You\'ve reached your monthly limit.'}
+                            ? t('jobApplication.proposalsRemaining', { count: proposalLimit.remaining })
+                            : t('jobApplication.monthlyLimitReached')}
                         </p>
                         {proposalLimit.remaining <= 2 && proposalLimit.remaining > 0 && (
                           <Button
@@ -639,7 +639,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                             }}
                           >
                             <Icon icon="lucide:crown" className="mr-1" />
-                            Upgrade to Pro for Unlimited
+                            {t('jobApplication.upgradeForUnlimited')}
                           </Button>
                         )}
                       </div>
@@ -647,17 +647,17 @@ const handleSubmit = async (e: React.FormEvent) => {
                   </div>
                 )}
                 
-                {/* Can't Submit Warning - ADD THIS */}
+                {/* Can't Submit Warning */}
                 {!proposalLimit.canSubmit && (
                   <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'}`}>
                     <div className="flex items-start gap-3">
                       <Icon icon="lucide:x-circle" className="text-red-500 mt-0.5" />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-red-500 mb-1">
-                          Monthly Limit Reached
+                          {t('jobApplication.monthlyLimitReachedTitle')}
                         </p>
                         <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-3`}>
-                          Free users can submit up to 5 proposals per month.
+                          {t('jobApplication.freeUserLimit')}
                         </p>
                         <Button
                           color="secondary"
@@ -668,19 +668,20 @@ const handleSubmit = async (e: React.FormEvent) => {
                           }}
                           startContent={<Icon icon="lucide:crown" />}
                         >
-                          Upgrade to Pro
+                          {t('jobApplication.upgradeToPro')}
                         </Button>
                       </div>
                     </div>
                   </div>
                 )}
+                
                 {/* Cover Letter */}
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    Cover Letter *
+                    {t('jobApplication.coverLetter')} *
                   </label>
                   <Textarea
-                    placeholder="Explain why you're the best fit for this job..."
+                    placeholder={t('jobApplication.coverLetterPlaceholder')}
                     value={formData.coverLetter}
                     onValueChange={(value) => handleInputChange("coverLetter", value)}
                     variant="bordered"
@@ -695,22 +696,22 @@ const handleSubmit = async (e: React.FormEvent) => {
                     isRequired
                   />
                   <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Tip: Mention relevant experience, approach to the project, and why you're interested
+                    {t('jobApplication.coverLetterTip')}
                   </p>
                 </div>
                 
                 {/* Proposed Rate */}
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    Proposed {job.budgetType === "fixed" ? "Total Price" : "Hourly Rate"} *
+                    {job.budgetType === "fixed" ? t('jobApplication.proposedTotalPrice') : t('jobApplication.proposedHourlyRate')} *
                   </label>
                   <Input
                     type="number"
-                    placeholder={job.budgetType === "fixed" ? "Enter total price" : "Enter hourly rate"}
+                    placeholder={job.budgetType === "fixed" ? t('jobApplication.enterTotalPrice') : t('jobApplication.enterHourlyRate')}
                     value={formData.proposedRate}
                     onValueChange={(value) => handleInputChange("proposedRate", value)}
                     variant="bordered"
-                    startContent={<span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>$</span>}
+                    startContent={<span className={isDarkMode ? "text-gray-400" : "text-gray-600"}>€</span>}
                     classNames={{
                       base: isDarkMode ? "dark" : "",
                       input: isDarkMode ? "text-white placeholder:text-gray-500" : "bg-white",
@@ -725,10 +726,10 @@ const handleSubmit = async (e: React.FormEvent) => {
                 {/* Estimated Duration */}
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    Estimated Duration *
+                    {t('jobApplication.estimatedDuration')} *
                   </label>
                   <Input
-                    placeholder="e.g., 2 weeks, 1 month"
+                    placeholder={t('jobApplication.durationPlaceholder')}
                     value={formData.estimatedDuration}
                     onValueChange={(value) => handleInputChange("estimatedDuration", value)}
                     variant="bordered"
@@ -746,7 +747,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 {/* Attachments */}
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                    Attachments (Optional) {!USE_IMAGE_CROPPER && <span className="text-xs text-yellow-500">(Image cropping disabled)</span>}
+                    {t('jobApplication.attachments')} {!USE_IMAGE_CROPPER && <span className="text-xs text-yellow-500">({t('jobApplication.imageCroppingDisabled')})</span>}
                   </label>
                   
                   <input
@@ -782,10 +783,10 @@ const handleSubmit = async (e: React.FormEvent) => {
                       className={`mx-auto text-4xl mb-3 pointer-events-none ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} 
                     />
                     <p className={`text-sm font-medium pointer-events-none ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Click to upload or drag and drop
+                      {t('jobApplication.uploadDropText')}
                     </p>
                     <p className={`text-xs mt-1 pointer-events-none ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                      PDF, DOC, DOCX, JPG, PNG, GIF, WEBP up to 10MB
+                      {t('jobApplication.supportedFormats')}
                     </p>
                   </div>
                   
@@ -801,7 +802,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       }}
                     >
                       <Icon icon="lucide:folder-open" className="mr-2" />
-                      Browse Files
+                      {t('jobApplication.browseFiles')}
                     </Button>
                   </div>
                   
@@ -828,7 +829,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                               </p>
                               <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                                 {(attachment.size / 1024 / 1024).toFixed(2)} MB
-                                {attachment.type.startsWith('image/') && ' • Image'}
+                                {attachment.type.startsWith('image/') && ` • ${t('jobApplication.image')}`}
                               </p>
                             </div>
                           </div>
@@ -844,7 +845,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                         </div>
                       ))}
                       <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                        {attachments.length} file{attachments.length !== 1 ? 's' : ''} selected
+                        {t('jobApplication.filesSelected', { count: attachments.length })}
                       </p>
                     </div>
                   )}
@@ -857,7 +858,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     size="sm"
                     color="secondary"
                     className="mb-2"
-                    label={`Uploading attachments... ${uploadProgress.toFixed(0)}%`}
+                    label={t('jobApplication.uploadingAttachments', { progress: uploadProgress.toFixed(0) })}
                     classNames={{
                       indicator: isDarkMode ? "bg-beamly-secondary" : "",
                       track: isDarkMode ? "bg-white/10" : ""
@@ -884,7 +885,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 isDisabled={loading}
                 className={isDarkMode ? 'bg-white/10 text-white hover:bg-white/20' : ''}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -894,10 +895,10 @@ const handleSubmit = async (e: React.FormEvent) => {
                 isDisabled={loading || checkingLimit || !proposalLimit.canSubmit}
               >
                 {!proposalLimit.canSubmit 
-                  ? 'Limit Reached' 
+                  ? t('jobApplication.limitReachedButton')
                   : checkingLimit 
-                    ? 'Checking...' 
-                    : 'Submit Application'}
+                    ? t('jobApplication.checking')
+                    : t('jobApplication.submitApplication')}
               </Button>
             </ModalFooter>
           </form>
@@ -912,7 +913,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           left: 0, 
           right: 0, 
           bottom: 0, 
-          zIndex: 100000, // Very high z-index to ensure it's on top
+          zIndex: 100000,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Input, Avatar, Spinner, Badge } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { ConversationService } from '../services/firebase-services';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -35,6 +36,7 @@ export const MessagesPage: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const navigate = useNavigate();
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -106,12 +108,12 @@ export const MessagesPage: React.FC = () => {
           await ConversationService.markMessagesAsRead(conversationId, user.uid);
         } else {
           console.error('Conversation not found');
-          toast.error('Conversation not found');
+          toast.error(t('messages.conversationNotFound'));
           navigate('/messages');
         }
       } catch (error) {
         console.error('Error loading conversation:', error);
-        toast.error('Failed to load conversation');
+        toast.error(t('messages.failedToLoadConversation'));
       } finally {
         setLoading(false);
       }
@@ -157,7 +159,7 @@ export const MessagesPage: React.FC = () => {
       },
       (error) => {
         console.error('Error in message subscription:', error);
-        toast.error('Failed to load messages');
+        toast.error(t('messages.failedToLoadMessages'));
       }
     );
 
@@ -186,7 +188,7 @@ export const MessagesPage: React.FC = () => {
       const result = await ConversationService.sendMessage({
         conversationId,
         senderId: user!.uid,
-        senderName: userData?.displayName || 'User',
+        senderName: userData?.displayName || t('common.user'),
         recipientId: otherUser.id,
         text: messageText
       });
@@ -196,12 +198,12 @@ export const MessagesPage: React.FC = () => {
         messageInputRef.current?.focus();
       } else {
         console.error('Failed to send message:', result.error);
-        toast.error('Failed to send message');
+        toast.error(t('messages.failedToSend'));
         setNewMessage(messageText); // Restore message on error
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Failed to send message');
+      toast.error(t('messages.failedToSend'));
       setNewMessage(messageText); // Restore message on error
     } finally {
       setSending(false);
@@ -233,12 +235,12 @@ export const MessagesPage: React.FC = () => {
       <div className="fixed inset-0 flex items-center justify-center bg-[#010b29]">
         <div className="text-center p-4">
           <Icon icon="lucide:message-circle-x" className="text-6xl text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-400 mb-4">Conversation not found</p>
+          <p className="text-gray-400 mb-4">{t('messages.conversationNotFound')}</p>
           <Button 
             onPress={() => navigate('/messages')}
             className="bg-white/10 text-white hover:bg-white/20"
           >
-            Back to Messages
+            {t('messages.backToMessages')}
           </Button>
         </div>
       </div>
@@ -283,9 +285,9 @@ export const MessagesPage: React.FC = () => {
             {otherUser.displayName}
           </h3>
           <p className="text-sm text-gray-400 capitalize">
-            {otherUser.userType === 'freelancer' ? 'Freelancer' : 
-            otherUser.userType === 'client' ? 'Client' : 'User'}
-            {otherUser.isOnline && ' • Online'}
+            {otherUser.userType === 'freelancer' ? t('messages.userTypes.freelancer') : 
+            otherUser.userType === 'client' ? t('messages.userTypes.client') : t('messages.userTypes.user')}
+            {otherUser.isOnline && ` • ${t('messages.online')}`}
           </p>
         </div>
       </div>
@@ -296,7 +298,7 @@ export const MessagesPage: React.FC = () => {
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Icon icon="lucide:message-circle" className="text-6xl text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400">No messages yet. Start the conversation!</p>
+              <p className="text-gray-400">{t('messages.noMessagesYet')}</p>
             </div>
           </div>
         ) : (
@@ -350,7 +352,7 @@ export const MessagesPage: React.FC = () => {
             ref={messageInputRef}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
+            placeholder={t('messages.typeMessage')}
             disabled={sending}
             classNames={{
               input: "text-white",
