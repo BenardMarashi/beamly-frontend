@@ -325,3 +325,5 @@ The platform uses Stripe for all payment processing:
 - **Protected features**: Wrap routes with `ProtectedRoute`, `FreelancerGuard`, or `ClientGuard`
 - **Payment integration**: Use Firebase Functions for all Stripe operations
 - **File uploads**: Use `uploadFile` function to handle CORS issues
+- **Testing new features**: Although no tests exist yet, use `npm run test path/to/file.test.ts` when tests are added
+- **Environment issues**: Run `npm run check:env` to verify all required variables are set

@@ -1,0 +1,9 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.beamlyapp.app",
+    "sha256_cert_fingerprints":
+    ["A1:9E:C4:AC:86:A3:AC:73:97:5E:61:F1:C6:DB:B9:0D:CE:C8:AA:B9:7B:7A:DF:1D:A4:A7:03:58:D9:AA:26:64"]
+  }
+}]

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import { motion } from "framer-motion";
 import { 
   Input, 
@@ -38,6 +38,117 @@ interface Freelancer {
   isPro?: boolean;
 }
 
+// Memoized freelancer card component
+const FreelancerCard = memo(({ 
+  freelancer, 
+  onClick, 
+  getInitials,
+  getExperienceLevelLabel,
+  t 
+}: {
+  freelancer: Freelancer;
+  onClick: (id: string) => void;
+  getInitials: (name?: string, email?: string) => string;
+  getExperienceLevelLabel: (level: string) => string;
+  t: any;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    whileHover={{ scale: 1.05 }}
+    onClick={() => onClick(freelancer.id)}
+    className="cursor-pointer"
+  >
+    <Card className="glass-effect hover:bg-white/10 transition-all duration-200 overflow-hidden">
+      <CardBody className="p-6">
+        <div className="flex items-center gap-4 mb-4">
+          {freelancer.photoURL ? (
+            <Avatar
+              src={freelancer.photoURL}
+              className="w-16 h-16 flex-shrink-0"
+              name={freelancer.displayName}
+            />
+          ) : (
+            <Avatar
+              name={getInitials(freelancer.displayName, freelancer.email)}
+              className="w-16 h-16 flex-shrink-0"
+              classNames={{
+                base: "bg-beamly-secondary/20",
+                name: "text-beamly-secondary font-bold"
+              }}
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-white truncate flex-1">
+                {freelancer.displayName || t('freelancers.anonymousFreelancer')}
+              </h3>
+              {freelancer.isPro && (
+                <Chip
+                  size="sm"
+                  color="warning"
+                  variant="flat"
+                  className="flex-shrink-0"
+                  startContent={<Icon icon="lucide:crown" className="text-xs" />}
+                >
+                  {t('common.pro')}
+                </Chip>
+              )}
+            </div>
+            <p className="text-sm text-gray-300 truncate">
+              {freelancer.title || getExperienceLevelLabel(freelancer.experienceLevel || '')}
+            </p>
+          </div>
+        </div>
+        
+        {freelancer.skills && freelancer.skills.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4 overflow-hidden">
+            {freelancer.skills.slice(0, 3).map((skill, idx) => (
+              <Chip 
+                key={idx} 
+                size="sm" 
+                variant="flat"
+                className="bg-white/10 text-white max-w-[120px]"
+              >
+                <span className="truncate">{skill}</span>
+              </Chip>
+            ))}
+            {freelancer.skills.length > 3 && (
+              <Chip size="sm" variant="flat" className="bg-white/10 text-gray-400">
+                +{freelancer.skills.length - 3}
+              </Chip>
+            )}
+          </div>
+        )}
+        
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-1 min-w-0">
+            <Icon icon="lucide:star" className="text-yellow-500 flex-shrink-0" />
+            <span className="text-white whitespace-nowrap">{freelancer.rating || '0.0'}</span>
+            <span className="text-gray-400 truncate">
+              ({freelancer.completedJobs || 0} {freelancer.completedJobs === 1 ? t('freelancers.job') : t('freelancers.jobs')})
+            </span>
+          </div>
+          {freelancer.hourlyRate && (
+            <span className="text-beamly-secondary font-semibold whitespace-nowrap">
+              €{freelancer.hourlyRate}{t('common.perHour')}
+            </span>
+          )}
+        </div>
+        
+        {!freelancer.profileCompleted && (
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              <Icon icon="lucide:alert-circle" className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{t('freelancers.profileIncomplete')}</span>
+            </p>
+          </div>
+        )}
+      </CardBody>
+    </Card>
+  </motion.div>
+));
+
 const BrowseFreelancersPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -47,16 +158,14 @@ const BrowseFreelancersPage: React.FC = () => {
   const [sortBy, setSortBy] = useState('rating');
   const [budgetFilter, setBudgetFilter] = useState('all');
   
-  // CHANGED: Store all fetched users and display separately
   const [allFetchedUsers, setAllFetchedUsers] = useState<Freelancer[]>([]);
-  const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
   const [displayCount, setDisplayCount] = useState(12);
   
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const lastDocRef = useRef<DocumentSnapshot | null>(null);
   
-  // Initialize search query and category from URL params on mount
+  // Initialize from URL params
   useEffect(() => {
     const search = urlSearchParams.get('search');
     const category = urlSearchParams.get('category');
@@ -65,7 +174,8 @@ const BrowseFreelancersPage: React.FC = () => {
     if (category) setSelectedCategory(category);
   }, [urlSearchParams]);
     
-  const categories = [
+  // Memoize static data
+  const categories = useMemo(() => [
     { value: 'all', label: t('freelancers.categories.all') },
     { value: 'design', label: t('freelancers.categories.design') },
     { value: 'development', label: t('freelancers.categories.development') },
@@ -77,35 +187,18 @@ const BrowseFreelancersPage: React.FC = () => {
     { value: 'data', label: t('freelancers.categories.data') },
     { value: 'photography', label: t('freelancers.categories.photography') },
     { value: 'translation', label: t('freelancers.categories.translation') }
-  ];
+  ], [t]);
 
-  const budgetRanges = [
+  const budgetRanges = useMemo(() => [
     { value: 'all', label: t('freelancers.budget.all') },
     { value: '0-25', label: t('freelancers.budget.under25') },
     { value: '25-50', label: t('freelancers.budget.25to50') },
     { value: '50-100', label: t('freelancers.budget.50to100') },
     { value: '100+', label: t('freelancers.budget.100plus') }
-  ];
-  
-  const getCategorySkills = (category: string) => {
-    const skillsMap: { [key: string]: string[] } = {
-      design: ['ui-ux', 'graphic-design', 'logo-design', 'illustration', 'photoshop', 'figma', 'adobe-xd', 'sketch', 'web-design', 'branding'],
-      development: ['javascript', 'react', 'node.js', 'python', 'java', 'php', 'angular', 'vue.js', 'typescript', 'html', 'css', 'mongodb', 'sql'],
-      writing: ['content-writing', 'copywriting', 'blog-writing', 'technical-writing', 'creative-writing', 'editing', 'proofreading', 'seo-writing'],
-      marketing: ['seo', 'social-media', 'google-ads', 'facebook-ads', 'email-marketing', 'content-marketing', 'digital-marketing', 'ppc'],
-      video: ['video-editing', 'animation', 'motion-graphics', 'after-effects', 'premiere-pro', '3d-animation', 'video-production'],
-      music: ['music-production', 'audio-editing', 'voice-over', 'mixing', 'mastering', 'sound-design', 'podcast-editing'],
-      business: ['business-analysis', 'project-management', 'consulting', 'strategy', 'financial-analysis', 'business-development'],
-      data: ['data-analysis', 'data-science', 'machine-learning', 'python', 'r', 'sql', 'tableau', 'power-bi', 'statistics'],
-      photography: ['photography', 'photo-editing', 'photoshop', 'lightroom', 'product-photography', 'portrait-photography'],
-      translation: ['translation', 'transcription', 'localization', 'interpretation', 'subtitling', 'proofreading']
-    };
-    
-    return skillsMap[category] || [];
-  };
+  ], [t]);
 
   // Fetch users from database
-  const fetchUsersFromDatabase = async (reset = false) => {
+  const fetchUsersFromDatabase = useCallback(async (reset = false) => {
     const scrollPosition = window.scrollY;
     
     setLoading(true);
@@ -120,26 +213,21 @@ const BrowseFreelancersPage: React.FC = () => {
         where('userType', 'in', ['freelancer', 'both'])
       ];
       
-      // Add category filter if not 'all'
       if (selectedCategory !== 'all') {
         constraints.push(where('category', '==', selectedCategory));
       }
       
-      // Always use createdAt for ordering to avoid errors
       constraints.push(orderBy('createdAt', 'desc'));
       
       if (!reset && lastDocRef.current) {
         constraints.push(startAfter(lastDocRef.current));
       }
       
-      // CHANGED: Fetch more on initial load to ensure we get PRO users
       const fetchLimit = reset ? 100 : 20;
       constraints.push(limit(fetchLimit));
       
       const q = query(collection(db, 'users'), ...constraints);
-      
       const querySnapshot = await getDocs(q);
-      console.log(`Query returned ${querySnapshot.docs.length} documents (initial: ${reset})`);
       
       if (querySnapshot.docs.length > 0) {
         lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
@@ -147,8 +235,6 @@ const BrowseFreelancersPage: React.FC = () => {
       
       const newUsers = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        console.log(`User ${doc.id}: isPro=${data.isPro}, name=${data.displayName}`);
-        
         return {
           id: doc.id,
           ...data,
@@ -160,7 +246,6 @@ const BrowseFreelancersPage: React.FC = () => {
         } as Freelancer;
       });
       
-      // Update all fetched users
       if (reset) {
         setAllFetchedUsers(newUsers);
       } else {
@@ -169,13 +254,9 @@ const BrowseFreelancersPage: React.FC = () => {
       
       setHasMore(querySnapshot.docs.length === fetchLimit);
       
-      // Restore scroll for load more
       if (!reset && querySnapshot.docs.length > 0) {
         setTimeout(() => {
-          window.scrollTo({
-            top: scrollPosition,
-            behavior: 'instant'
-          });
+          window.scrollTo({ top: scrollPosition, behavior: 'instant' });
         }, 50);
       }
       
@@ -188,162 +269,118 @@ const BrowseFreelancersPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
 
-  // Apply filters and sorting to all fetched users
-  const applyFiltersAndSorting = React.useCallback(() => {
-    let filtered = [...allFetchedUsers];
-    
-    // Apply budget filter
-    if (budgetFilter !== 'all') {
-      const [min, max] = budgetFilter.split('-').map(v => v === '100+' ? '100' : v);
-      const minValue = parseInt(min);
-      const maxValue = max ? parseInt(max) : Infinity;
+  // OPTIMIZED: Single-pass filtering and sorting (O(n) instead of O(n²))
+  const filteredAndSortedFreelancers = useMemo(() => {
+    // Single pass for all operations
+    const searchLower = searchQuery.toLowerCase().trim();
+    const [minBudget, maxBudget] = budgetFilter === 'all' 
+      ? [0, Infinity] 
+      : budgetFilter === '100+' 
+        ? [100, Infinity]
+        : budgetFilter.split('-').map(Number);
+
+    // Single filtering pass with all conditions
+    const filtered = allFetchedUsers.filter(freelancer => {
+      // Budget filter
+      const rate = parseInt(freelancer.hourlyRate || '0');
+      if (rate < minBudget || rate > (maxBudget || Infinity)) return false;
       
-      filtered = filtered.filter(freelancer => {
-        const rate = parseInt(freelancer.hourlyRate || '0');
-        if (budgetFilter === '100+') return rate >= 100;
-        return rate >= minValue && rate <= maxValue;
-      });
-    }
-    
-    // Apply search filter
-    if (searchQuery && searchQuery.trim()) {
-      const searchLower = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(freelancer => 
+      // Search filter (if applicable)
+      if (searchLower && !(
         freelancer.displayName?.toLowerCase().includes(searchLower) ||
         freelancer.bio?.toLowerCase().includes(searchLower) ||
         freelancer.title?.toLowerCase().includes(searchLower) ||
         freelancer.skills?.some(skill => skill.toLowerCase().includes(searchLower)) ||
         freelancer.location?.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    // SORT WITH PRO USERS ALWAYS FIRST
-    const proUsers: Freelancer[] = [];
-    const regularUsers: Freelancer[] = [];
-    
-    filtered.forEach(user => {
-      if (user.isPro === true) {
-        proUsers.push(user);
-      } else {
-        regularUsers.push(user);
-      }
+      )) return false;
+      
+      return true;
     });
-    
-    console.log(`After filtering: ${proUsers.length} Pro users, ${regularUsers.length} regular users out of ${allFetchedUsers.length} total`);
-    
-    // Sort function for each group
-    const compareFunction = (a: Freelancer, b: Freelancer): number => {
+
+    // Sort with Pro users first
+    const sorted = [...filtered].sort((a, b) => {
+      // Pro users always come first
+      if (a.isPro !== b.isPro) return a.isPro ? -1 : 1;
+      
+      // Then sort by selected criteria
       switch (sortBy) {
         case 'rating':
           return (b.rating || 0) - (a.rating || 0);
         case 'completedJobs':
           return (b.completedJobs || 0) - (a.completedJobs || 0);
         case 'hourlyRate':
-          const aRate = parseInt(a.hourlyRate || '0');
-          const bRate = parseInt(b.hourlyRate || '0');
-          return aRate - bRate;
+          return parseInt(a.hourlyRate || '0') - parseInt(b.hourlyRate || '0');
         case 'newest':
         default:
-          const aTime = a.createdAt?.seconds || 0;
-          const bTime = b.createdAt?.seconds || 0;
-          return bTime - aTime;
+          return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
       }
-    };
-    
-    // Sort each group
-    const sortedProUsers = [...proUsers].sort(compareFunction);
-    const sortedRegularUsers = [...regularUsers].sort(compareFunction);
-    
-    // Combine with Pro users FIRST
-    const sorted = [...sortedProUsers, ...sortedRegularUsers];
-    
-    // Display only the amount we want
-    const displayed = sorted.slice(0, displayCount);
-    
-    console.log('First 3 after sorting:', displayed.slice(0, 3).map(f => ({
-      name: f.displayName,
-      isPro: f.isPro
-    })));
-    
-    setFreelancers(displayed);
-    
-    // Check if we need more data
-    if (displayed.length < displayCount && hasMore && !loading) {
+    });
+
+    return sorted.slice(0, displayCount);
+  }, [allFetchedUsers, budgetFilter, searchQuery, sortBy, displayCount]);
+
+  // Check if need more data
+  useEffect(() => {
+    if (filteredAndSortedFreelancers.length < displayCount && hasMore && !loading) {
       fetchUsersFromDatabase(false);
     }
-  }, [allFetchedUsers, budgetFilter, searchQuery, sortBy, displayCount, hasMore, loading]);
-
-  // Apply filters when data or filters change
-  useEffect(() => {
-    applyFiltersAndSorting();
-  }, [applyFiltersAndSorting]);
+  }, [filteredAndSortedFreelancers.length, displayCount, hasMore, loading, fetchUsersFromDatabase]);
 
   // Initial load and category change
   useEffect(() => {
-    setFreelancers([]);
     setAllFetchedUsers([]);
     setDisplayCount(12);
     lastDocRef.current = null;
     fetchUsersFromDatabase(true);
-  }, [selectedCategory]);
+  }, [selectedCategory, fetchUsersFromDatabase]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     setDisplayCount(12);
-    applyFiltersAndSorting();
-  };
+  }, []);
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     const currentPosition = window.scrollY;
     
-    // Check if we have more filtered results to show
-    let filtered = [...allFetchedUsers];
-    
-    // Apply same filters
-    if (budgetFilter !== 'all') {
-      const [min, max] = budgetFilter.split('-').map(v => v === '100+' ? '100' : v);
-      const minValue = parseInt(min);
-      const maxValue = max ? parseInt(max) : Infinity;
+    // Check if we have more filtered results
+    const searchLower = searchQuery.toLowerCase().trim();
+    const [minBudget, maxBudget] = budgetFilter === 'all' 
+      ? [0, Infinity] 
+      : budgetFilter === '100+' 
+        ? [100, Infinity]
+        : budgetFilter.split('-').map(Number);
+
+    const filteredCount = allFetchedUsers.filter(freelancer => {
+      const rate = parseInt(freelancer.hourlyRate || '0');
+      if (rate < minBudget || rate > (maxBudget || Infinity)) return false;
       
-      filtered = filtered.filter(freelancer => {
-        const rate = parseInt(freelancer.hourlyRate || '0');
-        if (budgetFilter === '100+') return rate >= 100;
-        return rate >= minValue && rate <= maxValue;
-      });
-    }
-    
-    if (searchQuery && searchQuery.trim()) {
-      const searchLower = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(freelancer => 
+      if (searchLower && !(
         freelancer.displayName?.toLowerCase().includes(searchLower) ||
         freelancer.bio?.toLowerCase().includes(searchLower) ||
         freelancer.title?.toLowerCase().includes(searchLower) ||
         freelancer.skills?.some(skill => skill.toLowerCase().includes(searchLower)) ||
         freelancer.location?.toLowerCase().includes(searchLower)
-      );
-    }
+      )) return false;
+      
+      return true;
+    }).length;
     
-    if (displayCount < filtered.length) {
-      // We have more filtered results to show
+    if (displayCount < filteredCount) {
       setDisplayCount(prev => prev + 12);
     } else if (hasMore) {
-      // Need to fetch more from database
       fetchUsersFromDatabase(false).then(() => {
         setDisplayCount(prev => prev + 12);
       });
     }
     
     setTimeout(() => {
-      window.scrollTo({
-        top: currentPosition,
-        behavior: 'instant'
-      });
+      window.scrollTo({ top: currentPosition, behavior: 'instant' });
     }, 100);
-  };
+  }, [allFetchedUsers, searchQuery, budgetFilter, displayCount, hasMore, fetchUsersFromDatabase]);
 
-  const handleFreelancerClick = React.useCallback((freelancerId: string) => {
+  const handleFreelancerClick = useCallback((freelancerId: string) => {
     if (!freelancerId) {
       console.error('Invalid freelancer ID');
       return;
@@ -351,7 +388,8 @@ const BrowseFreelancersPage: React.FC = () => {
     navigate(`/freelancer/${freelancerId}`);
   }, [navigate]);
 
-  const getExperienceLevelLabel = (level: string) => {
+  // Memoize helper functions
+  const getExperienceLevelLabel = useCallback((level: string) => {
     switch (level) {
       case 'entry':
         return t('freelancers.experienceLevel.entry');
@@ -362,22 +400,19 @@ const BrowseFreelancersPage: React.FC = () => {
       default:
         return t('freelancers.experienceLevel.professional');
     }
-  };
+  }, [t]);
 
-  const getInitials = (name?: string, email?: string) => {
+  const getInitials = useCallback((name?: string, email?: string) => {
     if (name) {
-      return name
-        .split(' ')
+      const parts = name.split(' ');
+      return parts
         .map(n => n[0])
         .join('')
         .toUpperCase()
         .slice(0, 2);
     }
-    if (email) {
-      return email[0].toUpperCase();
-    }
-    return 'F';
-  };
+    return email ? email[0].toUpperCase() : 'F';
+  }, []);
 
   return (
     <div className="container mx-auto px-4 py-6 pb-20 pt-20">
@@ -414,85 +449,76 @@ const BrowseFreelancersPage: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Category Select */}
-            <Select
-              label={t('freelancers.filters.category')}
-              selectedKeys={[selectedCategory]}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string;
-                if (selected) {
-                  setSelectedCategory(selected);
-                }
-              }}
-              className="w-full"
-              classNames={{
-                trigger: "bg-white/10 border-white/20 text-white",
-                value: "text-white",
-                label: "text-gray-400"
-              }}
-              disallowEmptySelection={true}
-            >
-              {categories.map((category) => (
-                <SelectItem key={category.value} value={category.value}>
-                  {category.label}
-                </SelectItem>
-              ))}
-            </Select>
+              <Select
+                label={t('freelancers.filters.category')}
+                selectedKeys={[selectedCategory]}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string;
+                  if (selected) setSelectedCategory(selected);
+                }}
+                className="w-full"
+                classNames={{
+                  trigger: "bg-white/10 border-white/20 text-white",
+                  value: "text-white",
+                  label: "text-gray-400"
+                }}
+                disallowEmptySelection={true}
+              >
+                {categories.map((category) => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label}
+                  </SelectItem>
+                ))}
+              </Select>
 
-            {/* Budget Range Select */}
-            <Select
-              label={t('freelancers.filters.budgetRange')}
-              selectedKeys={[budgetFilter]}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string;
-                if (selected) {
-                  setBudgetFilter(selected);
-                }
-              }}
-              className="w-full"
-              classNames={{
-                trigger: "bg-white/10 border-white/20 text-white",
-                value: "text-white",
-                label: "text-gray-400"
-              }}
-              disallowEmptySelection={true}
-            >
-              {budgetRanges.map((range) => (
-                <SelectItem key={range.value} value={range.value}>
-                  {range.label}
-                </SelectItem>
-              ))}
-            </Select>
+              <Select
+                label={t('freelancers.filters.budgetRange')}
+                selectedKeys={[budgetFilter]}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string;
+                  if (selected) setBudgetFilter(selected);
+                }}
+                className="w-full"
+                classNames={{
+                  trigger: "bg-white/10 border-white/20 text-white",
+                  value: "text-white",
+                  label: "text-gray-400"
+                }}
+                disallowEmptySelection={true}
+              >
+                {budgetRanges.map((range) => (
+                  <SelectItem key={range.value} value={range.value}>
+                    {range.label}
+                  </SelectItem>
+                ))}
+              </Select>
 
-            {/* Sort By Select - WITH DEFAULT OPTION */}
-            <Select
-              label={t('freelancers.filters.sortBy')}
-              selectedKeys={sortBy ? [sortBy] : []}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string;
-                if (selected) {
-                  setSortBy(selected);
-                }
-              }}
-              className="w-full"
-              classNames={{
-                trigger: "bg-white/10 border-white/20 text-white",
-                value: "text-white",
-                label: "text-gray-400"
-              }}
-              placeholder={t('freelancers.filters.selectSorting')}
-            >
-              <SelectItem key="rating" value="rating">{t('freelancers.sort.highestRated')}</SelectItem>
-              <SelectItem key="completedJobs" value="completedJobs">{t('freelancers.sort.mostProjects')}</SelectItem>
-              <SelectItem key="hourlyRate" value="hourlyRate">{t('freelancers.sort.lowestPrice')}</SelectItem>
-              <SelectItem key="newest" value="newest">{t('freelancers.sort.newest')}</SelectItem>
-            </Select>
+              <Select
+                label={t('freelancers.filters.sortBy')}
+                selectedKeys={sortBy ? [sortBy] : []}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string;
+                  if (selected) setSortBy(selected);
+                }}
+                className="w-full"
+                classNames={{
+                  trigger: "bg-white/10 border-white/20 text-white",
+                  value: "text-white",
+                  label: "text-gray-400"
+                }}
+                placeholder={t('freelancers.filters.selectSorting')}
+              >
+                <SelectItem key="rating" value="rating">{t('freelancers.sort.highestRated')}</SelectItem>
+                <SelectItem key="completedJobs" value="completedJobs">{t('freelancers.sort.mostProjects')}</SelectItem>
+                <SelectItem key="hourlyRate" value="hourlyRate">{t('freelancers.sort.lowestPrice')}</SelectItem>
+                <SelectItem key="newest" value="newest">{t('freelancers.sort.newest')}</SelectItem>
+              </Select>
             </div>
           </form>
         </div>
         
         {/* Freelancers Grid */}
-        {loading && freelancers.length === 0 ? (
+        {loading && filteredAndSortedFreelancers.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
               <Card key={i} className="glass-effect">
@@ -505,7 +531,7 @@ const BrowseFreelancersPage: React.FC = () => {
               </Card>
             ))}
           </div>
-        ) : freelancers.length === 0 ? (
+        ) : filteredAndSortedFreelancers.length === 0 ? (
           <Card className="glass-effect">
             <CardBody className="text-center py-12">
               <Icon icon="lucide:users-x" className="text-4xl text-gray-400 mx-auto mb-4" />
@@ -516,108 +542,19 @@ const BrowseFreelancersPage: React.FC = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {freelancers.map((freelancer) => (
-                <motion.div
+              {filteredAndSortedFreelancers.map((freelancer) => (
+                <FreelancerCard
                   key={freelancer.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ scale: 1.05 }}
-                  onClick={() => handleFreelancerClick(freelancer.id)}
-                  className="cursor-pointer"
-                >
-                  <Card className="glass-effect hover:bg-white/10 transition-all duration-200 overflow-hidden"> {/* Add overflow-hidden */}
-                    <CardBody className="p-6">
-                      <div className="flex items-center gap-4 mb-4">
-                        {freelancer.photoURL ? (
-                          <Avatar
-                            src={freelancer.photoURL}
-                            className="w-16 h-16 flex-shrink-0" // Add flex-shrink-0
-                            name={freelancer.displayName}
-                          />
-                        ) : (
-                          <Avatar
-                            name={getInitials(freelancer.displayName, freelancer.email)}
-                            className="w-16 h-16 flex-shrink-0" // Add flex-shrink-0
-                            classNames={{
-                              base: "bg-beamly-secondary/20",
-                              name: "text-beamly-secondary font-bold"
-                            }}
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-white truncate flex-1">
-                              {freelancer.displayName || t('freelancers.anonymousFreelancer')}
-                            </h3>
-                            {freelancer.isPro && (
-                              <Chip
-                                size="sm"
-                                color="warning"
-                                variant="flat"
-                                className="flex-shrink-0"
-                                startContent={<Icon icon="lucide:crown" className="text-xs" />}
-                              >
-                                {t('common.pro')}
-                              </Chip>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-300 truncate">
-                            {freelancer.title || getExperienceLevelLabel(freelancer.experienceLevel || '')}
-                          </p>
-                      </div>
-                    </div>
-                      
-                      {/* Bio already has line-clamp-2 which is good */}
-                      
-                      {freelancer.skills && freelancer.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4 overflow-hidden"> {/* Add overflow-hidden */}
-                          {freelancer.skills.slice(0, 3).map((skill, idx) => (
-                            <Chip 
-                              key={idx} 
-                              size="sm" 
-                              variant="flat"
-                              className="bg-white/10 text-white max-w-[120px]" // Add max-width
-                            >
-                              <span className="truncate">{skill}</span> {/* Add truncate */}
-                            </Chip>
-                          ))}
-                          {freelancer.skills.length > 3 && (
-                            <Chip size="sm" variant="flat" className="bg-white/10 text-gray-400">
-                              +{freelancer.skills.length - 3}
-                            </Chip>
-                          )}
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-1 min-w-0"> {/* Add min-w-0 */}
-                          <Icon icon="lucide:star" className="text-yellow-500 flex-shrink-0" />
-                          <span className="text-white whitespace-nowrap">{freelancer.rating || '0.0'}</span>
-                          <span className="text-gray-400 truncate"> {/* Add truncate */}
-                            ({freelancer.completedJobs || 0} {freelancer.completedJobs === 1 ? t('freelancers.job') : t('freelancers.jobs')})
-                          </span>
-                        </div>
-                        {freelancer.hourlyRate && (
-                          <span className="text-beamly-secondary font-semibold whitespace-nowrap"> {/* Add whitespace-nowrap */}
-                            €{freelancer.hourlyRate}{t('common.perHour')}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {!freelancer.profileCompleted && (
-                        <div className="mt-3 pt-3 border-t border-white/10">
-                          <p className="text-xs text-gray-400 flex items-center gap-1">
-                            <Icon icon="lucide:alert-circle" className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{t('freelancers.profileIncomplete')}</span>
-                          </p>
-                        </div>
-                      )}
-                    </CardBody>
-                  </Card>
-                </motion.div>
+                  freelancer={freelancer}
+                  onClick={handleFreelancerClick}
+                  getInitials={getInitials}
+                  getExperienceLevelLabel={getExperienceLevelLabel}
+                  t={t}
+                />
               ))}
             </div>
-            {(hasMore || freelancers.length >= 12) && !loading && (
+            
+            {(hasMore || filteredAndSortedFreelancers.length >= 12) && !loading && (
               <div className="text-center mt-8">
                 <Button
                   color="secondary"
@@ -632,17 +569,7 @@ const BrowseFreelancersPage: React.FC = () => {
               </div>
             )}
 
-            {/* Loading spinner when loading more */}
-            {loading && freelancers.length > 0 && (
-              <div className="text-center mt-8">
-                <div className="inline-flex items-center gap-2 text-gray-400">
-                  <Icon icon="eos-icons:loading" className="animate-spin text-2xl" />
-                  <span>{t('common.loadingMore')}</span>
-                </div>
-              </div>
-            )}
-
-            {loading && freelancers.length > 0 && ( // Show spinner when loading more
+            {loading && filteredAndSortedFreelancers.length > 0 && (
               <div className="text-center mt-8">
                 <div className="inline-flex items-center gap-2 text-gray-400">
                   <Icon icon="eos-icons:loading" className="animate-spin text-2xl" />
@@ -657,4 +584,4 @@ const BrowseFreelancersPage: React.FC = () => {
   );
 };
 
-export default BrowseFreelancersPage;
+export default memo(BrowseFreelancersPage);

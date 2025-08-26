@@ -1,6 +1,7 @@
 {
 
   "common": {
+    "loadMore": "Load More",
     "monthsAgo": "{{months}} months ago",
     "yearsAgo": "{{years}} years ago",
     "googleUser": "Google User",
@@ -1682,6 +1683,7 @@
     "copyMessage": "Copy Message",
     "selectMessages": "Select Messages",
     "selectedCount": "{{count}} selected",
+    "noMessagesYet": "No messages yet!",
     "clearSelection": "Clear Selection",
     "filters": {
       "all": "All",
@@ -1691,6 +1693,11 @@
       "fromClients": "From Clients",
       "fromFreelancers": "From Freelancers",
       "contracts": "Contract Messages"
+    },
+    "userTypes": {
+      "freelancer": "Freelancer",
+      "client": "Client",
+      "user": "User"
     },
     "emptyStates": {
       "inbox": "Your inbox is empty",
@@ -3411,7 +3418,8 @@
     "title": "Apply for Job",
     "clientBudget": "Client's Budget",
     "proposalLimit": "Proposal Limit",
-    "proposalsRemaining": "You have {{count}} proposal{{count === 1 ? '' : 's'}} remaining this month.",
+    "proposalsRemaining_one": "You have {{count}} proposal remaining this month.",
+    "proposalsRemaining_other": "You have {{count}} proposals remaining this month.",
     "monthlyLimitReached": "You've reached your monthly limit.",
     "upgradeForUnlimited": "Upgrade to Pro for Unlimited",
     "monthlyLimitReachedTitle": "Monthly Limit Reached",
@@ -3432,7 +3440,8 @@
     "supportedFormats": "PDF, DOC, DOCX, JPG, PNG, GIF, WEBP up to 10MB",
     "browseFiles": "Browse Files",
     "image": "Image",
-    "filesSelected": "{{count}} file{{count !== 1 ? 's' : ''}} selected",
+    "filesSelected_one": "{{count}} file selected",
+    "filesSelected_other": "{{count}} files selected",
     "uploadingAttachments": "Uploading attachments... {{progress}}%",
     "limitReachedButton": "Limit Reached",
     "checking": "Checking...",
