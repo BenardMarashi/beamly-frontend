@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Input, Button, Checkbox, Card, CardBody } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useSignIn } from '../hooks/use-auth';
-import { signInWithPopup, GoogleAuthProvider, OAuthProvider, getRedirectResult } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, GoogleAuthProvider, OAuthProvider, getRedirectResult } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { firebaseService } from '../services/firebase-services';
 import { toast } from 'react-hot-toast';
@@ -24,6 +24,8 @@ export default function LoginPage() {
     password: '',
     rememberMe: false
   });
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
+  const [authInProgress, setAuthInProgress] = useState(false);
 
   useEffect(() => {
     // Handle redirect result for mobile
@@ -65,7 +67,9 @@ export default function LoginPage() {
         if (error?.code && error.code !== 'auth/popup-closed-by-user') {
           console.error('Redirect result error:', error);
         }
-      }
+          } finally {
+      setCheckingRedirect(false); // THIS WAS MISSING
+    }
     };
     
     handleRedirectResult();
@@ -87,7 +91,11 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (authInProgress) return;
+    
     try {
+      setAuthInProgress(true);
+      
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({
         prompt: 'select_account'
@@ -102,14 +110,12 @@ export default function LoginPage() {
       if (result?.user) {
         console.log('Google sign-in successful, UID:', result.user.uid);
         
-        // CRITICAL: Ensure user document exists
         const userRef = doc(db, 'users', result.user.uid);
         const userSnap = await getDoc(userRef);
         
         if (!userSnap.exists()) {
           console.log('Creating new user document...');
           
-          // Create the user document
           await setDoc(userRef, {
             uid: result.user.uid,
             email: result.user.email || '',
@@ -138,17 +144,14 @@ export default function LoginPage() {
         } else {
           console.log('User document already exists');
           
-          // Update last active
           await setDoc(userRef, {
             lastActive: serverTimestamp()
           }, { merge: true });
         }
         
-        // Small delay to ensure Firestore syncs
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Navigate to home
-        navigate('/home', { replace: true });
+        // Use window.location.replace instead of navigate to ensure popup closes
+        await new Promise(resolve => setTimeout(resolve, 200));
+        window.location.replace('/home');
       }
     } catch (error: any) {
       console.error('Google sign-in error:', error);
@@ -156,78 +159,81 @@ export default function LoginPage() {
       if (error?.code === 'auth/popup-blocked-by-browser') {
         toast.error(t('login.errors.allowPopups'));
       } else if (error?.code === 'auth/cancelled-popup-request' || 
-                 error?.code === 'auth/popup-closed-by-user') {
-        return; // User cancelled, don't show error
+                error?.code === 'auth/popup-closed-by-user') {
+        // User cancelled, silent return
       } else {
         toast.error(t('login.errors.failed', { message: error.message }));
       }
+    } finally {
+      setAuthInProgress(false);
     }
   };
 
-  const handleAppleSignIn = async () => {
-    try {
-      const provider = new OAuthProvider('apple.com');
-      provider.addScope('email');
-      provider.addScope('name');
+const handleAppleSignIn = async () => {
+  if (authInProgress) return;
+  
+  try {
+    setAuthInProgress(true);
+    
+    const provider = new OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+    
+    const result = await signInWithPopup(auth, provider);
+    
+    if (result?.user) {
+      console.log('Apple sign-in successful, UID:', result.user.uid);
       
-      const result = await signInWithPopup(auth, provider);
+      const userRef = doc(db, 'users', result.user.uid);
+      const userSnap = await getDoc(userRef);
       
-      if (result?.user) {
-        console.log('Apple sign-in successful, UID:', result.user.uid);
+      if (!userSnap.exists()) {
+        console.log('Creating new user document...');
         
-        // CRITICAL: Ensure user document exists
-        const userRef = doc(db, 'users', result.user.uid);
-        const userSnap = await getDoc(userRef);
+        await setDoc(userRef, {
+          uid: result.user.uid,
+          email: result.user.email || `${result.user.uid}@privaterelay.appleid.com`,
+          displayName: result.user.displayName || t('common.appleUser'),
+          photoURL: result.user.photoURL || `https://ui-avatars.com/api/?name=User&background=FCE90D&color=011241`,
+          userType: 'freelancer',
+          profileCompleted: false,
+          bio: '',
+          skills: [],
+          hourlyRate: 0,
+          companyName: '',
+          isAvailable: true,
+          rating: 0,
+          reviewCount: 0,
+          completedProjects: 0,
+          totalEarnings: 0,
+          totalSpent: 0,
+          isBlocked: false,
+          authProvider: 'apple.com',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          lastActive: serverTimestamp()
+        });
         
-        if (!userSnap.exists()) {
-          console.log('Creating new user document...');
-          
-          // Create the user document
-          await setDoc(userRef, {
-            uid: result.user.uid,
-            email: result.user.email || `${result.user.uid}@privaterelay.appleid.com`,
-            displayName: result.user.displayName || t('common.appleUser'),
-            photoURL: result.user.photoURL || `https://ui-avatars.com/api/?name=User&background=FCE90D&color=011241`,
-            userType: 'freelancer',
-            profileCompleted: false,
-            bio: '',
-            skills: [],
-            hourlyRate: 0,
-            companyName: '',
-            isAvailable: true,
-            rating: 0,
-            reviewCount: 0,
-            completedProjects: 0,
-            totalEarnings: 0,
-            totalSpent: 0,
-            isBlocked: false,
-            authProvider: 'apple.com',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            lastActive: serverTimestamp()
-          });
-          
-          console.log('User document created successfully');
-        } else {
-          console.log('User document already exists');
-          
-          // Update last active
-          await setDoc(userRef, {
-            lastActive: serverTimestamp()
-          }, { merge: true });
-        }
+        console.log('User document created successfully');
+      } else {
+        console.log('User document already exists');
         
-        // Small delay to ensure Firestore syncs
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Navigate to home
-        navigate('/home', { replace: true });
+        await setDoc(userRef, {
+          lastActive: serverTimestamp()
+        }, { merge: true });
       }
-    } catch (error: any) {
-      console.error('Apple sign-in error:', error);
-      toast.error(t('login.errors.failed', { message: error.message }));
+      
+      // Use window.location.replace instead of navigate to ensure popup closes
+      await new Promise(resolve => setTimeout(resolve, 200));
+      window.location.replace('/home');
     }
-  };
+  } catch (error: any) {
+    console.error('Apple sign-in error:', error);
+    toast.error(t('login.errors.failed', { message: error.message }));
+  } finally {
+    setAuthInProgress(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
@@ -351,24 +357,28 @@ export default function LoginPage() {
                   size="lg"
                   className="w-full bg-black text-white hover:bg-gray-900 border-none"
                   onPress={handleAppleSignIn}
+                  isDisabled={authInProgress}
+                  isLoading={authInProgress}
                   startContent={
-                    <Icon icon="simple-icons:apple" className="text-xl" />
+                    !authInProgress && <Icon icon="simple-icons:apple" className="text-xl" />
                   }
                 >
-                  {t('login.continueWithApple')}
+                  {authInProgress ? t('login.signingIn', 'Signing in...') : t('login.continueWithApple')}
                 </Button>
-                
+
                 {/* Google Sign In */}
                 <Button
                   variant="bordered"
                   size="lg"
                   className="w-full border-white/20 text-white hover:bg-white/5"
                   onPress={handleGoogleSignIn}
+                  isDisabled={authInProgress}
+                  isLoading={authInProgress}
                   startContent={
-                    <Icon icon="flat-color-icons:google" className="text-xl" />
+                    !authInProgress && <Icon icon="flat-color-icons:google" className="text-xl" />
                   }
                 >
-                  {t('login.continueWithGoogle')}
+                  {authInProgress ? t('login.signingIn', 'Signing in...') : t('login.continueWithGoogle')}
                 </Button>
               </div>
 

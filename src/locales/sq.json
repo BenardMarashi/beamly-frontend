@@ -644,99 +644,6 @@
       "apiKeys": "Çelësat API",
       "webhooks": "Webhooks"
     },
-  "notifications": {
-    "title": "Njoftimet",
-    "loading": "Duke ngarkuar njoftimet...",
-    "all": "Të Gjitha",
-    "unread": "Të Palexuara",
-    "read": "Të Lexuara",
-    "markAllRead": "Shëno të gjitha si të lexuara",
-    "markAsRead": "Shëno si të lexuar",
-    "markAsUnread": "Shëno si të palexuar",
-    "recentNotifications": "Njoftimet e Fundit",
-    "noNotifications": "Nuk ka njoftime ende",
-    "view": "Shiko",
-    "delete": "Fshi",
-    "deleteAll": "Fshi të Gjitha",
-    "settings": "Cilësimet e Njoftimeve",
-    "preferences": "Preferencat",
-    "mute": "Çaktivizo Njoftimet",
-    "unmute": "Aktivizo Njoftimet",
-    "types": {
-      "all": "Të Gjitha Njoftimet",
-      "messages": "Mesazhet",
-      "contracts": "Kontratat",
-      "payments": "Pagesat",
-      "proposals": "Propozimet",
-      "proposal": "Propozim",
-      "interviews": "Intervistat",
-      "reviews": "Vlerësimet",
-      "system": "Sistemi",
-      "marketing": "Marketing",
-      "updates": "Përditësimet",
-      "security": "Siguria",
-      "tips": "Këshilla dhe Njohuri",
-      "job_posted": "Punë e Postuar",
-      "proposal_received": "Propozim i Marrë",
-      "proposal_accepted": "Propozim i Pranuar",
-      "proposal_rejected": "Propozim i Refuzuar",
-      "message": "Mesazh",
-      "payment_received": "Pagesë e Marrë",
-      "newProposalReceived": "Propozim i Ri i Marrë",
-      "newProposal": "Propozim i Ri"
-    },
-    "templates": {
-      "newMessage": "Mesazh i ri nga {{sender}}",
-      "contractOffer": "Ofertë kontrate e re nga {{client}}",
-      "proposalViewed": "Propozimi juaj u pa",
-      "paymentReceived": "Pagesë prej {{amount}} u mor",
-      "interviewInvite": "Ftesë për intervistë për {{job}}",
-      "reviewReceived": "{{client}} të la një vlerësim",
-      "profileViewed": "Profili yt u pa {{count}} herë",
-      "jobRecommendation": "Punë e re që përputhet me aftësitë tuaja",
-      "connectsLow": "Ju kanë mbetur {{count}} lidhje",
-      "weeklyReport": "Raporti juaj javor i performancës është gati",
-      "securityAlert": "Hyrje e re nga {{device}}",
-      "passwordChanged": "Fjalëkalimi juaj u ndryshua",
-      "verificationComplete": "Verifikimi juaj {{type}} është i plotë",
-      "anniversaryMessage": "Gëzuar {{years}} vjetorin në Beamly!"
-    },
-    "actions": {
-      "view": "Shiko",
-      "respond": "Përgjigju",
-      "accept": "Prano",
-      "decline": "Refuzo",
-      "dismiss": "Largo",
-      "snooze": "Shty",
-      "configure": "Konfiguro"
-    },
-    "empty": {
-      "all": "Nuk ka njoftime",
-      "unread": "Nuk ka njoftime të palexuara",
-      "messages": "Nuk ka njoftime mesazhesh",
-      "contracts": "Nuk ka njoftime kontratash"
-    },
-    "settings": {
-      "title": "Cilësimet e Njoftimeve",
-      "email": "Njoftime me Email",
-      "emailDesc": "Merr njoftime përmes email-it",
-      "push": "Njoftime Push",
-      "pushDesc": "Merr njoftime push në shfletues",
-      "sms": "Njoftime SMS",
-      "smsDesc": "Merr njoftime përmes SMS"
-    },
-    "errors": {
-      "loadFailed": "Dështoi ngarkimi i njoftimeve",
-      "markAllFailed": "Dështoi shënimi i të gjithave si të lexuara",
-      "deleteFailed": "Dështoi fshirja e njoftimit",
-      "settingsFailed": "Dështoi përditësimi i cilësimeve"
-    },
-    "success": {
-      "allRead": "Të gjitha njoftimet u shënuan si të lexuara",
-      "deleted": "Njoftimi u fshi",
-      "settingsUpdated": "Cilësimet e njoftimeve u përditësuan"
-    }
-  },
     "privacy": {
       "title": "Privatësia",
       "profileVisibility": "Dukshmëria e profilit",
@@ -1603,6 +1510,8 @@
     "noBio": "Nuk ka bio të disponueshme",
     "notFound": "Freelanceri nuk u gjet",
     "browseFreelancers": "Shfleto Freelancerët",
+    "noComment": "Nuk ka koment",
+    "noProjects": "Nuk ka projekte",
     "stats": {
       "jobSuccess": "Suksesi i punës",
       "onTime": "Në kohë",
@@ -2223,98 +2132,43 @@
       "growthRate": "Norma e rritjes"
     }
   },
-  "notifications": {
-    "title": "Njoftimet",
-    "loading": "Duke ngarkuar njoftimet...",
-    "markAllRead": "Shëno të gjitha si të lexuara",
-    "recentNotifications": "Njoftimet e Fundit",
-    "noNotifications": "Ende nuk ka njoftime",
-    "view": "Shiko",
-    "markAsRead": "Shëno si të lexuar",
-    "types": {
-      "job_posted": "Punë e Postuar",
-      "proposal_received": "Propozim i Pranuar",
-      "proposal_accepted": "Propozim i Pranuar",
-      "proposal_rejected": "Propozim i Refuzuar",
-      "message": "Mesazh",
-      "payment_received": "Pagesë e Pranuar"
-    },
-    "settings": {
-      "title": "Cilësimet e Njoftimeve",
-      "email": "Njoftimet Email",
-      "emailDesc": "Merr njoftime përmes emailit",
-      "push": "Njoftimet Push",
-      "pushDesc": "Merr njoftime push në shfletues",
-      "sms": "Njoftimet SMS",
-      "smsDesc": "Merr njoftime përmes SMS"
-    },
-    "errors": {
-      "loadFailed": "Dështoi ngarkimi i njoftimeve",
-      "markAllFailed": "Dështoi shënimi i të gjithave si të lexuara",
-      "deleteFailed": "Dështoi fshirja e njoftimit",
-      "settingsFailed": "Dështoi përditësimi i cilësimeve"
-    },
-    "success": {
-      "allRead": "Të gjitha njoftimet u shënuan si të lexuara",
-      "deleted": "Njoftimi u fshi",
-      "settingsUpdated": "Cilësimet e njoftimeve u përditësuan"
-    },
-    "all": "Të gjitha",
-    "unread": "Të palexuara",
-    "read": "Të lexuara",
-    "markAsUnread": "Shëno si të palexuar",
-    "delete": "Fshi",
-    "deleteAll": "Fshi të gjitha",
-    "settings": "Cilësimet e njoftimeve",
-    "preferences": "Preferencat",
-    "mute": "Hesht njoftimet",
-    "unmute": "Hiq heshtjen",
-    "types": {
-      "all": "Të gjitha njoftimet",
-      "messages": "Mesazhe",
-      "contracts": "Kontratat",
-      "payments": "Pagesat",
-      "proposals": "Propozimet",
-      "interviews": "Intervista",
-      "reviews": "Vlerësimet",
-      "system": "Sistemi",
-      "marketing": "Marketing",
-      "updates": "Përditësime",
-      "security": "Siguria",
-      "tips": "Këshilla dhe njohuri"
-    },
-    "templates": {
-      "newMessage": "Mesazh i ri nga {{sender}}",
-      "contractOffer": "Ofertë e re kontrate nga {{client}}",
-      "proposalViewed": "Propozimi juaj u pa",
-      "paymentReceived": "Pagesa prej {{amount}} u pranua",
-      "interviewInvite": "Ftesë për intervistë për {{job}}",
-      "reviewReceived": "{{client}} ju la një vlerësim",
-      "profileViewed": "Profili juaj u pa {{count}} herë",
-      "jobRecommendation": "Punë e re që përputhet me aftësitë tuaja",
-      "connectsLow": "Ju kanë mbetur {{count}} lidhje",
-      "weeklyReport": "Raporti juaj javor i performancës është gati",
-      "securityAlert": "Hyrje e re nga {{device}}",
-      "passwordChanged": "Fjalëkalimi juaj u ndryshua",
-      "verificationComplete": "Verifikimi juaj {{type}} u përfundua",
-      "anniversaryMessage": "Gëzuar përvjetorin {{years}} vjetor në Beamly!"
-    },
-    "actions": {
-      "view": "Shiko",
-      "respond": "Përgjigju",
-      "accept": "Prano",
-      "decline": "Refuzo",
-      "dismiss": "Hiq",
-      "snooze": "Shty",
-      "configure": "Konfiguro"
-    },
-    "empty": {
-      "all": "Nuk ka njoftime",
-      "unread": "Nuk ka njoftime të palexuara",
-      "messages": "Nuk ka njoftime mesazhesh",
-      "contracts": "Nuk ka njoftime kontratash"
-    }
+"notifications": {
+  "title": "Njoftimet",
+  "loading": "Duke ngarkuar njoftimet...",
+  "markAllRead": "Shëno të gjitha si të lexuara",
+  "recentNotifications": "Njoftimet e Fundit",
+  "noNotifications": "Ende nuk ka njoftime",
+  "view": "Shiko",
+  "markAsRead": "Shëno si të lexuar",
+  "types": {
+    "job_posted": "Punë e Postuar",
+    "proposal_received": "Propozim i Pranuar",
+    "proposal_accepted": "Propozim i Pranuar",
+    "proposal_rejected": "Propozim i Refuzuar",
+    "message": "Mesazh",
+    "payment_received": "Pagesë e Pranuar"
   },
+  "settings": {
+    "title": "Cilësimet e Njoftimeve",
+    "email": "Njoftimet me Email",
+    "emailDesc": "Merr njoftime për mesazhe dhe përditësime në email",
+    "push": "Njoftimet Push",
+    "pushDesc": "Merr njoftime në shfletuesin tënd",
+    "sms": "Njoftimet SMS",
+    "smsDesc": "Merr njoftime në telefon përmes SMS"
+  },
+  "errors": {
+    "loadFailed": "Dështoi ngarkimi i njoftimeve",
+    "markAllFailed": "Dështoi shënimi i të gjithave si të lexuara",
+    "deleteFailed": "Dështoi fshirja e njoftimit",
+    "settingsFailed": "Dështoi përditësimi i cilësimeve"
+  },
+  "success": {
+    "allRead": "Të gjitha njoftimet u shënuan si të lexuara",
+    "deleted": "Njoftimi u fshi",
+    "settingsUpdated": "Cilësimet e njoftimeve u përditësuan"
+  }
+},
   "search": {
     "title": "Kërko",
     "placeholder": "Kërko për punë, punëtorë të pavarur ose shërbime...",
@@ -3391,6 +3245,12 @@
   },
   "jobApplication": {
     "title": "Apliko për Punën",
+    "jobSummary": "Përmbledhje e Punës",
+    "client": "Klienti",
+    "experienceLevel": "Niveli i Përvojës",
+    "duration": "Kohëzgjatja",
+    "requiredSkills": "Aftësitë e Kërkuara",
+    "backToJobDetails": "Kthehu te Detajet e Punës",
     "clientBudget": "Buxheti i Klientit",
     "proposalLimit": "Limiti i Propozimeve",
     "proposalsRemaining_one": "Ju keni {{count}} propozim të mbetur këtë muaj.",
@@ -3420,6 +3280,7 @@
     "uploadingAttachments": "Duke ngarkuar bashkëngjitjet... {{progress}}%",
     "limitReachedButton": "Limiti i Arritur",
     "checking": "Duke kontrolluar...",
+    "addAttachment": "Shto Bashkëngjitje",
     "submitApplication": "Dërgo Aplikimin",
     "fields": {
       "displayName": "Emri i Shfaqjes",
@@ -3458,61 +3319,39 @@
       "submitted": "Aplikimi u dërgua me sukses!"
     }
   },
-  "howItWorks": {
-    "title": "Si funksionon",
-    "subtitle": "Beamly është një platformë profesionale që lidh klientët me freelancerë të kualifikuar për të realizuar projekte në mënyrë të shpejtë, të sigurt dhe efikase.",
-    "description": "Procesi ynë është ndërtuar për ta bërë bashkëpunimin sa më të lehtë për të dyja palët, nga kontakti i parë deri te pagesa finale.",
-    "forFreelancers": "Për freelancerët",
-    "forClients": "Për klientët",
-    "freelancers": {
-      "step1": {
-        "title": "1. Krijo profilin tënd profesional",
-        "description": "Regjistrohu dhe ndërto një profil që pasqyron ekspertizën tënde. Shto aftësitë, portofolion, përvojën e punës dhe cakto tarifat e shërbimit. Profili yt është karta jote e biznesit; sa më i plotë dhe i rregullt të jetë, aq më shumë klientë do të të tërheqë."
-      },
-      "step2": {
-        "title": "2. Zbulo projekte të përshtatshme",
-        "description": "Kërko dhe filtro mes një shumëllojshmërie projektesh që përputhen me ekspertizën tënde. Klientët publikojnë vazhdimisht mundësi të reja në kategori të ndryshme, duke të dhënë lirinë të zgjedhësh projektet që të përshtaten më mirë."
-      },
-      "step3": {
-        "title": "3. Dërgo propozime të personalizuara",
-        "description": "Apliko për projektet duke dërguar propozime që theksojnë aftësitë e tua dhe shpjegojnë si do t'i sjellësh vlerë klientit. Ky është momenti yt për t'u dalluar dhe për të bindur klientin pse je zgjedhja e duhur."
-      },
-      "step4": {
-        "title": "4. Dorëzo punë me cilësi të lartë",
-        "description": "Pasi të zgjidhesh, bashkëpuno ngushtë me klientin, respekto afatet dhe ofro rezultate që tejkalojnë pritshmëritë. Çdo projekt i suksesshëm forcon reputacionin tënd dhe rrit mundësitë për më shumë punë në të ardhmen."
-      },
-      "step5": {
-        "title": "5. Merr pagesa të sigurta",
-        "description": "Pagesat menaxhohen përmes sistemit të besueshëm të Beamly. Sapo klienti të miratojë punën, fondet transferohen në llogarinë tënde shpejt dhe në mënyrë të sigurt. Pa vonesa, pa rrezik."
-      }
-    },
-    "clients": {
-      "step1": {
-        "title": "1. Publiko projektin tënd",
-        "description": "Përshkruaj punën që dëshiron të realizohet, cakto buxhetin dhe afatin, dhe publiko projektin. Sa më i detajuar të jetë përshkrimi, aq më lehtë do të tërheqësh freelancerët e duhur."
-      },
-      "step2": {
-        "title": "2. Prano dhe shqyrto propozime",
-        "description": "Menjëherë pas publikimit, do të fillosh të marrësh propozime nga freelancerë të kualifikuar. Çdo propozim përfshin çmimin, afatin e realizimit dhe një shpjegim mbi mënyrën se si freelanceri mund të të ndihmojë të arrish qëllimet e tua."
-      },
-      "step3": {
-        "title": "3. Zgjidh kandidatin më të përshtatshëm",
-        "description": "Shfleto profilet e freelancerëve, kontrollo vlerësimet dhe krahaso propozimet për të bërë zgjedhjen më të mirë. Beamly të ofron fleksibilitet për të punësuar bazuar në ekspertizë, përvojë dhe buxhet."
-      },
-      "step4": {
-        "title": "4. Bashkëpuno në mënyrë efikase",
-        "description": "Përdor hapësirën e integruar të Beamly për të komunikuar, ndarë skedarë dhe ndjekur progresin në kohë reale. Çdo gjë që të duhet për menaxhimin e projektit gjendet në një vend të sigurt."
-      },
-      "step5": {
-        "title": "5. Paguaj vetëm kur je i kënaqur",
-        "description": "Fondet e tua mbeten të mbrojtura deri në përfundimin e projektit. Pasi të jesh i kënaqur me rezultatin final, ti liron pagesën për freelancerin. Kjo siguron transparencë, ndershmëri dhe besim të ndërsjellë."
-      }
-    },
-    "cta": {
-      "title": "Je gati të fillosh?",
-      "subtitle": "Bashkohu me mijëra freelancerë dhe klientë që përdorin Beamly",
-      "freelancerButton": "Fillo si Freelancer",
-      "clientButton": "Publiko një Projekt"
-    }
-  }
+  "jobDetails": {
+  "loading": {
+    "title": "Duke ngarkuar...",
+    "subtitle": "Ju lutem prisni ndërsa marrim detajet e punës"
+  },
+  "notFound": {
+    "title": "Puna Nuk U Gjet",
+    "subtitle": "Puna që po kërkoni nuk ekziston ose është hequr"
+  },
+  "errors": {
+    "loginToApply": "Ju lutem kyçuni për të aplikuar",
+    "onlyFreelancers": "Vetëm freelancer-at mund të aplikojnë për punë",
+    "jobNotFound": "Puna nuk u gjet",
+    "loadFailed": "Dështoi ngarkimi i detajeve të punës"
+  },
+  "browseJobs": "Shfleto Punët",
+  "breadcrumb": {
+    "home": "Kryefaqja",
+    "jobs": "Punët"
+  },
+  "description": "Përshkrimi",
+  "skillsRequired": "Aftësitë e Kërkuara",
+  "experienceLevel": "Niveli i Përvojës",
+  "projectDuration": "Kohëzgjatja e Projektit",
+  "attachments": "Bashkëngjitjet",
+  "attachment": "Bashkëngjitja",
+  "budget": "Buxheti",
+  "fixedPrice": "Çmim Fiks",
+  "hourlyPrice": "Çmim Orar",
+  "applyNow": "Apliko Tani",
+  "proposals": "Propozime",
+  "status": "Statusi",
+  "aboutClient": "Rreth Klientit",
+  "jobsPosted": "Punë të Publikuara"
+}
 }

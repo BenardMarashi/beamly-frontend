@@ -256,7 +256,7 @@ const handleSubscribe = async () => {
                         <span className="text-3xl font-bold text-white">Free</span>
                       ) : (
                         <>
-                          <span className="text-3xl font-bold text-white">${plan.price}</span>
+                          <span className="text-3xl font-bold text-white">€{plan.price}</span>
                           <span className="text-gray-400">/{plan.interval}</span>
                         </>
                       )}

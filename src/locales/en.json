@@ -3219,6 +3219,8 @@
     "contactMe": "Contact Me",
     "hireMe": "Hire Me",
     "sendMessage": "Send Message",
+    "noComment": "No comment",
+    "noProjects": "No projects",
     "availability": "Availability",
     "available": "Available",
     "notAvailable": "Not Available",
@@ -3397,7 +3399,16 @@
       "allRead": "All notifications marked as read",
       "deleted": "Notification deleted",
       "settingsUpdated": "Notification settings updated"
-    }
+    },
+      "settings": {
+        "title": "Notification Settings",
+        "email": "Email Notifications",
+        "emailDesc": "Receive notifications for messages and updates via email",
+        "push": "Push Notifications",
+        "pushDesc": "Receive notifications in your browser",
+        "sms": "SMS Notifications",
+        "smsDesc": "Receive notifications on your phone via SMS"
+      }
   },
     "menu": {
     "title": "Menu",
@@ -3416,6 +3427,14 @@
   },
   "jobApplication": {
     "title": "Apply for Job",
+    "jobSummary": "Job Summary",
+    "client": "Client",
+    "experienceLevel": "Experience Level",
+    "duration": "Duration",
+    "requiredSkills": "Required Skills",
+    "totalAmount": "Total amount",
+    "hourlyRate": "Hourly rate",
+    "backToJobDetails": "Back to Job Details",
     "clientBudget": "Client's Budget",
     "proposalLimit": "Proposal Limit",
     "proposalsRemaining_one": "You have {{count}} proposal remaining this month.",
@@ -3444,6 +3463,7 @@
     "filesSelected_other": "{{count}} files selected",
     "uploadingAttachments": "Uploading attachments... {{progress}}%",
     "limitReachedButton": "Limit Reached",
+    "addAttachment": "Add Attachment",
     "checking": "Checking...",
     "submitApplication": "Submit Application",
     "fields": {
@@ -3483,61 +3503,39 @@
       "submitted": "Application submitted successfully!"
     }
   },
-  "howItWorks": {
-    "title": "How It Works",
-    "subtitle": "Beamly is a professional platform that connects clients with skilled freelancers to get projects done quickly, safely, and efficiently.",
-    "description": "Our process is designed to make collaboration smooth for both sides — from the first interaction to the final payment.",
-    "forFreelancers": "For Freelancers",
-    "forClients": "For Clients",
-    "freelancers": {
-      "step1": {
-        "title": "1. Create Your Professional Profile",
-        "description": "Sign up and build a profile that represents your expertise. Add your skills, portfolio, work experience, and set your service rates. Your profile is your business card — the stronger it looks, the more likely you are to attract clients."
-      },
-      "step2": {
-        "title": "2. Discover Relevant Projects",
-        "description": "Search and filter through a variety of projects that match your expertise. Clients are constantly posting opportunities across multiple categories, giving you the freedom to choose the work that best suits your skills and schedule."
-      },
-      "step3": {
-        "title": "3. Submit Tailored Proposals",
-        "description": "Apply to projects by sending personalized proposals that highlight your skills and explain how you'll deliver value. This is your chance to stand out and convince clients why you are the right person for the job."
-      },
-      "step4": {
-        "title": "4. Deliver High-Quality Work",
-        "description": "Once selected, communicate effectively with your client, meet deadlines, and provide results that exceed expectations. Every successful project strengthens your reputation and helps you secure more work in the future."
-      },
-      "step5": {
-        "title": "5. Receive Secure Payments",
-        "description": "Payments are handled through Beamly's trusted system. Once the client approves the work, your funds are released to your account quickly and safely. No delays, no risks."
-      }
-    },
-    "clients": {
-      "step1": {
-        "title": "1. Post Your Project with Ease",
-        "description": "Simply describe the work you need done, set your budget and timeline, and publish your project. The more details you provide, the easier it is to attract the right freelancers."
-      },
-      "step2": {
-        "title": "2. Receive and Review Proposals",
-        "description": "Shortly after posting, you'll start receiving proposals from qualified freelancers. Each proposal will include pricing, timelines, and an explanation of how the freelancer can help you achieve your goals."
-      },
-      "step3": {
-        "title": "3. Select the Best Match",
-        "description": "Browse freelancer profiles, check their reviews, and compare proposals to choose the most suitable candidate. Beamly gives you the flexibility to hire based on expertise, experience, and budget."
-      },
-      "step4": {
-        "title": "4. Collaborate Seamlessly",
-        "description": "Use Beamly's integrated workspace to communicate, share files, and track progress in real-time. Everything you need for project management is kept in one secure place."
-      },
-      "step5": {
-        "title": "5. Pay Only When Satisfied",
-        "description": "Your funds remain protected until the project is completed. Once you are happy with the final results, you release payment to the freelancer. This ensures fairness and builds trust between both sides."
-      }
-    },
-    "cta": {
-      "title": "Ready to Get Started?",
-      "subtitle": "Join thousands of freelancers and clients already using Beamly",
-      "freelancerButton": "Start as Freelancer",
-      "clientButton": "Post a Project"
-    }
-  }
+  "jobDetails": {
+  "loading": {
+    "title": "Loading...",
+    "subtitle": "Please wait while we fetch the job details"
+  },
+  "notFound": {
+    "title": "Job Not Found",
+    "subtitle": "The job you're looking for doesn't exist or has been removed"
+  },
+  "errors": {
+    "loginToApply": "Please login to apply",
+    "onlyFreelancers": "Only freelancers can apply to jobs",
+    "jobNotFound": "Job not found",
+    "loadFailed": "Failed to load job details"
+  },
+  "browseJobs": "Browse Jobs",
+  "breadcrumb": {
+    "home": "Home",
+    "jobs": "Jobs"
+  },
+  "description": "Description",
+  "skillsRequired": "Skills Required",
+  "experienceLevel": "Experience Level",
+  "projectDuration": "Project Duration",
+  "attachments": "Attachments",
+  "attachment": "Attachment",
+  "budget": "Budget",
+  "fixedPrice": "Fixed Price",
+  "hourlyPrice": "Hourly Price",
+  "applyNow": "Apply Now",
+  "proposals": "Proposals",
+  "status": "Status",
+  "aboutClient": "About the Client",
+  "jobsPosted": "Jobs Posted"
+}
 }

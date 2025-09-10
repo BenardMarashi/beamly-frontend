@@ -7,7 +7,7 @@ import { db } from "../lib/firebase";
 import { PageHeader } from "./page-header";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
-import { JobApplicationModal } from "../components/job-application-modal"; // Add this import
+import { useTranslation } from "react-i18next";
 
 interface JobDetails {
   id: string;
@@ -42,8 +42,7 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
   const { user, userData } = useAuth();
   const [job, setJob] = useState<JobDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false); // Add this state
-
+  const { t } = useTranslation();
   const isFreelancer = userData?.userType === 'freelancer' || userData?.userType === 'both';
 
   useEffect(() => {
@@ -61,32 +60,32 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
       if (jobDoc.exists()) {
         setJob({ id: jobDoc.id, ...jobDoc.data() } as JobDetails);
       } else {
-        toast.error('Job not found');
+        toast.error(t('jobDetails.errors.jobNotFound'));
         navigate('/looking-for-work');
       }
     } catch (error) {
       console.error('Error fetching job details:', error);
-      toast.error('Failed to load job details');
+      toast.error(t('jobDetails.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApply = () => {
-    if (!user) {
-      toast.error('Please login to apply');
-      navigate('/login');
-      return;
-    }
-    
-    if (!isFreelancer) {
-      toast.error('Only freelancers can apply to jobs');
-      return;
-    }
-    
-    // Open modal instead of navigating
-    setIsApplicationModalOpen(true);
-  };
+const handleApply = () => {
+  if (!user) {
+    toast.error(t('jobDetails.errors.loginToApply'));
+    navigate('/login');
+    return;
+  }
+  
+  if (!isFreelancer) {
+    toast.error(t('jobDetails.errors.onlyFreelancers'));
+    return;
+  }
+  
+  // Navigate to the apply page instead of opening modal
+  navigate(`/job/${id}/apply`);
+};
 
   const formatBudget = () => {
     if (!job) return '';
@@ -114,8 +113,8 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
     return (
       <div className="container mx-auto max-w-7xl px-4 py-8">
         <PageHeader 
-          title="Loading..."
-          subtitle="Please wait while we fetch the job details"
+          title={t('jobDetails.loading.title')}
+          subtitle={t('jobDetails.loading.subtitle')}
         />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
@@ -146,15 +145,15 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
     return (
       <div className="container mx-auto max-w-7xl px-4 py-8">
         <PageHeader 
-          title="Job Not Found"
-          subtitle="The job you're looking for doesn't exist or has been removed"
+          title={t('jobDetails.notFound.title')}
+          subtitle={t('jobDetails.notFound.subtitle')}
         />
         <div className="text-center">
           <Button 
             color="secondary"
             onPress={() => navigate('/looking-for-work')}
           >
-            Browse Jobs
+            {t('jobDetails.browseJobs')}
           </Button>
         </div>
       </div>
@@ -165,8 +164,8 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
     <div className="container mx-auto max-w-7xl px-4 py-8">
       <div className="breadcrumb-container" style={{ marginBottom: '3rem' }}>
         <Breadcrumbs>
-          <BreadcrumbItem onPress={() => navigate('/')}>Home</BreadcrumbItem>
-          <BreadcrumbItem onPress={() => navigate('/looking-for-work')}>Jobs</BreadcrumbItem>
+          <BreadcrumbItem onPress={() => navigate('/')}>{t('jobDetails.breadcrumb.home')}</BreadcrumbItem>
+          <BreadcrumbItem onPress={() => navigate('/looking-for-work')}>{t('jobDetails.breadcrumb.jobs')}</BreadcrumbItem>
           <BreadcrumbItem>{job.title}</BreadcrumbItem>
         </Breadcrumbs>
       </div>
@@ -200,12 +199,12 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
                   </div>
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-xl font-semibold text-white mb-3">Description</h2>
+                    <h2 className="text-xl font-semibold text-white mb-3">{t('jobDetails.description')}</h2>
                     <p className="text-gray-300 whitespace-pre-wrap">{job.description}</p>
                   </div>
 
                   <div>
-                    <h2 className="text-xl font-semibold text-white mb-3">Skills Required</h2>
+                    <h2 className="text-xl font-semibold text-white mb-3">{t('jobDetails.skillsRequired')}</h2>
                     <div className="flex flex-wrap gap-2">
                       {job.skills.map((skill) => (
                         <Chip key={skill} variant="flat">{skill}</Chip>
@@ -215,23 +214,23 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h3 className="text-gray-400 mb-1">Experience Level</h3>
+                      <h3 className="text-gray-400 mb-1">{t('jobDetails.experienceLevel')}</h3>
                       <p className="text-white capitalize">{job.experienceLevel}</p>
                     </div>
                     <div>
-                      <h3 className="text-gray-400 mb-1">Project Duration</h3>
+                      <h3 className="text-gray-400 mb-1">{t('jobDetails.projectDuration')}</h3>
                       <p className="text-white">{job.projectDuration}</p>
                     </div>
                   </div>
 
                   {job.attachments && job.attachments.length > 0 && (
                     <div>
-                      <h2 className="text-xl font-semibold text-white mb-3">Attachments</h2>
+                      <h2 className="text-xl font-semibold text-white mb-3">{t('jobDetails.attachments')}</h2>
                       <div className="space-y-2">
                         {job.attachments.map((_, index) => (
                           <div key={index} className="flex items-center gap-2 text-gray-300">
                             <Icon icon="lucide:paperclip" />
-                            <span>Attachment {index + 1}</span>
+                            <span>{t('jobDetails.attachment')} {index + 1}</span>
                           </div>
                         ))}
                       </div>
@@ -246,9 +245,9 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
             <Card className="glass-effect">
               <CardBody className="p-6">
                 <div className="text-center mb-6">
-                  <p className="text-gray-400 mb-2">Budget</p>
+                  <p className="text-gray-400 mb-2">{t('jobDetails.budget')}</p>
                   <p className="text-3xl font-bold text-white">{formatBudget()}</p>
-                  <p className="text-sm text-gray-400 capitalize">{job.budgetType} Price</p>
+                  <p className="text-sm text-gray-400 capitalize">{t(`jobDetails.${job.budgetType}Price`)}</p>
                 </div>
 
                 {isFreelancer && (
@@ -258,17 +257,17 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
                     className="w-full mb-4"
                     onPress={handleApply}
                   >
-                    Apply Now
+                    {t('jobDetails.applyNow')}
                   </Button>
                 )}
 
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Proposals</span>
+                    <span className="text-gray-400">{t('jobDetails.proposals')}</span>
                     <span className="text-white">{job.proposals}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Status</span>
+                    <span className="text-gray-400">{t('jobDetails.status')}</span>
                     <Chip
                       size="sm"
                       color={job.status === 'open' ? 'success' : 'default'}
@@ -283,7 +282,7 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
 
             <Card className="glass-effect">
               <CardBody className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">About the Client</h3>
+                <h3 className="text-lg font-semibold text-white mb-4">{t('jobDetails.aboutClient')}</h3>
                 <div className="flex items-center gap-3 mb-4">
                   <Avatar
                     src={job.clientAvatar}
@@ -303,7 +302,7 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
                 <div className="space-y-2 text-sm">
                   {job.clientJobsPosted && (
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-400">Jobs Posted</span>
+                      <span className="text-gray-400">{t('jobDetails.jobsPosted')}</span>
                       <span className="text-white">{job.clientJobsPosted}</span>
                     </div>
                   )}
@@ -312,27 +311,6 @@ export const JobDetailsPage: React.FC<JobDetailsPageProps> = () => {
             </Card>
           </div>
         </div>
-
-        {/* Job Application Modal */}
-        {job && isApplicationModalOpen && (
-          <JobApplicationModal
-            isOpen={isApplicationModalOpen}
-            onClose={() => setIsApplicationModalOpen(false)}
-            job={{
-              id: job.id,
-              title: job.title,
-              clientId: job.clientId,
-              clientName: job.clientName,
-              budgetMin: job.budgetMin,
-              budgetMax: job.budgetMax || job.budgetMin, // Provide default if budgetMax is undefined
-              budgetType: job.budgetType
-            }}
-            onSuccess={() => {
-              // Refresh the job details to update proposal count
-              fetchJobDetails();
-            }}
-          />
-        )}
     </div>
   );
 };

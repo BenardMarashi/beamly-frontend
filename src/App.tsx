@@ -55,6 +55,7 @@ const ProjectEditPage = lazy(() => import('./pages/portfolio/edit'));
 const ClientPaymentPage = lazy(() => import('./pages/client/payment'));
 const BillingPage = lazy(() => import('./pages/billing'));
 const HowItWorksPage = lazy(() => import('./pages/howitworks'));
+const JobApplyPage = lazy(() => import('./pages/job-apply'));
 
 
 // Loading component
@@ -177,6 +178,12 @@ const AppRoutes = () => {
           <Route path="/browse-freelancers" element={<BrowseFreelancersPage />} />
           <Route path="/freelancer/:id" element={<FreelancerProfilePage />} />
           <Route path="/job/:id" element={<JobDetailsPage />} />
+          <Route path="/job/:id" element={<JobDetailsPage />} />
+          <Route path="/job/:id/apply" element={
+            <ProtectedRoute requiresProfile={true} allowedUserTypes={['freelancer', 'both']}>
+              <JobApplyPage />
+            </ProtectedRoute>
+          } />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
@@ -198,6 +205,8 @@ const AppRoutes = () => {
             } />
           <Route path="/projects/:id/edit" element={<ProtectedRoute><ProjectEditPage /></ProtectedRoute>} />
         </Route>
+
+
 
         {/* Protected routes with DashboardLayout - but without its own navigation */}
         <Route element={<MainLayout />}>
