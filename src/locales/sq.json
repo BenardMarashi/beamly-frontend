@@ -3353,5 +3353,12 @@
   "status": "Statusi",
   "aboutClient": "Rreth Klientit",
   "jobsPosted": "Punë të Publikuara"
+},
+"profileBanner": {
+  "title": "Profili juaj është {{percentage}}% i plotësuar",
+  "description": "Plotësoni profilin tuaj për të zhbllokuar të gjitha veçoritë dhe për të filluar të punësoheni",
+  "missingItems": "Shtoni aftësitë, biografinë dhe tarifën orare",
+  "completeNow": "Plotëso Profilin",
+  "dismiss": "Mbyll njoftimin"
 }
 }

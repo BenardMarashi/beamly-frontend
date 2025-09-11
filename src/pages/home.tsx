@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { collection, query, where, limit, orderBy, onSnapshot, getDocs } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { toast } from "react-hot-toast";
+import { ProfileCompletionBanner } from '../components/banners/ProfileCompletionBanner';
 
 interface Job {
   id: string;
@@ -416,6 +417,8 @@ useEffect(() => {
   return (
     <div className="min-h-[calc(100vh-64px)] pb-8">
       {/* Welcome section with search */}
+      
+      <ProfileCompletionBanner />
       <div className="px-4">
         <div className={`${isDarkMode ? 'glass-effect' : 'bg-white shadow-md'} mt-4 p-4 md:p-6 rounded-2xl md:rounded-3xl max-w-7xl mx-auto`}>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4 md:mb-6">
@@ -532,7 +535,6 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Top Freelancers */}
       {/* Top Freelancers */}
 <div className="px-4 mt-6 md:mt-8">
   <div className="flex justify-between items-center mb-3 md:mb-4">

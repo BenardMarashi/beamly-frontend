@@ -3537,5 +3537,13 @@
   "status": "Status",
   "aboutClient": "About the Client",
   "jobsPosted": "Jobs Posted"
+},
+"profileBanner": {
+  "title": "Your profile is {{percentage}}% complete",
+  "description": "Complete your profile to unlock all features and start getting hired",
+  "missingItems": "Add skills, bio & hourly rate",
+  "completeNow": "Complete Profile",
+  "dismiss": "Dismiss banner"
 }
 }
+

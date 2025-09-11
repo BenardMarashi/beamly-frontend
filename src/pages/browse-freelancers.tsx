@@ -198,128 +198,143 @@ const BrowseFreelancersPage: React.FC = () => {
   ], [t]);
 
   // Fetch users from database
-  const fetchUsersFromDatabase = useCallback(async (reset = false) => {
-    const scrollPosition = window.scrollY;
-    
-    setLoading(true);
-    try {
-      if (reset) {
-        lastDocRef.current = null;
-        setAllFetchedUsers([]);
-        setDisplayCount(12);
-      }
-      
-      const constraints: QueryConstraint[] = [
-        where('userType', 'in', ['freelancer', 'both'])
-      ];
-      
-      if (selectedCategory !== 'all') {
-        constraints.push(where('category', '==', selectedCategory));
-      }
-      
-      constraints.push(orderBy('createdAt', 'desc'));
-      
-      if (!reset && lastDocRef.current) {
-        constraints.push(startAfter(lastDocRef.current));
-      }
-      
-      const fetchLimit = reset ? 100 : 20;
-      constraints.push(limit(fetchLimit));
-      
-      const q = query(collection(db, 'users'), ...constraints);
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.docs.length > 0) {
-        lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
-      }
-      
-      const newUsers = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          isPro: data.isPro === true,
-          rating: data.rating || 0,
-          completedJobs: data.completedJobs || 0,
-          hourlyRate: data.hourlyRate || '0',
-          createdAt: data.createdAt || { seconds: 0 }
-        } as Freelancer;
-      });
-      
-      if (reset) {
-        setAllFetchedUsers(newUsers);
-      } else {
-        setAllFetchedUsers(prev => [...prev, ...newUsers]);
-      }
-      
-      setHasMore(querySnapshot.docs.length === fetchLimit);
-      
-      if (!reset && querySnapshot.docs.length > 0) {
-        setTimeout(() => {
-          window.scrollTo({ top: scrollPosition, behavior: 'instant' });
-        }, 50);
-      }
-      
-    } catch (error) {
-      console.error('Error fetching freelancers:', error);
-      if (reset) {
-        setAllFetchedUsers([]);
-      }
-      setHasMore(false);
-    } finally {
-      setLoading(false);
+const fetchUsersFromDatabase = useCallback(async (reset = false) => {
+  const scrollPosition = window.scrollY;
+  
+  setLoading(true);
+  try {
+    if (reset) {
+      lastDocRef.current = null;
+      setAllFetchedUsers([]);
+      setDisplayCount(12);
     }
-  }, [selectedCategory]);
-
-  // OPTIMIZED: Single-pass filtering and sorting (O(n) instead of O(n²))
-  const filteredAndSortedFreelancers = useMemo(() => {
-    // Single pass for all operations
-    const searchLower = searchQuery.toLowerCase().trim();
-    const [minBudget, maxBudget] = budgetFilter === 'all' 
-      ? [0, Infinity] 
-      : budgetFilter === '100+' 
-        ? [100, Infinity]
-        : budgetFilter.split('-').map(Number);
-
-    // Single filtering pass with all conditions
-    const filtered = allFetchedUsers.filter(freelancer => {
-      // Budget filter
-      const rate = parseInt(freelancer.hourlyRate || '0');
-      if (rate < minBudget || rate > (maxBudget || Infinity)) return false;
-      
-      // Search filter (if applicable)
-      if (searchLower && !(
-        freelancer.displayName?.toLowerCase().includes(searchLower) ||
-        freelancer.bio?.toLowerCase().includes(searchLower) ||
-        freelancer.title?.toLowerCase().includes(searchLower) ||
-        freelancer.skills?.some(skill => skill.toLowerCase().includes(searchLower)) ||
-        freelancer.location?.toLowerCase().includes(searchLower)
-      )) return false;
-      
-      return true;
+    
+    const constraints: QueryConstraint[] = [
+      where('userType', 'in', ['freelancer', 'both'])
+    ];
+    
+    if (selectedCategory !== 'all') {
+      constraints.push(where('category', '==', selectedCategory));
+    }
+    
+    constraints.push(orderBy('createdAt', 'desc'));
+    
+    if (!reset && lastDocRef.current) {
+      constraints.push(startAfter(lastDocRef.current));
+    }
+    
+    // Fetch more on initial load to get Pro users
+    const fetchLimit = reset ? 500 : 50;  // ← INCREASED
+    constraints.push(limit(fetchLimit));
+    
+    const q = query(collection(db, 'users'), ...constraints);
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.docs.length > 0) {
+      lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
+    }
+    
+    const newUsers = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        isPro: data.isPro === true,
+        rating: data.rating || 0,
+        completedJobs: data.completedJobs || 0,
+        hourlyRate: data.hourlyRate || '0',
+        createdAt: data.createdAt || { seconds: 0 }
+      } as Freelancer;
     });
+    
+    if (reset) {
+      setAllFetchedUsers(newUsers);
+    } else {
+      // FIX: PREVENT DUPLICATES
+      setAllFetchedUsers(prev => {
+        const existingIds = new Set(prev.map(u => u.id));
+        const uniqueNewUsers = newUsers.filter(u => !existingIds.has(u.id));
+        return [...prev, ...uniqueNewUsers];
+      });
+    }
+    
+    setHasMore(querySnapshot.docs.length === fetchLimit);
+    
+    if (!reset && querySnapshot.docs.length > 0) {
+      setTimeout(() => {
+        window.scrollTo({ top: scrollPosition, behavior: 'instant' });
+      }, 50);
+    }
+    
+  } catch (error) {
+    console.error('Error fetching freelancers:', error);
+    if (reset) {
+      setAllFetchedUsers([]);
+    }
+    setHasMore(false);
+  } finally {
+    setLoading(false);
+  }
+}, [selectedCategory]);
 
-    // Sort with Pro users first
-    const sorted = [...filtered].sort((a, b) => {
-      // Pro users always come first
-      if (a.isPro !== b.isPro) return a.isPro ? -1 : 1;
-      
-      // Then sort by selected criteria
-      switch (sortBy) {
-        case 'rating':
-          return (b.rating || 0) - (a.rating || 0);
-        case 'completedJobs':
-          return (b.completedJobs || 0) - (a.completedJobs || 0);
-        case 'hourlyRate':
-          return parseInt(a.hourlyRate || '0') - parseInt(b.hourlyRate || '0');
-        case 'newest':
-        default:
-          return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
-      }
-    });
+// REPLACE YOUR filteredAndSortedFreelancers WITH THIS:
+const filteredAndSortedFreelancers = useMemo(() => {
+  // FIX 1: Remove duplicates first
+  const uniqueUsersMap = new Map<string, Freelancer>();
+  allFetchedUsers.forEach(user => {
+    uniqueUsersMap.set(user.id, user); // This automatically overwrites duplicates
+  });
+  const uniqueUsers = Array.from(uniqueUsersMap.values());
+  
+  // Apply filters
+  const searchLower = searchQuery.toLowerCase().trim();
+  const [minBudget, maxBudget] = budgetFilter === 'all' 
+    ? [0, Infinity] 
+    : budgetFilter === '100+' 
+      ? [100, Infinity]
+      : budgetFilter.split('-').map(Number);
 
-    return sorted.slice(0, displayCount);
-  }, [allFetchedUsers, budgetFilter, searchQuery, sortBy, displayCount]);
+  const filtered = uniqueUsers.filter(freelancer => {
+    const rate = parseInt(freelancer.hourlyRate || '0');
+    if (rate < minBudget || rate > (maxBudget || Infinity)) return false;
+    
+    if (searchLower && !(
+      freelancer.displayName?.toLowerCase().includes(searchLower) ||
+      freelancer.bio?.toLowerCase().includes(searchLower) ||
+      freelancer.title?.toLowerCase().includes(searchLower) ||
+      freelancer.skills?.some(skill => skill.toLowerCase().includes(searchLower)) ||
+      freelancer.location?.toLowerCase().includes(searchLower)
+    )) return false;
+    
+    return true;
+  });
+
+  // FIX 2: Sort Pro users first with explicit checks
+  const sorted = [...filtered].sort((a, b) => {
+    // Explicit boolean conversion for safety
+    const aIsPro = Boolean(a.isPro);
+    const bIsPro = Boolean(b.isPro);
+    
+    // Pro users ALWAYS come first
+    if (aIsPro && !bIsPro) return -1;
+    if (!aIsPro && bIsPro) return 1;
+    
+    // Same tier - sort by selected criteria
+    switch (sortBy) {
+      case 'rating':
+        return (b.rating || 0) - (a.rating || 0);
+      case 'completedJobs':
+        return (b.completedJobs || 0) - (a.completedJobs || 0);
+      case 'hourlyRate':
+        return parseInt(a.hourlyRate || '0') - parseInt(b.hourlyRate || '0');
+      case 'newest':
+      default:
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+    }
+  });
+
+  return sorted.slice(0, displayCount);
+}, [allFetchedUsers, budgetFilter, searchQuery, sortBy, displayCount]);
 
   // Check if need more data
   useEffect(() => {
