@@ -11,6 +11,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { ConversationService } from '../services/firebase-services';
 import { toast } from 'react-hot-toast';
 import { MessagesView } from '../components/MessagesView';
+import { UpgradeToProBanner } from '../components/banners/UpgradeToProBanner';
+import { useDisclosure } from '@nextui-org/react';
+import { formatNameWithInitial } from '../utils/nameFormatter';
 
 interface ConversationWithUser {
   id: string;
@@ -39,6 +42,7 @@ export const ConversationsListPage: React.FC = () => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(conversationId || null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [processedConversationIds, setProcessedConversationIds] = useState<Set<string>>(new Set());
+  const { isOpen: isProModalOpen, onOpen: onProModalOpen, onClose: onProModalClose } = useDisclosure();
 
   // Handle window resize
   useEffect(() => {
@@ -237,14 +241,20 @@ export const ConversationsListPage: React.FC = () => {
             {filteredConversations.map((conversation) => (
               <div
                 key={conversation.id}
-                onClick={() => handleConversationClick(conversation.id)}
-                className={`p-4 rounded-lg cursor-pointer transition-colors ${
+                onClick={() => {
+                  if (!userData?.isPro) {
+                    onProModalOpen();
+                    return;
+                  }
+                  handleConversationClick(conversation.id);
+                }}
+                className={`p-4 rounded-lg cursor-pointer transition-colors relative ${
                   selectedConversationId === conversation.id && !isMobile
                     ? 'bg-white/10'
                     : 'hover:bg-white/5'
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className={`flex items-center gap-3 ${!userData?.isPro ? 'blur-sm pointer-events-none select-none' : ''}`}>
                   <div className="relative">
                     <Avatar
                       src={conversation.otherUser.photoURL}
@@ -265,7 +275,7 @@ export const ConversationsListPage: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="font-semibold text-white truncate">
-                        {conversation.otherUser.displayName}
+                        {formatNameWithInitial(conversation.otherUser.displayName)}
                       </h3>
                       <span className="text-gray-400 text-xs">
                         {formatTime(conversation.lastMessageTime)}
@@ -276,6 +286,11 @@ export const ConversationsListPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
+                {!userData?.isPro && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Icon icon="lucide:lock" className="text-white/30 text-xl" />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -285,51 +300,60 @@ export const ConversationsListPage: React.FC = () => {
   );
 
   // Mobile layout - just the conversations list
+  // Mobile layout - just the conversations list
   if (isMobile) {
     return (
-      <div className="pt-20 h-screen flex flex-col bg-mesh">
-        <Card className="glass-effect border-none h-full rounded-none">
-          <CardBody className="p-0">
-            {conversationsList}
-          </CardBody>
-        </Card>
-      </div>
+      <>
+        <div className="pt-20 h-screen flex flex-col bg-mesh">
+          <Card className="glass-effect border-none h-full rounded-none">
+            <CardBody className="p-0">
+              {conversationsList}
+            </CardBody>
+          </Card>
+        </div>
+        <UpgradeToProBanner isOpen={isProModalOpen} onClose={onProModalClose} />
+      </>
     );
   }
 
   // Desktop layout - split view
+  // Desktop layout - split view
   return (
-    <div className="pt-20 h-[calc(100vh-5rem)] flex gap-4 p-4">
-      {/* Conversations List - Left Side */}
-      <Card className="glass-effect border-none w-96 flex-shrink-0">
-        <CardBody className="p-0">
-          {conversationsList}
-        </CardBody>
-      </Card>
+    <>
+      <div className="pt-20 h-[calc(100vh-5rem)] flex gap-4 p-4">
+        {/* Conversations List - Left Side */}
+        <Card className="glass-effect border-none w-96 flex-shrink-0">
+          <CardBody className="p-0">
+            {conversationsList}
+          </CardBody>
+        </Card>
 
-      {/* Messages View - Right Side */}
-      <Card className="glass-effect border-none flex-1">
-        <CardBody className="p-0">
-          {selectedConversationId ? (
-            <MessagesView 
-              conversationId={selectedConversationId} 
-              onBack={() => setSelectedConversationId(null)}
-            />
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <Icon icon="lucide:message-square" className="text-6xl text-gray-500 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">
-                  {t('conversations.selectConversation')}
-                </h3>
-                <p className="text-gray-400">
-                  {t('conversations.chooseConversation')}
-                </p>
+        {/* Messages View - Right Side */}
+        <Card className="glass-effect border-none flex-1">
+          <CardBody className="p-0">
+            {selectedConversationId ? (
+              <MessagesView 
+                conversationId={selectedConversationId} 
+                onBack={() => setSelectedConversationId(null)}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <Icon icon="lucide:message-square" className="text-6xl text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">
+                    {t('conversations.selectConversation')}
+                  </h3>
+                  <p className="text-gray-400">
+                    {t('conversations.chooseConversation')}
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
-        </CardBody>
-      </Card>
-    </div>
+            )}
+          </CardBody>
+        </Card>
+      </div>
+      <UpgradeToProBanner isOpen={isProModalOpen} onClose={onProModalClose} />
+    </>
   );
+  
 };

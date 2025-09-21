@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { collection, query, where, orderBy, limit, getDocs, DocumentSnapshot, startAfter, QueryConstraint } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { formatNameWithInitial } from '../utils/nameFormatter';
 
 interface Freelancer {
   id: string;
@@ -81,7 +82,7 @@ const FreelancerCard = memo(({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-white truncate flex-1">
-                {freelancer.displayName || t('freelancers.anonymousFreelancer')}
+                {formatNameWithInitial(freelancer.displayName) || t('freelancers.anonymousFreelancer')}
               </h3>
               {freelancer.isPro && (
                 <Chip

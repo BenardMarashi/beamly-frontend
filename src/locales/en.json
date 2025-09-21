@@ -774,7 +774,10 @@
       "postProject": "Post a Project",
       "browseFreelancers": "Browse Freelancers",
       "howItWorks": "See How It Works",
-      "startFreelancing": "Start Freelancing"
+      "startFreelancing": "Start Freelancing",
+      "activeUsers": "Active Users",
+      "completedProjects": "Completed Projects",
+      "countries": "Countries"
     },
     "joinAsFreelancer": "Join as a Freelancer",
     "hireFreelancers": "Hire Freelancers"
@@ -976,7 +979,10 @@
     "getStarted": "Get Started",
     "learnMore": "Learn More",
     "watchDemo": "Watch Demo",
-    "freeSignup": "Sign Up Free"
+    "freeSignup": "Sign Up Free",
+          "activeUsers": "Active Users",
+      "completedProjects": "Completed Projects",
+      "countries": "Countries"
   },
   "signup": {
     "join": "Join",
@@ -3544,6 +3550,15 @@
   "missingItems": "Add skills, bio & hourly rate",
   "completeNow": "Complete Profile",
   "dismiss": "Dismiss banner"
+},
+"upgradeProBanner": {
+  "title": "Unlock Your Messages",
+  "description": "Subscribe to Pro to view and respond to all your messages",
+  "benefit1": "Unlimited message access",
+  "benefit2": "Priority listing in search results",
+  "priceNote": "Cancel anytime",
+  "upgradeButton": "Upgrade to Pro",
+  "laterButton": "Maybe Later"
 }
 }
 

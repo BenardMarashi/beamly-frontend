@@ -31,6 +31,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { StripeService } from '../../services/stripe-service';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../lib/firebase';
+import { formatNameWithInitial } from '../../utils/nameFormatter';
 
 interface Proposal {
   id: string;
@@ -405,7 +406,7 @@ export const ClientProposalsPage: React.FC = () => {
                 <div className="flex flex-col md:flex-row gap-4">
                   <Avatar
                     src={proposal.freelancerAvatar}
-                    name={proposal.freelancerName}
+                    name={formatNameWithInitial(proposal.freelancerName)}
                     size="lg"
                     className="cursor-pointer"
                     onClick={() => navigate(`/freelancer/${proposal.freelancerId}`)}
@@ -418,7 +419,7 @@ export const ClientProposalsPage: React.FC = () => {
                           className="font-semibold text-white hover:underline cursor-pointer"
                           onClick={() => navigate(`/freelancer/${proposal.freelancerId}`)}
                         >
-                          {proposal.freelancerName}
+                          {formatNameWithInitial(proposal.freelancerName)}
                         </h3>
                         <p className="text-sm text-gray-400">
                           {t('clientProposals.for')}: {proposal.jobTitle}

@@ -10,6 +10,7 @@ import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestor
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { formatNameWithInitial } from '../utils/nameFormatter';
 
 interface Message {
   id: string;
@@ -218,7 +219,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
           >
               <Avatar
                 src={otherUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(otherUser.displayName)}&background=FCE90D&color=011241`}
-                name={otherUser.displayName}
+                name={formatNameWithInitial(otherUser.displayName)}
                 className={`w-10 h-10 ${otherUser.userType === 'freelancer' ? 'cursor-pointer' : ''}`}
                 onClick={otherUser.userType === 'freelancer' ? () => navigate(`/freelancer/${otherUser.id}`) : undefined}
               />
@@ -228,7 +229,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({ conversationId, onBa
               className={`font-semibold text-white ${otherUser.userType === 'freelancer' ? 'cursor-pointer hover:underline' : ''}`}
               onClick={otherUser.userType === 'freelancer' ? () => navigate(`/freelancer/${otherUser.id}`) : undefined}
             >
-              {otherUser.displayName}
+              {formatNameWithInitial(otherUser.displayName)}
             </h3>
             <p className="text-xs text-gray-400 capitalize">
               {otherUser.userType}

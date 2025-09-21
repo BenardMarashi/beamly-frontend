@@ -212,11 +212,11 @@ const handleSubscribe = async () => {
           onValueChange={setSelectedPlan}
           className="w-full"
         >
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {SUBSCRIPTION_PLANS.map((plan) => (
               <Card
                 key={plan.id}
-                className={`relative cursor-pointer transition-all glass-card ${
+                className={`relative cursor-pointer transition-all glass-card h-auto min-h-fit ${
                   selectedPlan === plan.id
                     ? 'ring-2 ring-yellow-400 shadow-lg'
                     : 'hover:shadow-md'
@@ -242,7 +242,7 @@ const handleSubscribe = async () => {
                     Current Plan
                   </Chip>
                 )}
-                <CardBody className="p-6">
+                <CardBody className="p-4 md:p-6 h-auto">
                   {plan.id !== 'free' && (
                     <Radio
                       value={plan.id}
@@ -267,12 +267,12 @@ const handleSubscribe = async () => {
                       </p>
                     )}
                   </div>
-                  <ul className="space-y-2 text-sm">
+                  <ul className="space-y-3 text-sm">
                     {plan.features.map((feature, index) => (
-                      <li key={index} className="flex gap-2">
+                      <li key={index} className="flex gap-2 items-start">
                         <Icon 
                           icon="lucide:check" 
-                          className={`mt-0.5 flex-shrink-0 ${
+                          className={`mt-0.5 flex-shrink-0 min-w-[16px] ${
                             feature.includes('15% commission') ? 'text-red-400' : 'text-green-400'
                           }`}
                         />

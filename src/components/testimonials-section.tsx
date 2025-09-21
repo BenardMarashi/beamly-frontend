@@ -13,21 +13,18 @@ export const TestimonialsSection: React.FC = () => {
       name: "Sarah Johnson",
       role: t('testimonials.roles.marketingDirector'),
       company: "TechCorp",
-      image: "https://img.heroui.chat/image/avatar?w=100&h=100&u=sarah1",
       content: t('testimonials.sarah')
     },
     {
       name: "Michael Chen",
       role: t('testimonials.roles.startupFounder'),
       company: "InnovateLabs",
-      image: "https://img.heroui.chat/image/avatar?w=100&h=100&u=michael1",
       content: t('testimonials.michael')
     },
     {
       name: "Jessica Williams",
       role: t('testimonials.roles.freelancer'),
       company: t('testimonials.selfEmployed'),
-      image: "https://img.heroui.chat/image/avatar?w=100&h=100&u=jessica1",
       content: t('testimonials.jessica')
     }
   ];
@@ -42,7 +39,6 @@ export const TestimonialsSection: React.FC = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          {t('testimonials.title')} <span className="text-beamly-secondary">{t('testimonials.users')}</span> {t('testimonials.say')}
         </motion.h2>
         <motion.p 
           className={`max-w-2xl mx-auto section-subtitle ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
@@ -64,28 +60,34 @@ export const TestimonialsSection: React.FC = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
           >
-            <div className={`h-full ${isDarkMode ? 'glass-card' : 'yellow-glass'} card-hover`}>
+            <div className={`h-full ${isDarkMode ? 'glass-card' : 'yellow-glass'} card-hover relative`}>
               <div className="p-6">
-                <div className="flex items-center mb-4">
-                  <img
-                    src={testimonial.image}
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full mr-4"
+                {/* Quote Icon at the top */}
+                <div className="mb-4">
+                  <Icon 
+                    icon="lucide:quote" 
+                    className="text-beamly-secondary opacity-30" 
+                    width={32} 
                   />
-                  <div>
-                    <h4 className="font-semibold text-white">{testimonial.name}</h4>
-                    <p className="text-sm text-gray-300">{testimonial.role}</p>
-                    <p className="text-xs text-gray-400">{testimonial.company}</p>
-                  </div>
                 </div>
-                <div className="flex mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Icon key={i} icon="lucide:star" className="text-beamly-secondary" width={16} />
-                  ))}
-                </div>
-                <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-100'} italic`}>
+                
+                {/* Testimonial Content */}
+                <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-100'} italic mb-6 text-base leading-relaxed`}>
                   "{testimonial.content}"
                 </p>
+                
+                {/* Star Rating */}
+                <div className="flex mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Icon key={i} icon="lucide:star" className="text-beamly-secondary" width={18} />
+                  ))}
+                </div>
+                
+                {/* Author Info - Now at the bottom without image */}
+                <div className="border-t border-white/10 pt-4">
+                  <h4 className="font-semibold text-white text-lg">{testimonial.name}</h4>
+                  <p className="text-sm text-gray-300">{testimonial.role}</p>
+                </div>
               </div>
             </div>
           </motion.div>

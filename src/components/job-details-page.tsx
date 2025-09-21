@@ -8,6 +8,8 @@ import { PageHeader } from "./page-header";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
+import { formatNameWithInitial } from '../utils/nameFormatter';
+
 
 interface JobDetails {
   id: string;
@@ -19,7 +21,7 @@ interface JobDetails {
   budgetMax?: number;
   skills: string[];
   experienceLevel: string;
-  projectDuration: string;
+  duration: string;
   attachments?: string[];
   clientId: string;
   clientName: string;
@@ -219,7 +221,7 @@ const handleApply = () => {
                     </div>
                     <div>
                       <h3 className="text-gray-400 mb-1">{t('jobDetails.projectDuration')}</h3>
-                      <p className="text-white">{job.projectDuration}</p>
+                      <p className="text-white">{job.duration || 'Not specified'}</p>
                     </div>
                   </div>
 
@@ -290,7 +292,7 @@ const handleApply = () => {
                     size="lg"
                   />
                   <div>
-                    <p className="text-white font-medium">{job.clientName}</p>
+                    <p className="text-white font-medium">{formatNameWithInitial(job.clientName)}</p>
                     {job.clientRating && (
                       <div className="flex items-center gap-1">
                         <Icon icon="lucide:star" className="text-yellow-500" />

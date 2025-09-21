@@ -31,6 +31,7 @@ import { db } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
 
+
 interface Proposal {
   id: string;
   jobId: string;

@@ -953,7 +953,10 @@
     "getStarted": "Fillo tani",
     "learnMore": "Mëso më shumë",
     "watchDemo": "Shiko demonstrimin",
-    "freeSignup": "Regjistrohu falas"
+    "freeSignup": "Regjistrohu falas",
+    "activeUsers": "Përdorues Aktivë",
+    "completedProjects": "Projekte të Përfunduara", 
+    "countries": "Shtete"
   },
   "login": {
     "title": "Mirë se Erdhët",
@@ -3360,5 +3363,14 @@
   "missingItems": "Shtoni aftësitë, biografinë dhe tarifën orare",
   "completeNow": "Plotëso Profilin",
   "dismiss": "Mbyll njoftimin"
+},
+"upgradeProBanner": {
+  "title": "Zhblloko Mesazhet",
+  "description": "Abonohu në Pro për të parë dhe përgjigjur të gjitha mesazhet",
+  "benefit1": "Qasje e pakufizuar në mesazhe",
+  "benefit2": "Përparësi në rezultatet e kërkimit",
+  "priceNote": "Anulo në çdo kohë",
+  "upgradeButton": "Përmirëso në Pro",
+  "laterButton": "Ndoshta Më Vonë"
 }
 }

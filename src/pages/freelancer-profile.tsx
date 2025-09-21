@@ -8,6 +8,8 @@ import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from "
 import { db } from "../lib/firebase";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
+import { formatNameWithInitial } from '../utils/nameFormatter';
+
 
 interface FreelancerData {
   id: string;
@@ -245,7 +247,7 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                 className="w-24 h-24 mb-4"
               />
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold text-white">{freelancer.displayName}</h1>
+                <h1 className="text-2xl font-bold text-white">{user?.uid === id ? freelancer.displayName : formatNameWithInitial(freelancer.displayName)}</h1>
                 {freelancer.isVerified && (
                   <Icon icon="lucide:badge-check" className="text-blue-400 w-5 h-5" />
                 )}
@@ -299,7 +301,6 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
               </div>
               
             {/* Only show Send Message button if the FREELANCER is Pro or user viewing own profile */}
-            {(freelancerIsPro || user?.uid === id) && (
               <div className="w-full mt-6 space-y-3">
                 <Button 
                   variant="bordered" 
@@ -311,7 +312,6 @@ export const FreelancerProfilePage: React.FC<FreelancerProfilePageProps> = () =>
                   {t('freelancerProfile.sendMessage')}
                 </Button>
               </div>
-            )}
             </div>
           </div>
         </div>

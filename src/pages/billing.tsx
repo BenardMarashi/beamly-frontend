@@ -24,7 +24,7 @@ import {
   Chip
 } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
@@ -45,8 +45,10 @@ interface Transaction {
 
 export const BillingPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, userData } = useAuth();
   const { t } = useTranslation();
+  const [selectedTab, setSelectedTab] = useState<string>('earnings');
   const [balance, setBalance] = useState({ available: 0, pending: 0 });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -58,6 +60,17 @@ export const BillingPage: React.FC = () => {
   
   const { isOpen: isWithdrawOpen, onOpen: onWithdrawOpen, onClose: onWithdrawClose } = useDisclosure();
   
+
+  useEffect(() => {
+  const tabParam = searchParams.get('tab');
+  if (tabParam === 'subscription') {
+    setSelectedTab('subscription');
+  } else if (tabParam === 'transactions') {
+    setSelectedTab('transactions');
+  } else {
+    setSelectedTab('earnings');
+  }
+}, [searchParams]);
   // Redirect if user is client only
   useEffect(() => {
     if (!user) {
@@ -219,13 +232,15 @@ export const BillingPage: React.FC = () => {
         </div>
         
         <Tabs 
-          aria-label="Billing options" 
-          className="mb-8"
-          classNames={{
-            tabList: "flex-wrap md:flex-nowrap overflow-x-auto scrollbar-hide",
-            tab: "min-w-fit"
-          }}
-        >
+            aria-label="Billing options" 
+            className="mb-8"
+            selectedKey={selectedTab}
+            onSelectionChange={(key) => setSelectedTab(key as string)}
+            classNames={{
+              tabList: "flex-wrap md:flex-nowrap overflow-x-auto scrollbar-hide",
+              tab: "min-w-fit"
+            }}
+          >
           <Tab key="earnings" title={t('billing.tabs.earnings')}>
             <div className="space-y-6">
               {/* Balance Overview */}
