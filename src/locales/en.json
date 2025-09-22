@@ -903,46 +903,6 @@
       "description": "Multiple payment options including crypto, wire transfer, and local methods."
     }
   },
-  "howItWorks": {
-    "title": "How",
-    "titleEnd": "Works",
-    "subtitle": "Get your projects done in 4 simple steps",
-    "step1": {
-      "title": "Create an Account",
-      "description": "Sign up for free and complete your profile to get started."
-    },
-    "step2": {
-      "title": "Discover Services",
-      "description": "Browse through thousands of services or post a request."
-    },
-    "step3": {
-      "title": "Hire Freelancers",
-      "description": "Choose the perfect freelancer for your project and collaborate."
-    },
-    "step4": {
-      "title": "Complete Project",
-      "description": "Approve the work and release payment when satisfied."
-    },
-    "forFreelancers": {
-      "title": "For Freelancers",
-      "step1": {
-        "title": "Build Your Profile",
-        "description": "Showcase your skills, portfolio, and experience."
-      },
-      "step2": {
-        "title": "Browse Jobs",
-        "description": "Find projects that match your expertise and interests."
-      },
-      "step3": {
-        "title": "Submit Proposals",
-        "description": "Send compelling proposals to win clients."
-      },
-      "step4": {
-        "title": "Get Paid",
-        "description": "Complete work and receive secure payments."
-      }
-    }
-  },
   "testimonials": {
     "title": "What Our",
     "users": "Users",
@@ -3559,6 +3519,56 @@
   "priceNote": "Cancel anytime",
   "upgradeButton": "Upgrade to Pro",
   "laterButton": "Maybe Later"
+},
+"howItWorks": {
+  "title": "How It Works",
+  "subtitle": "Start your journey in just a few simple steps",
+  "description": "Whether you're a freelancer looking for opportunities or a client seeking talent, we've made the process simple and efficient.",
+  "forFreelancers": "For Freelancers",
+  "forClients": "For Clients",
+  "freelancers": {
+    "step1": {
+      "title": "Create Your Profile",
+      "description": "Sign up and build your professional profile. Showcase your skills, experience, and portfolio to attract potential clients."
+    },
+    "step2": {
+      "title": "Find Opportunities",
+      "description": "Browse through hundreds of job listings that match your skills. Use filters to find projects that fit your expertise and availability."
+    },
+    "step3": {
+      "title": "Submit Proposals",
+      "description": "Write compelling proposals for projects you're interested in. Highlight your relevant experience and explain how you can help."
+    },
+    "step4": {
+      "title": "Get Hired",
+      "description": "Clients review your proposal and profile. Once selected, discuss project details and agree on terms with your client."
+    },
+    "step5": {
+      "title": "Get Paid Securely",
+      "description": "Complete the work and receive payment through our secure platform. Build your reputation with client reviews."
+    }
+  },
+  "clients": {
+    "step1": {
+      "title": "Post Your Job",
+      "description": "Describe your project, set your budget, and specify the skills you need. Your job will be visible to thousands of qualified freelancers."
+    },
+    "step2": {
+      "title": "Receive Proposals",
+      "description": "Get proposals from interested freelancers within hours. Review their profiles, portfolios, and proposed rates."
+    },
+    "step3": {
+      "title": "Select the Best",
+      "description": "Compare proposals, interview candidates if needed, and choose the freelancer that best fits your project requirements."
+    },
+    "step4": {
+      "title": "Collaborate",
+      "description": "Work directly with your freelancer. Communicate through our platform, share files, and track project progress."
+    },
+    "step5": {
+      "title": "Complete & Review",
+      "description": "Once satisfied with the work, release payment and leave a review. Build lasting relationships with talented freelancers."
+    }
+  }
 }
 }
-

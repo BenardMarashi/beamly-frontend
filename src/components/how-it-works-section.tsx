@@ -11,7 +11,7 @@ const steps = [
   },
   {
     icon: "lucide:search",
-    color: "#FCE90D"
+    color: "#FCE90D"  
   },
   {
     icon: "lucide:handshake",
@@ -28,9 +28,18 @@ export const HowItWorksSection: React.FC = () => {
   const { isDarkMode } = useTheme();
   
   const getStepContent = (index: number) => {
+    const stepNumber = index + 1;
+    // Use client steps for landing page (they only have 4 steps which matches our icons)
+    // Map step 4 icon to step 5 content (Complete & Review)
+    if (stepNumber === 4) {
+      return {
+        title: t('howItWorks.clients.step5.title'),
+        description: t('howItWorks.clients.step5.description')
+      };
+    }
     return {
-      title: t(`howItWorks.step${index + 1}.title`),
-      description: t(`howItWorks.step${index + 1}.description`)
+      title: t(`howItWorks.clients.step${stepNumber}.title`),
+      description: t(`howItWorks.clients.step${stepNumber}.description`)
     };
   };
   
@@ -44,7 +53,7 @@ export const HowItWorksSection: React.FC = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          {t('howItWorks.title')} <span className={isDarkMode ? "text-white" : "text-gray-900"}>Beamly</span> {t('howItWorks.titleEnd')}
+          {t('howItWorks.title')}
         </motion.h2>
         <motion.p 
           className={`max-w-2xl mx-auto section-subtitle text-sm md:text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}

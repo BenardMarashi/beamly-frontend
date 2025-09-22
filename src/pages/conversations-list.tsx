@@ -242,7 +242,8 @@ export const ConversationsListPage: React.FC = () => {
               <div
                 key={conversation.id}
                 onClick={() => {
-                  if (!userData?.isPro) {
+                  // Only restrict freelancers who aren't pro
+                  if (userData?.userType === 'freelancer' && !userData?.isPro) {
                     onProModalOpen();
                     return;
                   }
@@ -254,7 +255,7 @@ export const ConversationsListPage: React.FC = () => {
                     : 'hover:bg-white/5'
                 }`}
               >
-                <div className={`flex items-center gap-3 ${!userData?.isPro ? 'blur-sm pointer-events-none select-none' : ''}`}>
+                <div className={`flex items-center gap-3 ${(userData?.userType === 'freelancer' && !userData?.isPro) ? 'blur-sm pointer-events-none select-none' : ''}`}>
                   <div className="relative">
                     <Avatar
                       src={conversation.otherUser.photoURL}
@@ -286,7 +287,7 @@ export const ConversationsListPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                {!userData?.isPro && (
+                {(userData?.userType === 'freelancer' && !userData?.isPro) && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Icon icon="lucide:lock" className="text-white/30 text-xl" />
                   </div>
