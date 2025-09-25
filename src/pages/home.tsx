@@ -1,4 +1,3 @@
-// This is the complete file you already have from our previous response
 // src/pages/home.tsx
 
 import React, { useState, useEffect } from "react";
@@ -169,30 +168,58 @@ export const HomePage: React.FC = () => {
     return () => unsubscribe();
   }, [user, t]);
 
-  // Fetch top freelancers
+  // Fetch top freelancers with proper Pro user prioritization
+  useEffect(() => {
+    if (!user) return;
 
-useEffect(() => {
-  if (!user) return;
+    const fetchTopFreelancers = async () => {
+      try {
+        // Step 1: Query ALL Pro users first (no limit, we want all of them)
+        const proUsersQuery = query(
+          collection(db, 'users'),
+          where('userType', 'in', ['freelancer', 'both']),
+          where('isPro', '==', true),
+          where('profileCompleted', '==', true)
+        );
 
-  let unsubscribe: (() => void) | undefined;
+        const proSnapshot = await getDocs(proUsersQuery);
+        const proUsers = proSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            displayName: data.displayName || t('home.unknownUser'),
+            title: data.title || '',
+            photoURL: data.photoURL || '',
+            rating: data.rating || 0,
+            ratingCount: data.ratingCount || 0,
+            completedProjects: data.completedJobs || 0,
+            skills: data.skills || [],
+            isPro: true
+          } as Freelancer;
+        });
 
-  const fetchTopFreelancers = async () => {
-    try {
-      // First try with profileCompleted filter
-      const freelancersQuery = query(
-        collection(db, 'users'),
-        where('userType', 'in', ['freelancer', 'both']),
-        where('profileCompleted', '==', true),
-        limit(30)
-      );
+        // Sort Pro users by rating
+        proUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
-      unsubscribe = onSnapshot(freelancersQuery, 
-        async (snapshot) => {
-          // NO ASYNC NEEDED ANYMORE - NO QUERIES!
-          const freelancers = snapshot.docs.map(doc => {
+        console.log(`Found ${proUsers.length} Pro users`);
+
+        // Step 2: Query regular users (non-Pro)
+        // We need enough to fill up to 10 total, accounting for Pro users we already have
+        const regularUsersNeeded = Math.max(10 - proUsers.length, 0);
+        
+        if (regularUsersNeeded > 0) {
+          // Query more than needed to ensure we get the best rated ones
+          const regularUsersQuery = query(
+            collection(db, 'users'),
+            where('userType', 'in', ['freelancer', 'both']),
+            where('isPro', '==', false),
+            where('profileCompleted', '==', true),
+            limit(30) // Get more to sort by rating
+          );
+
+          const regularSnapshot = await getDocs(regularUsersQuery);
+          const regularUsers = regularSnapshot.docs.map(doc => {
             const data = doc.data();
-            
-            // JUST USE THE FIELD DIRECTLY - NO QUERIES!
             return {
               id: doc.id,
               displayName: data.displayName || t('home.unknownUser'),
@@ -200,84 +227,74 @@ useEffect(() => {
               photoURL: data.photoURL || '',
               rating: data.rating || 0,
               ratingCount: data.ratingCount || 0,
-              completedProjects: data.completedJobs || 0,  // ← SIMPLE!
+              completedProjects: data.completedJobs || 0,
+              skills: data.skills || [],
+              isPro: false
+            } as Freelancer;
+          });
+
+          // Sort regular users by rating and take only what we need
+          regularUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          const topRegularUsers = regularUsers.slice(0, regularUsersNeeded);
+
+          console.log(`Found ${regularUsers.length} regular users, using ${topRegularUsers.length}`);
+
+          // Combine: ALL Pro users first, then top regular users (up to 10 total)
+          const combinedFreelancers = [...proUsers, ...topRegularUsers].slice(0, 10);
+          setTopFreelancers(combinedFreelancers);
+        } else {
+          // If we have 10 or more Pro users, just show the top 10 Pro users
+          setTopFreelancers(proUsers.slice(0, 10));
+        }
+      } catch (error) {
+        console.error("Error fetching freelancers with separate queries:", error);
+        
+        // Fallback: Try to get users without the isPro filter
+        try {
+          const fallbackQuery = query(
+            collection(db, 'users'),
+            where('userType', 'in', ['freelancer', 'both']),
+            limit(50) // Increase limit to have better chance of getting Pro users
+          );
+
+          const fallbackSnapshot = await getDocs(fallbackQuery);
+          const allFreelancers = fallbackSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              displayName: data.displayName || t('home.unknownUser'),
+              title: data.title || '',
+              photoURL: data.photoURL || '',
+              rating: data.rating || 0,
+              ratingCount: data.ratingCount || 0,
+              completedProjects: data.completedJobs || 0,
               skills: data.skills || [],
               isPro: data.isPro === true
             } as Freelancer;
           });
+
+          // Separate and sort
+          const proUsers = allFreelancers.filter(f => f.isPro === true);
+          const regularUsers = allFreelancers.filter(f => f.isPro !== true);
           
-          // Separate pro and regular users
-          const proUsers = freelancers.filter(f => f.isPro === true);
-          const regularUsers = freelancers.filter(f => f.isPro !== true);
-          
-          // Sort each group by rating (highest first)
           proUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
           regularUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
           
-          // Combine with Pro users first, then take top 10
           const sortedFreelancers = [...proUsers, ...regularUsers].slice(0, 10);
-          
-          console.log(`Top freelancers: ${proUsers.length} Pro users, ${regularUsers.length} regular users`);
+          console.log(`Fallback: ${proUsers.length} Pro users, ${regularUsers.length} regular users`);
           
           setTopFreelancers(sortedFreelancers);
-        },
-        async (error) => {
-          console.error("Error fetching freelancers:", error);
-          
-          // Fallback query without profileCompleted if there's an error
-          const simpleQuery = query(
-            collection(db, 'users'),
-            where('userType', 'in', ['freelancer', 'both']),
-            limit(30)
-          );
-          
-          unsubscribe = onSnapshot(simpleQuery, 
-            (snapshot) => {
-              // NO ASYNC NEEDED - NO QUERIES!
-              const freelancers = snapshot.docs.map(doc => {
-                const data = doc.data();
-                
-                // JUST USE THE FIELD DIRECTLY!
-                return {
-                  id: doc.id,
-                  displayName: data.displayName || t('home.unknownUser'),
-                  title: data.title || '',
-                  photoURL: data.photoURL || '',
-                  rating: data.rating || 0,
-                  ratingCount: data.ratingCount || 0,
-                  completedProjects: data.completedJobs || 0,  // ← SIMPLE!
-                  skills: data.skills || [],
-                  isPro: data.isPro === true
-                } as Freelancer;
-              });
-              
-              // Separate and sort
-              const proUsers = freelancers.filter(f => f.isPro === true);
-              const regularUsers = freelancers.filter(f => f.isPro !== true);
-              
-              proUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-              regularUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-              
-              const sortedFreelancers = [...proUsers, ...regularUsers].slice(0, 10);
-              setTopFreelancers(sortedFreelancers);
-            }
-          );
+        } catch (fallbackError) {
+          console.error("Fallback query also failed:", fallbackError);
+          setTopFreelancers([]);
         }
-      );
-    } catch (error) {
-      console.error("Error in fetchTopFreelancers:", error);
-      setTopFreelancers([]);
-    }
-  };
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchTopFreelancers();
-
-  return () => {
-    if (unsubscribe) {
-      unsubscribe();
-    }
-  };
-}, [user, t]);
+    fetchTopFreelancers();
+  }, [user, t]);
 
   // Fetch user's active projects
   useEffect(() => {
