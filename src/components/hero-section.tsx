@@ -109,21 +109,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ setCurrentPage }) => {
           >
             <Button
               size="lg"
-              color="primary"
-              className="font-medium text-white px-8"
-              onPress={() => setCurrentPage('signup')}
-              startContent={<Icon icon="lucide:user-plus" />}
-            >
-              {t('hero.joinAsFreelancer')}
-            </Button>
-            <Button
-              size="lg"
               variant="bordered"
               className={`font-medium px-8 ${isDarkMode ? 'border-white/20 text-white' : 'border-gray-300 text-gray-900'}`}
               onPress={() => setCurrentPage('signup?type=company')}
               startContent={<Icon icon="lucide:building" />}
             >
               {t('hero.hireFreelancers')}
+            </Button>
+            <Button
+              size="lg"
+              color="primary"
+              className="font-medium text-white px-8"
+              onPress={() => setCurrentPage('signup')}
+              startContent={<Icon icon="lucide:user-plus" />}
+            >
+              {t('hero.joinAsFreelancer')}
             </Button>
           </motion.div>
         </motion.div>

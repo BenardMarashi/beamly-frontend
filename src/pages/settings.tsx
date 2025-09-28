@@ -20,7 +20,7 @@ import { Icon } from '@iconify/react';
 import { useTheme } from '../contexts/theme-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { 
   updatePassword, 
@@ -56,6 +56,36 @@ const SettingsPage: React.FC = () => {
     confirmPassword: ''
   });
   
+  useEffect(() => {
+  const loadUserSettings = async () => {
+    if (user) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (userData.settings) {
+            setSettings({
+              ...settings,
+              ...userData.settings,
+              language: userData.settings.language || i18n.language || 'sq' // ← Default to 'sq'
+            });
+            
+            // Apply saved language
+            if (userData.settings.language) {
+              i18n.changeLanguage(userData.settings.language);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    }
+  };
+  
+  loadUserSettings();
+}, [user]);
+
+
   useEffect(() => {
     // Scroll to top
     window.scrollTo(0, 0);
@@ -287,14 +317,14 @@ const SettingsPage: React.FC = () => {
                     trigger: "bg-gray-900/50 border-gray-600 text-white",
                     value: "text-white",
                     listbox: "bg-gray-900",
-                    popoverContent: "bg-gray-900",
+                    popoverContent: "bg-gray-900"
                   }}
                 >
-                  <SelectItem key="en" value="en">
-                    English
-                  </SelectItem>
                   <SelectItem key="sq" value="sq">
-                    Shqip
+                    🇦🇱 Shqip
+                  </SelectItem>
+                  <SelectItem key="en" value="en">
+                    🇬🇧 English
                   </SelectItem>
                 </Select>
               </div>

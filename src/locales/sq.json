@@ -3358,11 +3358,31 @@
   "jobsPosted": "Punë të Publikuara"
 },
 "profileBanner": {
-  "title": "Profili juaj është {{percentage}}% i plotësuar",
-  "description": "Plotësoni profilin tuaj për të zhbllokuar të gjitha veçoritë dhe për të filluar të punësoheni",
-  "missingItems": "Shtoni aftësitë, biografinë dhe tarifën orare",
+  "title": "Profili yt është {{percentage}}% i plotësuar",
+  "description": "Plotëso profilin për t'u bërë i dukshëm për klientët dhe për të zhbllokuar të gjitha veprimtaritë",
+  "missingItems": "Shto informacionin e kërkuar",
   "completeNow": "Plotëso Profilin",
-  "dismiss": "Mbyll njoftimin"
+  "dismiss": "Mbyll njoftimin",
+  
+  "modalTitle": "Plotëso Profilin për të vazhduar në Beamly",
+  "modalSubtitle": "Duhet të plotësosh profilin për të përdorur Beamly dhe për t'u parë nga klientët",
+  "requiredFields": "Fushat e kërkuara për të plotësuar:",
+  "allComplete": "Profili yt është i plotësuar!",
+  "almostThere": "Je {{percentage}}% larg nga të qenit i dukshëm në Beamly!",
+  "whyComplete": "Pse duhet ta plotësosh profilin:",
+  "cannotContinue": "Nuk mund të vazhdosh të përdorësh Beamly derisa profili të jetë i plotësuar",
+  
+  "importantNotice": "Njoftim i Rëndësishëm",
+  "profileNotVisible": "Profili yt aktualisht NUK është i dukshëm për klientët. Plotëso të gjitha fushat e kërkuara për të dalë në rezultatet e kërkimit dhe për të marrë mundësi pune.",
+  
+  "missingDisplayName": "Emri i Shfaqur",
+  "missingBio": "Biografia Profesionale",
+  "missingSkills": "Aftësitë",
+  "missingHourlyRate": "Tarifa për Orë",
+  
+  "benefit1": "Profili yt do të bëhet i dukshëm për mijëra klientë",
+  "benefit3": "Ndërto besim me klientët tuaj",
+  "benefit4": "Zhblloko veçoritë e plota të Beamly"
 },
 "upgradeProBanner": {
   "title": "Zhblloko Mesazhet",

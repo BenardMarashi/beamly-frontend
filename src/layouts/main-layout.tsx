@@ -12,6 +12,8 @@ import { useTheme } from "../contexts/theme-context";
 import { signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
+import { ProfileCompletionBanner } from '../components/banners/ProfileCompletionBanner';
+
 
 export const MainLayout: React.FC = () => {
   const location = useLocation();
@@ -87,7 +89,7 @@ export const MainLayout: React.FC = () => {
           isLoggedIn={!!user} 
           onLogout={handleLogout}
         />
-        
+        <ProfileCompletionBanner />
         {/* Page Content */}
         <main className="relative z-10 pt-20">
           <Outlet />

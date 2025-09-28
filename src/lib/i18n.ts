@@ -4,7 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 
 // Import translation files
 import en from '../locales/en.json';
-import sq from '../locales/sq.json'; // Albanian translations (renamed from al.json)
+import sq from '../locales/sq.json';
 
 const resources = {
   en: {
@@ -20,12 +20,12 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'en', // default language
-    fallbackLng: 'en',
-    debug: true, // Enable debug to see what's happening
+    lng: 'sq', // ← CHANGE: Set Albanian as default language
+    fallbackLng: 'sq', // ← CHANGE: Set Albanian as fallback
+    debug: false,
     
     interpolation: {
-      escapeValue: false, // React already escapes values
+      escapeValue: false,
     },
     
     react: {
@@ -33,19 +33,18 @@ i18n
     },
     
     detection: {
-      // Order of detection methods
+      // Order of detection methods - localStorage first!
       order: ['localStorage', 'navigator', 'htmlTag'],
       // Cache user language in localStorage
       caches: ['localStorage'],
-      // Keys or params to lookup language from
+      // Key name in localStorage
       lookupLocalStorage: 'i18nextLng',
     }
   });
 
-// Log current language on initialization
+// Update HTML lang attribute when language changes
 i18n.on('languageChanged', (lng) => {
   console.log('Language changed to:', lng);
-  // Update HTML lang attribute
   document.documentElement.lang = lng;
 });
 

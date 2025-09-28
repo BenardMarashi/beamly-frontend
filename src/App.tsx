@@ -108,15 +108,50 @@ const performAuthChecks = () => {
           state: { from: location.pathname },
           replace: true 
         });
-      } else if (requiresProfile && user && !userData?.profileCompleted) {
-        navigate('/edit-profile', { 
-          state: { from: location.pathname },
-          replace: true 
-        });
-      } else if (allowedUserTypes.length > 0 && userData) {
-        const userType = userData.userType;
-        if (!allowedUserTypes.includes(userType) && userType !== 'both') {
-          navigate('/dashboard', { replace: true });
+      } else if (user && userData) {
+        // Enhanced profile completion check
+        const needsProfileCompletion = !userData.profileCompleted && (
+          !userData.displayName?.trim() || 
+          !userData.bio?.trim() ||
+          (userData.userType === 'freelancer' && (!userData.skills || userData.skills.length === 0)) ||
+          (userData.userType === 'freelancer' && (!userData.hourlyRate || userData.hourlyRate <= 0))
+        );
+
+        // List of routes that require complete profile
+        const profileRequiredRoutes = [
+          '/post-job',
+          '/post-project', 
+          '/messages',
+          '/proposals',
+          '/payments',
+          '/job/',
+          '/freelancer/',
+          '/client/'
+        ];
+
+        const requiresCompleteProfile = profileRequiredRoutes.some(route => 
+          location.pathname.startsWith(route)
+        );
+
+        if (needsProfileCompletion && requiresCompleteProfile) {
+          navigate('/edit-profile', { 
+            state: { from: location.pathname },
+            replace: true 
+          });
+          return;
+        }
+
+        // Original profile check for backward compatibility
+        if (requiresProfile && !userData?.profileCompleted) {
+          navigate('/edit-profile', { 
+            state: { from: location.pathname },
+            replace: true 
+          });
+        } else if (allowedUserTypes.length > 0) {
+          const userType = userData.userType;
+          if (!allowedUserTypes.includes(userType) && userType !== 'both') {
+            navigate('/dashboard', { replace: true });
+          }
         }
       }
       setRouteChecked(true);
@@ -335,6 +370,23 @@ const AppRoutes = () => {
 function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
+
+  useEffect(() => {
+    // Check for saved language preference
+    const savedLanguage = localStorage.getItem('i18nextLng');
+    
+    if (!savedLanguage) {
+      // No saved preference, set Albanian as default
+      i18n.changeLanguage('sq');
+      localStorage.setItem('i18nextLng', 'sq');
+      document.documentElement.lang = 'sq';
+    } else {
+      // Apply saved language
+      i18n.changeLanguage(savedLanguage);
+      document.documentElement.lang = savedLanguage;
+    }
+  }, []);
+  
   useEffect(() => {
     // Check for saved theme preference
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;

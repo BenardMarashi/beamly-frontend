@@ -3506,10 +3506,30 @@
 },
 "profileBanner": {
   "title": "Your profile is {{percentage}}% complete",
-  "description": "Complete your profile to unlock all features and start getting hired",
-  "missingItems": "Add skills, bio & hourly rate",
+  "description": "Complete your profile to be visible to clients and unlock all features",
+  "missingItems": "Add required information",
   "completeNow": "Complete Profile",
-  "dismiss": "Dismiss banner"
+  "dismiss": "Dismiss banner",
+  
+  "modalTitle": "Complete Your Profile to Continue on Beamly",
+  "modalSubtitle": "You must complete your profile to use Beamly and be visible to clients",
+  "requiredFields": "Required fields to complete:",
+  "allComplete": "Your profile is complete!",
+  "almostThere": "You're {{percentage}}% away from being visible on Beamly!",
+  "whyComplete": "Why you must complete your profile:",
+  "cannotContinue": "You cannot continue using Beamly until your profile is complete",
+  
+  "importantNotice": "Important Notice",
+  "profileNotVisible": "Your profile is currently NOT visible to clients. Complete all required fields to appear in search results and receive job opportunities.",
+  
+  "missingDisplayName": "Display Name",
+  "missingBio": "Professional Bio", 
+  "missingSkills": "Skills",
+  "missingHourlyRate": "Hourly Rate",
+  
+  "benefit1": "Your profile will become visible to thousands of clients",
+  "benefit3": "Build trust with your clients",
+  "benefit4": "Unlock all features"
 },
 "upgradeProBanner": {
   "title": "Unlock Your Messages",

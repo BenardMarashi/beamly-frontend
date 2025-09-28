@@ -12,6 +12,7 @@ import { collection, query, where, limit, orderBy, onSnapshot, getDocs } from "f
 import { db } from "../lib/firebase";
 import { toast } from "react-hot-toast";
 import { ProfileCompletionBanner } from '../components/banners/ProfileCompletionBanner';
+import { formatNameWithInitial } from '../utils/nameFormatter';
 
 interface Job {
   id: string;
@@ -231,7 +232,8 @@ export const HomePage: React.FC = () => {
               skills: data.skills || [],
               isPro: false
             } as Freelancer;
-          });
+          })  .filter(user => user.displayName && user.displayName !== t('home.unknownUser'));
+
 
           // Sort regular users by rating and take only what we need
           regularUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -620,7 +622,7 @@ export const HomePage: React.FC = () => {
               <div className="w-full space-y-1">
                 <div className="flex items-center justify-center gap-1">
                   <h3 className={`font-semibold text-sm truncate ${isDarkMode || index % 2 === 1 ? 'text-white' : 'text-gray-800'}`}>
-                    {freelancer.displayName}
+                    {formatNameWithInitial(freelancer.displayName)}
                   </h3>
                 </div>
                 <p className={`text-xs truncate ${isDarkMode || index % 2 === 1 ? 'text-gray-400' : 'text-gray-600'}`}>

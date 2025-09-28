@@ -137,14 +137,7 @@ const FreelancerCard = memo(({
           )}
         </div>
         
-        {!freelancer.profileCompleted && (
-          <div className="mt-3 pt-3 border-t border-white/10">
-            <p className="text-xs text-gray-400 flex items-center gap-1">
-              <Icon icon="lucide:alert-circle" className="w-3 h-3 flex-shrink-0" />
-              <span className="truncate">{t('freelancers.profileIncomplete')}</span>
-            </p>
-          </div>
-        )}
+        
       </CardBody>
     </Card>
   </motion.div>
@@ -278,24 +271,43 @@ const fetchUsersFromDatabase = useCallback(async (reset = false) => {
   }
 }, [selectedCategory]);
 
-// REPLACE YOUR filteredAndSortedFreelancers WITH THIS:
 const filteredAndSortedFreelancers = useMemo(() => {
   // FIX 1: Remove duplicates first
   const uniqueUsersMap = new Map<string, Freelancer>();
   allFetchedUsers.forEach(user => {
-    uniqueUsersMap.set(user.id, user); // This automatically overwrites duplicates
+    uniqueUsersMap.set(user.id, user);
   });
   const uniqueUsers = Array.from(uniqueUsersMap.values());
   
   // Apply filters
   const searchLower = searchQuery.toLowerCase().trim();
+
+const completedProfiles = uniqueUsers.filter(user => {
+  // Check if profile is explicitly marked as complete
+  if (user.profileCompleted === true) return true;
+  
+  // Otherwise, check for minimum required fields (matching ProfileCompletionBanner logic)
+  const hasDisplayName = user.displayName && user.displayName.trim() !== '';
+  const hasBio = user.bio && user.bio.trim() !== '';
+  
+  // For freelancers, also need skills and hourlyRate
+  if (user.userType === 'freelancer' || user.userType === 'both') {
+    const hasSkills = user.skills && user.skills.length > 0;
+    const hasHourlyRate = user.hourlyRate && parseFloat(user.hourlyRate) > 0;
+    
+    return hasDisplayName && hasBio && hasSkills && hasHourlyRate;
+  }
+  
+  // For clients (shouldn't appear here but just in case)
+  return hasDisplayName && hasBio;
+});
   const [minBudget, maxBudget] = budgetFilter === 'all' 
     ? [0, Infinity] 
     : budgetFilter === '100+' 
       ? [100, Infinity]
       : budgetFilter.split('-').map(Number);
 
-  const filtered = uniqueUsers.filter(freelancer => {
+  const filtered = completedProfiles.filter(freelancer => {
     const rate = parseInt(freelancer.hourlyRate || '0');
     if (rate < minBudget || rate > (maxBudget || Infinity)) return false;
     
@@ -368,7 +380,9 @@ const filteredAndSortedFreelancers = useMemo(() => {
         ? [100, Infinity]
         : budgetFilter.split('-').map(Number);
 
-    const filteredCount = allFetchedUsers.filter(freelancer => {
+    const filteredCount = allFetchedUsers.filter(freelancer => 
+  freelancer.profileCompleted !== false && freelancer.displayName
+).filter(freelancer => {
       const rate = parseInt(freelancer.hourlyRate || '0');
       if (rate < minBudget || rate > (maxBudget || Infinity)) return false;
       
