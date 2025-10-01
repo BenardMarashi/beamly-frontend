@@ -20,6 +20,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
+    lng: 'sq',
     fallbackLng: 'sq', // Albanian as fallback only
     debug: false,
     
@@ -32,7 +33,6 @@ i18n
     },
     
     detection: {
-      order: ['localStorage', 'navigator', 'htmlTag'],
       caches: ['localStorage'],
       lookupLocalStorage: 'i18nextLng',
     }

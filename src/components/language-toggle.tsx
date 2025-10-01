@@ -9,7 +9,7 @@ interface LanguageToggleProps {
 
 export const LanguageToggle: React.FC<LanguageToggleProps> = () => {
   const { i18n } = useTranslation();
-  const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'en');
+  const [selectedLanguage, setSelectedLanguage] = useState(i18n.language || 'sq');
 
   const languages = [
     { key: 'en', label: 'English', flag: '🇺🇸' },

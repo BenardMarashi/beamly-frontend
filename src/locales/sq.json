@@ -754,7 +754,7 @@
       "startFreelancing": "Fillo si Freelancer"
     },
     "joinAsFreelancer": "Bëhu Freelancer",
-    "hireFreelancers": "Punëso Freelancerë"
+    "hireFreelancers": "Bashkëpuno me Freelancer"
   },
   "categories": {
     "explore": "Eksploro të njohurat",
@@ -877,46 +877,114 @@
       "description": "Opsione të shumta pagese duke përfshirë kripto, transfertë bankare dhe metoda lokale."
     }
   },
-  "howItWorks": {
-    "title": "Si",
-    "titleEnd": "funksionon",
-    "subtitle": "Realizoni projektet tuaja në 4 hapa të thjeshtë",
+"howItWorks": {
+  "title": "Si",
+  "titleEnd": "funksionon",
+  "subtitle": "Realizoni projektet tuaja në 4 hapa të thjeshtë",
+  "step1": {
+    "title": "Krijoni një llogari",
+    "description": "Regjistrohuni falas dhe plotësoni profilin tuaj për të filluar."
+  },
+  "step2": {
+    "title": "Zbuloni shërbimet",
+    "description": "Shfletoni mijëra shërbime ose postoni një kërkesë."
+  },
+  "step3": {
+    "title": "Punësoni punëtorë të pavarur",
+    "description": "Zgjidhni punëtorin e pavarur perfekt për projektin tuaj dhe bashkëpunoni."
+  },
+  "step4": {
+    "title": "Përfundoni projektin",
+    "description": "Miratoni punën dhe lëshoni pagesën kur jeni të kënaqur."
+  },
+  "forFreelancers": {
+    "title": "Për punëtorët e pavarur",
     "step1": {
-      "title": "Krijoni një llogari",
-      "description": "Regjistrohuni falas dhe plotësoni profilin tuaj për të filluar."
+      "title": "Ndërtoni profilin tuaj",
+      "description": "Tregoni aftësitë, portofolin dhe përvojën tuaj."
     },
     "step2": {
-      "title": "Zbuloni shërbimet",
-      "description": "Shfletoni mijëra shërbime ose postoni një kërkesë."
+      "title": "Shfletoni punët",
+      "description": "Gjeni projekte që përputhen me ekspertizën dhe interesat tuaja."
     },
     "step3": {
-      "title": "Punësoni punëtorë të pavarur",
-      "description": "Zgjidhni punëtorin e pavarur perfekt për projektin tuaj dhe bashkëpunoni."
+      "title": "Dërgoni propozime",
+      "description": "Dërgoni propozime bindëse për të fituar klientë."
     },
     "step4": {
-      "title": "Përfundoni projektin",
-      "description": "Miratoni punën dhe lëshoni pagesën kur jeni të kënaqur."
+      "title": "Merrni pagesën",
+      "description": "Përfundoni punën dhe merrni pagesa të sigurta."
+    }
+  }
+},
+"howItWorks": {
+  "title": "Si Funksionon",
+  "titleEnd": "funksionon",
+  "subtitle": "Filloni udhëtimin tuaj në disa hapa të thjeshtë",
+  "description": "Pavarësisht nëse jeni punëtor i pavarur që kërkon mundësi ose klient që kërkon talent, ne e kemi bërë procesin të thjeshtë dhe efikas.",
+  "forFreelancers": "Për punëtorët e pavarur",
+  "forClients": "Për Klientët",
+  "step1": {
+    "title": "Krijoni një llogari",
+    "description": "Regjistrohuni falas dhe plotësoni profilin tuaj për të filluar."
+  },
+  "step2": {
+    "title": "Zbuloni shërbimet",
+    "description": "Shfletoni mijëra shërbime ose postoni një kërkesë."
+  },
+  "step3": {
+    "title": "Punësoni punëtorë të pavarur",
+    "description": "Zgjidhni punëtorin e pavarur perfekt për projektin tuaj dhe bashkëpunoni."
+  },
+  "step4": {
+    "title": "Përfundoni projektin",
+    "description": "Miratoni punën dhe lëshoni pagesën kur jeni të kënaqur."
+  },
+  "freelancers": {
+    "step1": {
+      "title": "Ndërtoni profilin tuaj",
+      "description": "Tregoni aftësitë, portofolin dhe përvojën tuaj."
     },
-    "forFreelancers": {
-      "title": "Për punëtorët e pavarur",
-      "step1": {
-        "title": "Ndërtoni profilin tuaj",
-        "description": "Tregoni aftësitë, portofolin dhe përvojën tuaj."
-      },
-      "step2": {
-        "title": "Shfletoni punët",
-        "description": "Gjeni projekte që përputhen me ekspertizën dhe interesat tuaja."
-      },
-      "step3": {
-        "title": "Dërgoni propozime",
-        "description": "Dërgoni propozime bindëse për të fituar klientë."
-      },
-      "step4": {
-        "title": "Merrni pagesën",
-        "description": "Përfundoni punën dhe merrni pagesa të sigurta."
-      }
+    "step2": {
+      "title": "Shfletoni punët",
+      "description": "Gjeni projekte që përputhen me ekspertizën dhe interesat tuaja."
+    },
+    "step3": {
+      "title": "Dërgoni propozime",
+      "description": "Dërgoni propozime bindëse për të fituar klientë."
+    },
+    "step4": {
+      "title": "Merrni pagesën",
+      "description": "Përfundoni punën dhe merrni pagesa të sigurta."
+    },
+    "step5": {
+      "title": "Merrni Pagesën në Mënyrë të Sigurt",
+      "description": "Përfundoni punën dhe merrni pagesën përmes platformës sonë të sigurt. Ndërtoni reputacionin tuaj me vlerësimet e klientëve."
     }
   },
+  "clients": {
+    "step1": {
+      "title": "Postoni Punën Tuaj",
+      "description": "Përshkruani projektin tuaj, vendosni buxhetin dhe specifikoni aftësitë që ju nevojiten. Puna juaj do të jetë e dukshme për mijëra punëtorë të pavarur të kualifikuar."
+    },
+    "step2": {
+      "title": "Merrni Propozime",
+      "description": "Merrni propozime nga punëtorë të pavarur të interesuar brenda disa orëve. Rishikoni profilet e tyre, portfolet dhe tarifat e propozuara."
+    },
+    "step3": {
+      "title": "Zgjidhni më të Mirën",
+      "description": "Krahasoni propozimet, intervistoni kandidatët nëse është e nevojshme dhe zgjidhni punëtorin e pavarur që përputhet më mirë me kërkesat e projektit tuaj."
+    },
+    "step4": {
+      "title": "Bashkëpunoni",
+      "description": "Punoni drejtpërdrejt me punëtorin tuaj të pavarur. Komunikoni përmes platformës sonë, ndani skedarë dhe ndiqni përparimin e projektit."
+    },
+    "step5": {
+      "title": "Përfundoni dhe Vlerësoni",
+      "description": "Pasi të jeni të kënaqur me punën, lironi pagesën dhe lini një vlerësim. Ndërtoni marrëdhënie të qëndrueshme me punëtorë të talentuar të pavarur."
+    }
+  }
+},
   "testimonials": {
     "title": "Çfarë thonë",
     "users": "përdoruesit",

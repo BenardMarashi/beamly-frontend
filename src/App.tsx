@@ -12,7 +12,7 @@ import { auth } from './lib/firebase';
 import { UserService } from './services/firebase-services';
 import ErrorBoundary from './components/ErrorBoundary';
 import { I18nextProvider } from 'react-i18next';
-import i18n from './i18n';
+import i18n from './lib/i18n';
 
 // Layouts - Keep your current layout system
 import { MainLayout } from './layouts/main-layout';
