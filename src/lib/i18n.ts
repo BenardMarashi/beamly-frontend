@@ -20,8 +20,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'sq', // ← CHANGE: Set Albanian as default language
-    fallbackLng: 'sq', // ← CHANGE: Set Albanian as fallback
+    fallbackLng: 'sq', // Albanian as fallback only
     debug: false,
     
     interpolation: {
@@ -33,17 +32,13 @@ i18n
     },
     
     detection: {
-      // Order of detection methods - localStorage first!
       order: ['localStorage', 'navigator', 'htmlTag'],
-      // Cache user language in localStorage
       caches: ['localStorage'],
-      // Key name in localStorage
       lookupLocalStorage: 'i18nextLng',
     }
   });
 
-// Update HTML lang attribute when language changes
-i18n.on('languageChanged', (lng) => {
+i18n.on('languageChanged', (lng: string) => {
   console.log('Language changed to:', lng);
   document.documentElement.lang = lng;
 });

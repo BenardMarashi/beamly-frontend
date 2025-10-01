@@ -41,7 +41,7 @@ const SettingsPage: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState({
-    language: i18n.language || 'en',
+    language: i18n.language,
     emailNotifications: true,
     pushNotifications: false,
     smsNotifications: false,
@@ -64,14 +64,15 @@ const SettingsPage: React.FC = () => {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           if (userData.settings) {
-            setSettings({
-              ...settings,
+            setSettings(prev => ({  // ✅ Use functional update
+              ...prev,
               ...userData.settings,
-              language: userData.settings.language || i18n.language || 'sq' // ← Default to 'sq'
-            });
+              language: userData.settings.language || i18n.language
+              // ✅ Removed hardcoded 'sq' default
+            }));
             
-            // Apply saved language
-            if (userData.settings.language) {
+            // Apply saved language if different
+            if (userData.settings.language && userData.settings.language !== i18n.language) {
               i18n.changeLanguage(userData.settings.language);
             }
           }
@@ -83,7 +84,7 @@ const SettingsPage: React.FC = () => {
   };
   
   loadUserSettings();
-}, [user]);
+}, [user, i18n]); 
 
 
   useEffect(() => {

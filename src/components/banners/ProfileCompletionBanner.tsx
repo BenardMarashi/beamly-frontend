@@ -63,19 +63,19 @@ export const ProfileCompletionBanner: React.FC = () => {
         );
 
         // Force modal on desktop for protected routes
-        if (!isMobile && isProtectedRoute) {
-          setForceModal(true);
-          setIsVisible(true);
-        } else if (!isDismissed) {
-          // Show regular banner on mobile or non-protected routes
-          const sessionDismissed = sessionStorage.getItem('profileBannerDismissed');
-          if (!sessionDismissed) {
-            const timer = setTimeout(() => {
-              setIsVisible(true);
-            }, 2000);
-            return () => clearTimeout(timer);
-          }
-        }
+        if (isProtectedRoute) {
+  setForceModal(true);
+  setIsVisible(true);
+} else if (!isDismissed) {
+  // Show regular banner only on non-protected routes
+  const sessionDismissed = sessionStorage.getItem('profileBannerDismissed');
+  if (!sessionDismissed) {
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }
+}
       } else {
         setIsVisible(false);
         setForceModal(false);
@@ -138,151 +138,153 @@ export const ProfileCompletionBanner: React.FC = () => {
   }
 
   // Desktop Modal Version (Blocking)
-  if (!isMobile && forceModal && isVisible) {
-    return (
-      <Modal
-        isOpen={isVisible}
-        onClose={() => {}} // Non-dismissible
-        hideCloseButton
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
-        backdrop="blur"
-        size="2xl"
-        classNames={{
-          backdrop: "bg-black/80 z-[9998]",
-          wrapper: "z-[9999]",
-          base: "bg-[#011241]/95 backdrop-blur-xl border border-white/10",
-          body: "p-0"
-        }}
-      >
-        <ModalContent>
-          <ModalBody className="p-0">
-            {/* Compact Header - no gradient, consistent background */}
-            <div className="bg-white/10 backdrop-blur-md border-b border-white/10 p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="bg-[#FCE90D]/20 backdrop-blur-md p-2 rounded-full">
-                    <Icon icon="lucide:user" className="text-[#FCE90D] text-xl" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-lg font-bold text-white">
-                      {t('profileBanner.modalTitle')}
-                    </h2>
-                    <p className="text-gray-300 text-sm">
-                      {t('profileBanner.modalSubtitle')}
-                    </p>
-                  </div>
+  // Mobile Modal Version (Blocking) - Same as Desktop
+if (isMobile && forceModal && isVisible) {
+  return (
+    <Modal
+      isOpen={isVisible}
+      onClose={() => {}} // Non-dismissible
+      hideCloseButton
+      isDismissable={false}
+      isKeyboardDismissDisabled={true}
+      backdrop="blur"
+      size="full" // ← Full screen on mobile
+      classNames={{
+        backdrop: "bg-black/80 z-[9998]",
+        wrapper: "z-[9999] p-0",
+        base: "bg-[#011241]/95 backdrop-blur-xl border-0 m-0 sm:m-0",
+        body: "p-0"
+      }}
+    >
+      <ModalContent>
+        <ModalBody className="p-0 h-screen overflow-y-auto">
+          {/* Compact Header - no gradient, consistent background */}
+          <div className="bg-white/10 backdrop-blur-md border-b border-white/10 p-4 sticky top-0 z-10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="bg-[#FCE90D]/20 backdrop-blur-md p-2 rounded-full">
+                  <Icon icon="lucide:user" className="text-[#FCE90D] text-xl" />
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-[#FCE90D]">{completionPercentage}%</div>
-                  <p className="text-gray-400 text-xs font-medium">{t('common.complete')}</p>
+                <div className="flex-1">
+                  <h2 className="text-base font-bold text-white">
+                    {t('profileBanner.modalTitle')}
+                  </h2>
+                  <p className="text-gray-300 text-xs">
+                    {t('profileBanner.modalSubtitle')}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-[#FCE90D]">{completionPercentage}%</div>
+                <p className="text-gray-400 text-xs font-medium">{t('common.complete')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="px-4 py-3">
+            <Progress 
+              value={completionPercentage} 
+              color="warning"
+              className="mb-2"
+              size="md"
+              classNames={{
+                base: "bg-white/10",
+                indicator: "bg-[#FCE90D]"
+              }}
+            />
+            <p className="text-gray-300 text-xs text-center">
+              {completionPercentage === 100 
+                ? t('profileBanner.allComplete')
+                : t('profileBanner.almostThere', { percentage: 100 - completionPercentage })}
+            </p>
+          </div>
+
+          {/* Content section */}
+          <div className="px-4 pb-6">
+            {/* Important Notice */}
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mb-4">
+              <div className="flex items-start gap-2">
+                <Icon icon="lucide:info" className="text-amber-400 text-lg mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold mb-1 text-sm">
+                    {t('profileBanner.importantNotice')}
+                  </h3>
+                  <p className="text-gray-300 text-xs">
+                    {t('profileBanner.profileNotVisible')}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Progress bar */}
-            <div className="px-6 py-4">
-              <Progress 
-                value={completionPercentage} 
-                color="warning"
-                className="mb-2"
-                size="lg"
-                classNames={{
-                  base: "bg-white/10",
-                  indicator: "bg-[#FCE90D]"
-                }}
-              />
-              <p className="text-gray-300 text-sm text-center">
-                {completionPercentage === 100 
-                  ? t('profileBanner.allComplete')
-                  : t('profileBanner.almostThere', { percentage: 100 - completionPercentage })}
-              </p>
-            </div>
-
-            {/* Missing fields section */}
-            <div className="p-6 pt-0">
-              {/* Important Notice */}
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mb-6">
-                <div className="flex items-start gap-3">
-                  <Icon icon="lucide:info" className="text-amber-400 text-xl mt-0.5" />
+            {missingFields.length > 0 && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+                <div className="flex items-start gap-2">
+                  <Icon icon="lucide:alert-triangle" className="text-red-400 text-lg mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold mb-2">
-                      {t('profileBanner.importantNotice')}
+                    <h3 className="text-white font-semibold mb-2 text-sm">
+                      {t('profileBanner.requiredFields')}
                     </h3>
-                    <p className="text-gray-300 text-sm">
-                      {t('profileBanner.profileNotVisible')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {missingFields.length > 0 && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
-                  <div className="flex items-start gap-3">
-                    <Icon icon="lucide:alert-triangle" className="text-red-400 text-xl mt-0.5" />
-                    <div className="flex-1">
-                      <h3 className="text-white font-semibold mb-2">
-                        {t('profileBanner.requiredFields')}
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {missingFields.map((field, index) => (
-                          <Chip
-                            key={index}
-                            size="sm"
-                            variant="flat"
-                            className="bg-red-500/20 text-red-300"
-                            startContent={<Icon icon="lucide:x" className="text-xs" />}
-                          >
-                            {field}
-                          </Chip>
-                        ))}
-                      </div>
+                    <div className="flex flex-wrap gap-1">
+                      {missingFields.map((field, index) => (
+                        <Chip
+                          key={index}
+                          size="sm"
+                          variant="flat"
+                          className="bg-red-500/20 text-red-300"
+                          startContent={<Icon icon="lucide:x" className="text-xs" />}
+                        >
+                          <span className="text-xs">{field}</span>
+                        </Chip>
+                      ))}
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* Benefits of completing profile */}
-              <div className="space-y-3 mb-6">
-                <h4 className="text-white font-medium mb-3">
-                  {t('profileBanner.whyComplete')}
-                </h4>
-                {[
-                  { icon: "lucide:eye", text: t('profileBanner.benefit1') },
-                  { icon: "lucide:shield-check", text: t('profileBanner.benefit3') },
-                  { icon: "lucide:zap", text: t('profileBanner.benefit4') }
-                ].map((benefit, index) => (
-                  <div key={index} className="flex items-center gap-3 text-gray-300">
-                    <Icon icon={benefit.icon} className="text-[#FCE90D] text-xl" />
-                    <span className="text-sm">{benefit.text}</span>
-                  </div>
-                ))}
               </div>
+            )}
 
-              {/* CTA Buttons */}
-              <div className="flex gap-3">
-                <Button
-                  fullWidth
-                  color="warning"
-                  size="lg"
-                  onPress={handleCompleteProfile}
-                  startContent={<Icon icon="lucide:edit-3" className="text-xl" />}
-                  className="font-bold bg-[#FCE90D] text-[#011241]"
-                >
-                  {t('profileBanner.completeNow')}
-                </Button>
-              </div>
+            {/* Benefits of completing profile */}
+            <div className="space-y-2 mb-6">
+              <h4 className="text-white font-medium mb-2 text-sm">
+                {t('profileBanner.whyComplete')}
+              </h4>
+              {[
+                { icon: "lucide:eye", text: t('profileBanner.benefit1') },
 
+                { icon: "lucide:shield-check", text: t('profileBanner.benefit3') },
+                { icon: "lucide:zap", text: t('profileBanner.benefit4') }
+              ].map((benefit, index) => (
+                <div key={index} className="flex items-center gap-2 text-gray-300">
+                  <Icon icon={benefit.icon} className="text-[#FCE90D] text-base flex-shrink-0" />
+                  <span className="text-xs">{benefit.text}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA Button - Fixed at bottom on mobile */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-[#011241]/95 backdrop-blur-md border-t border-white/10">
+              <Button
+                fullWidth
+                color="warning"
+                size="lg"
+                onPress={handleCompleteProfile}
+                startContent={<Icon icon="lucide:edit-3" className="text-xl" />}
+                className="font-bold bg-[#FCE90D] text-[#011241]"
+              >
+                {t('profileBanner.completeNow')}
+              </Button>
+              
               {/* Warning text */}
-              <p className="text-center text-gray-400 text-xs mt-4">
+              <p className="text-center text-gray-400 text-xs mt-2">
                 {t('profileBanner.cannotContinue')}
               </p>
             </div>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-    );
-  }
+          </div>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  );
+}
 
   // Original Banner Version (Mobile or Non-Blocking Desktop)
   return (
