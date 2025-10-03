@@ -584,7 +584,36 @@ const completedProfiles = uniqueUsers.filter(user => {
               ))}
             </div>
             
-            {(hasMore || filteredAndSortedFreelancers.length >= 12) && !loading && (
+            {(() => {
+            // Calculate total filtered users count
+            const searchLower = searchQuery.toLowerCase().trim();
+            const [minBudget, maxBudget] = budgetFilter === 'all' 
+              ? [0, Infinity] 
+              : budgetFilter === '100+' 
+                ? [100, Infinity]
+                : budgetFilter.split('-').map(Number);
+
+            const totalFilteredCount = allFetchedUsers
+              .filter(freelancer => freelancer.profileCompleted !== false && freelancer.displayName)
+              .filter(freelancer => {
+                const rate = parseInt(freelancer.hourlyRate || '0');
+                if (rate < minBudget || rate > (maxBudget || Infinity)) return false;
+                
+                if (searchLower && !(
+                  freelancer.displayName?.toLowerCase().includes(searchLower) ||
+                  freelancer.bio?.toLowerCase().includes(searchLower) ||
+                  freelancer.title?.toLowerCase().includes(searchLower) ||
+                  freelancer.skills?.some(skill => skill.toLowerCase().includes(searchLower)) ||
+                  freelancer.location?.toLowerCase().includes(searchLower)
+                )) return false;
+                
+                return true;
+              }).length;
+
+            // Show button if: more filtered results available OR more data in database
+            const shouldShowButton = (displayCount < totalFilteredCount) || hasMore;
+
+            return shouldShowButton && !loading && (
               <div className="text-center mt-8">
                 <Button
                   color="secondary"
@@ -597,7 +626,8 @@ const completedProfiles = uniqueUsers.filter(user => {
                   {t('common.loadMore')}
                 </Button>
               </div>
-            )}
+            );
+          })()}
 
             {loading && filteredAndSortedFreelancers.length > 0 && (
               <div className="text-center mt-8">

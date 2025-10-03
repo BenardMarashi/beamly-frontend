@@ -1,15 +1,15 @@
 // src/pages/messages.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Input, Avatar, Spinner, Badge } from '@nextui-org/react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Button, Input, Avatar, Spinner, Badge, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { ConversationService } from '../services/firebase-services';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { ConversationService } from '../services/firebase-services';
 
 interface Message {
   id: string;
@@ -32,192 +32,191 @@ interface OtherUser {
   isOnline?: boolean;
 }
 
-export const MessagesPage: React.FC = () => {
-  const { conversationId } = useParams<{ conversationId: string }>();
+const MessagesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { conversationId } = useParams();
+  const [searchParams] = useSearchParams();
   const { user, userData } = useAuth();
   const { t } = useTranslation();
+  
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [conversation, setConversation] = useState<any>(null);
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
+  const [conversation, setConversation] = useState<any>(null);
   const [newMessage, setNewMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [isNewConversation, setIsNewConversation] = useState(conversationId === 'new');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
-
-  // Force full screen on mount
-  useEffect(() => {
-    // Hide the navbar on mobile
-    const navbar = document.querySelector('header');
-    if (navbar) {
-      navbar.style.display = 'none';
-    }
-    
-    // Remove any padding from root
-    const root = document.getElementById('root');
-    if (root) {
-      root.style.padding = '0';
-      root.style.margin = '0';
-      root.style.maxWidth = '100vw';
-      root.style.width = '100vw';
-    }
-    
-    // Cleanup on unmount
-    return () => {
-      if (navbar) {
-        navbar.style.display = '';
-      }
-      if (root) {
-        root.style.padding = '';
-        root.style.margin = '';
-        root.style.maxWidth = '';
-        root.style.width = '';
-      }
-    };
-  }, []);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load conversation details
+  // Load other user info
   useEffect(() => {
-    if (!conversationId || !user) {
-      console.log('Missing conversationId or user');
-      return;
-    }
-
-    const loadConversation = async () => {
+    const loadOtherUser = async () => {
+      if (!user) return;
+      
+      let otherUserId: string | null = null;
+      
+      if (isNewConversation) {
+        // New conversation - get user ID from query param
+        otherUserId = searchParams.get('with');
+      } else if (conversation) {
+        // Existing conversation - get other participant
+        otherUserId = conversation.participants.find((p: string) => p !== user.uid);
+      }
+      
+      if (!otherUserId) {
+        setLoading(false);
+        return;
+      }
+      
       try {
-        console.log('Loading conversation:', conversationId);
-        const result = await ConversationService.getConversationWithDetails(
-          conversationId,
-          user.uid
-        );
-
-        if (result.success && result.conversation) {
-          console.log('Conversation loaded:', result.conversation);
-          setConversation(result.conversation);
-          if (result.otherUser) {
-            setOtherUser(result.otherUser as OtherUser);
-          }
-          
-          // Mark messages as read
-          await ConversationService.markMessagesAsRead(conversationId, user.uid);
-        } else {
-          console.error('Conversation not found');
-          toast.error(t('messages.conversationNotFound'));
-          navigate('/messages');
+        const userDoc = await getDoc(doc(db, 'users', otherUserId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setOtherUser({
+            id: userDoc.id,
+            displayName: userData.displayName || 'Unknown User',
+            photoURL: userData.photoURL || '',
+            userType: userData.userType || 'user',
+            isOnline: userData.isOnline || false
+          });
         }
+        setLoading(false);
       } catch (error) {
-        console.error('Error loading conversation:', error);
-        toast.error(t('messages.failedToLoadConversation'));
-      } finally {
+        console.error('Error loading other user:', error);
         setLoading(false);
       }
     };
+    
+    loadOtherUser();
+  }, [user, conversation, isNewConversation, searchParams]);
 
-    loadConversation();
-  }, [conversationId, user, navigate]);
-
-  // Subscribe to messages
+  // Load conversation and messages (skip if new)
   useEffect(() => {
-    if (!conversationId || !user) {
-      console.log('Skipping message subscription - missing conversationId or user');
+    if (!conversationId || conversationId === 'new' || !user) {
+      setLoading(false);
       return;
     }
-
-    console.log('Setting up message subscription for conversation:', conversationId);
-
-    const q = query(
+    
+    // Load conversation
+    const conversationRef = doc(db, 'conversations', conversationId);
+    const unsubscribeConversation = onSnapshot(conversationRef, (doc) => {
+      if (doc.exists()) {
+        setConversation({ id: doc.id, ...doc.data() });
+      }
+      setLoading(false);
+    });
+    
+    // Load messages
+    const messagesQuery = query(
       collection(db, 'messages'),
       where('conversationId', '==', conversationId),
       orderBy('createdAt', 'asc')
     );
-
-    const unsubscribe = onSnapshot(
-      q, 
-      (snapshot) => {
-        console.log('Messages snapshot received, count:', snapshot.docs.length);
-        const newMessages = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Message));
-        
-        console.log('Messages:', newMessages);
-        setMessages(newMessages);
-
-        // Mark new messages as read if they're for us
-        const unreadMessages = newMessages.filter(
-          msg => msg.recipientId === user.uid && msg.status !== 'read'
-        );
-        if (unreadMessages.length > 0) {
-          ConversationService.markMessagesAsRead(conversationId, user.uid);
-        }
-      },
-      (error) => {
-        console.error('Error in message subscription:', error);
-        toast.error(t('messages.failedToLoadMessages'));
-      }
-    );
-
+    
+    const unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
+      const loadedMessages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Message[];
+      setMessages(loadedMessages);
+    });
+    
     return () => {
-      console.log('Cleaning up message subscription');
-      unsubscribe();
+      unsubscribeConversation();
+      unsubscribeMessages();
     };
   }, [conversationId, user]);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
+    if (e) e.preventDefault();
 
-    if (!newMessage.trim() || !otherUser || !conversationId) {
-      console.log('Cannot send message - missing data');
-      return;
-    }
+    if (!newMessage.trim() || !otherUser || !user) return;
 
     const messageText = newMessage.trim();
-    setNewMessage(''); // Clear input immediately for better UX
-
+    setNewMessage('');
     setSending(true);
+
     try {
-      console.log('Sending message:', messageText);
+      let currentConversationId = conversationId;
+      
+      // If new conversation, create it now
+      if (isNewConversation) {
+        const result = await ConversationService.findOrCreateConversation(
+          user.uid,
+          otherUser.id
+        );
+        
+        if (!result.success || !result.conversationId) {
+          toast.error(t('messages.failedToSend'));
+          setNewMessage(messageText);
+          setSending(false);
+          return;
+        }
+        
+        currentConversationId = result.conversationId;
+        setIsNewConversation(false);
+        
+        // Navigate to the real conversation
+        navigate(`/messages/${currentConversationId}`, { replace: true });
+      }
+      
+      // Send message
       const result = await ConversationService.sendMessage({
-        conversationId,
-        senderId: user!.uid,
+        conversationId: currentConversationId!,
+        senderId: user.uid,
         senderName: userData?.displayName || t('common.user'),
         recipientId: otherUser.id,
         text: messageText
       });
 
-      if (result.success) {
-        console.log('Message sent successfully');
-        messageInputRef.current?.focus();
-      } else {
-        console.error('Failed to send message:', result.error);
+      if (!result.success) {
         toast.error(t('messages.failedToSend'));
-        setNewMessage(messageText); // Restore message on error
+        setNewMessage(messageText);
       }
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error(t('messages.failedToSend'));
-      setNewMessage(messageText); // Restore message on error
+      setNewMessage(messageText);
     } finally {
       setSending(false);
+      messageInputRef.current?.focus();
     }
+  };
+
+  const handleDeleteMessage = async () => {
+    if (!messageToDelete) return;
+    
+    try {
+      await deleteDoc(doc(db, 'messages', messageToDelete));
+      toast.success(t('messages.messageDeleted'));
+      setDeleteModalOpen(false);
+      setMessageToDelete(null);
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error(t('messages.deleteFailed'));
+    }
+  };
+
+  const confirmDelete = (messageId: string) => {
+    setMessageToDelete(messageId);
+    setDeleteModalOpen(true);
   };
 
   const formatMessageTime = (timestamp: any) => {
     if (!timestamp) return '';
-    
     try {
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (error) {
-      console.error('Error formatting date:', error);
       return '';
     }
   };
@@ -230,12 +229,12 @@ export const MessagesPage: React.FC = () => {
     );
   }
 
-  if (!conversation || !otherUser) {
+  if (!otherUser) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[#010b29]">
         <div className="text-center p-4">
           <Icon icon="lucide:message-circle-x" className="text-6xl text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-400 mb-4">{t('messages.conversationNotFound')}</p>
+          <p className="text-gray-400 mb-4">{t('messages.userNotFound')}</p>
           <Button 
             onPress={() => navigate('/messages')}
             className="bg-white/10 text-white hover:bg-white/20"
@@ -249,7 +248,7 @@ export const MessagesPage: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-[#010b29] flex flex-col">
-      {/* Header - Fixed at top */}
+      {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 p-4 border-b border-white/10 flex items-center gap-4 bg-[#010b29]">
         <Button
           isIconOnly
@@ -293,48 +292,62 @@ export const MessagesPage: React.FC = () => {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 pt-20">
+      <div className="flex-1 overflow-y-auto p-4 pt-20 pb-24">
         {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <Icon icon="lucide:message-circle" className="text-6xl text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400">{t('messages.noMessagesYet')}</p>
-            </div>
+          <div className="text-center py-12">
+            <Icon icon="lucide:message-circle" className="text-6xl text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-300 mb-2">
+              {isNewConversation ? t('messages.startNewConversation') : t('messages.noMessages')}
+            </p>
+            <p className="text-gray-400 text-sm">{t('messages.sendFirstMessage')}</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {messages.map((message, index) => {
+            {messages.map((message) => {
               const isOwn = message.senderId === user?.uid;
-              const previousMessage = index > 0 ? messages[index - 1] : null;
-              const showTime = !previousMessage || 
-                formatMessageTime(previousMessage.createdAt) !== formatMessageTime(message.createdAt);
-              
               return (
-                <div key={message.id}>
-                  {showTime && (
-                    <div className="text-center my-4">
-                      <span className="text-xs text-gray-500 bg-white/5 px-3 py-1 rounded-full">
+                <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`flex gap-2 max-w-[75%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                    {!isOwn && (
+                      <Avatar
+                        src={otherUser?.photoURL}
+                        name={otherUser?.displayName}
+                        size="sm"
+                        className="flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex flex-col gap-1">
+                      <div className="group relative">
+                        <div
+                          className={`p-3 rounded-lg ${
+                            isOwn
+                              ? 'bg-[#FCE90D] text-[#011241]'
+                              : 'bg-white/10 text-white'
+                          }`}
+                        >
+                          <p className="break-words text-sm">{message.text}</p>
+                          {isOwn && (
+                            <div className="flex items-center justify-end gap-1 mt-1">
+                              <Icon 
+                                icon={message.status === 'read' ? "lucide:check-check" : "lucide:check"} 
+                                className={`text-xs ${message.status === 'read' ? 'text-[#011241]' : 'text-[#011241]/60'}`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        {isOwn && (
+                          <button
+                            onClick={() => confirmDelete(message.id)}
+                            className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded"
+                            title={t('messages.deleteMessage')}
+                          >
+                            <Icon icon="lucide:trash-2" className="text-red-400 text-sm" />
+                          </button>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-400 px-1">
                         {formatMessageTime(message.createdAt)}
                       </span>
-                    </div>
-                  )}
-                  <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2`}>
-                    <div
-                      className={`max-w-[70%] rounded-2xl px-4 py-2 ${
-                        isOwn
-                          ? 'bg-white/10 text-white'
-                          : 'bg-white/10 text-white'
-                      }`}
-                    >
-                      <p className="break-words text-sm">{message.text}</p>
-                      {isOwn && (
-                        <div className="flex items-center justify-end gap-1 mt-1">
-                          <Icon 
-                            icon={message.status === 'read' ? "lucide:check-check" : "lucide:check"} 
-                            className={`text-xs ${message.status === 'read' ? 'text-white' : 'text-white/60'}`}
-                          />
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -346,7 +359,7 @@ export const MessagesPage: React.FC = () => {
       </div>
 
       {/* Input Area */}
-      <div className="flex-shrink-0 p-4 border-t border-white/10 bg-[#010b29]">
+      <div className="fixed bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-[#010b29]">
         <form onSubmit={handleSendMessage} className="flex gap-2">
           <Input
             ref={messageInputRef}
@@ -364,12 +377,32 @@ export const MessagesPage: React.FC = () => {
             isIconOnly
             isLoading={sending}
             disabled={!newMessage.trim() || sending}
-            className="bg-white/10 text-white hover:bg-white/20"
+            className="bg-[#FCE90D] text-[#011241] hover:bg-[#FCE90D]/90"
           >
             <Icon icon="lucide:send" />
           </Button>
         </form>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)}>
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1">
+            {t('messages.deleteMessageTitle')}
+          </ModalHeader>
+          <ModalBody>
+            <p>{t('messages.deleteMessageConfirm')}</p>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="light" onPress={() => setDeleteModalOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button color="danger" onPress={handleDeleteMessage}>
+              {t('common.delete')}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

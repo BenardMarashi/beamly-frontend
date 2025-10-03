@@ -1651,6 +1651,12 @@
     "selectedCount": "{{count}} selected",
     "noMessagesYet": "No messages yet!",
     "clearSelection": "Clear Selection",
+      "startNewConversation": "Start a new conversation",
+  "sendFirstMessage": "Send your first message to start chatting",
+  "deleteMessageTitle": "Delete Message",
+  "deleteMessageConfirm": "Are you sure you want to delete this message? This action cannot be undone.",
+  "deleteFailed": "Failed to delete message",
+  "userNotFound": "User not found",
     "filters": {
       "all": "All",
       "unread": "Unread",
@@ -3590,5 +3596,33 @@
       "description": "Once satisfied with the work, release payment and leave a review. Build lasting relationships with talented freelancers."
     }
   }
+},
+"emailVerification": {
+  "title": "Verify Your Email Address",
+  "subtitle": "Email verification is required to continue",
+  "bannerTitle": "Verify Your Email",
+  "yourEmail": "Your email address:",
+  "howToVerify": "How to verify:",
+  "step1": "Click \"Send Verification Email\" below",
+  "step2": "Check your inbox (and spam folder)",
+  "step3": "Click the verification link in the email",
+  "step4": "Come back and click \"I've Verified My Email\"",
+  "sendEmail": "Send Verification Email",
+  "sendEmailShort": "Send Email",
+  "sending": "Sending...",
+  "iVerified": "I've Verified My Email",
+  "verify": "Verify",
+  "checking": "Checking...",
+  "updateEmail": "Update Email Address",
+  "emailSent": "Verification email sent! Please check your inbox and spam folder.",
+  "tooManyRequests": "Too many requests. Please wait a few minutes before trying again.",
+  "sendFailed": "Failed to send verification email. Please try again later.",
+  "verifiedSuccess": "Email verified successfully! Refreshing...",
+  "notVerifiedYet": "Email not verified yet. Please check your inbox and click the verification link.",
+  "checkFailed": "Failed to check verification status. Please try again.",
+  "updateEmailMessage": "Please sign out and contact support to update your email address.",
+  "didntReceive": "Didn't receive the email? Check your spam folder or click \"Send Verification Email\" again.",
+  "cannotContinue": "You cannot continue without verifying your email",
+  "checkEmail": "Check {{email}} for verification link"
 }
 }

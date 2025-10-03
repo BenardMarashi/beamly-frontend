@@ -12,6 +12,7 @@ import { auth } from './lib/firebase';
 import { UserService } from './services/firebase-services';
 import ErrorBoundary from './components/ErrorBoundary';
 import { I18nextProvider } from 'react-i18next';
+import { EmailVerificationBanner } from './components/banners/EmailVerificationBanner';
 import i18n from './lib/i18n';
 
 // Layouts - Keep your current layout system
@@ -22,7 +23,7 @@ import { LandingPage } from './pages/landing';
 import { HomePage } from './pages/home';
 import LoginPage from './pages/login';
 import { SignupPage } from './pages/signup';
-import { MessagesPage } from './pages/messages';
+import MessagesPage from './pages/messages';
 import { ConversationsListPage } from './pages/conversations-list';
 import { PostProjectPage } from './pages/post-project';
 import { FreelancerProfilePage } from './pages/freelancer-profile';
@@ -439,6 +440,7 @@ function App() {
             <Router>
               <AuthProvider>
                 <NotificationProvider>
+                  <EmailVerificationBanner />
                   <div className="min-h-screen bg-background text-foreground">
                     <Suspense fallback={<LoadingSpinner />}>
                       <AnimatePresence mode="wait">

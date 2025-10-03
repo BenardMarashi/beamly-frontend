@@ -1,11 +1,11 @@
 // src/pages/conversations-list.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import { Card, CardBody, Avatar, Chip, Spinner, Input, Button } from '@nextui-org/react';
+import { Card, CardBody, Avatar, Chip, Spinner, Input, Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { collection, query, where, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
 import { ConversationService } from '../services/firebase-services';
@@ -43,6 +43,8 @@ export const ConversationsListPage: React.FC = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [processedConversationIds, setProcessedConversationIds] = useState<Set<string>>(new Set());
   const { isOpen: isProModalOpen, onOpen: onProModalOpen, onClose: onProModalClose } = useDisclosure();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
 
   // Handle window resize
   useEffect(() => {
@@ -56,11 +58,15 @@ export const ConversationsListPage: React.FC = () => {
 
   // Handle URL parameter for starting new conversation
   useEffect(() => {
-    const userId = searchParams.get('user');
-    if (userId && user && !creatingConversation) {
-      handleStartConversation(userId);
+    const userId = searchParams.get('startChat');
+    if (userId && user && !isMobile) {
+      // For desktop, navigate directly to the draft conversation
+      navigate(`/messages/draft?with=${userId}`, { replace: true });
+    } else if (userId && user && isMobile) {
+      // For mobile, navigate to the dedicated messages page
+      navigate(`/messages/draft?with=${userId}`, { replace: true });
     }
-  }, [searchParams, user]);
+  }, [searchParams, user, isMobile, navigate]);
 
   // Update selected conversation when URL changes
   useEffect(() => {
@@ -109,6 +115,35 @@ export const ConversationsListPage: React.FC = () => {
     }
   };
 
+
+  // Handle URL parameter for starting new conversation
+useEffect(() => {
+  const userId = searchParams.get('user');
+  if (userId && user) {
+    // Check if conversation already exists
+    const existingConversation = conversations.find(
+      conv => conv.otherUser.id === userId
+    );
+    
+    if (existingConversation) {
+      // Conversation exists, navigate to it
+      if (isMobile) {
+        navigate(`/messages/${existingConversation.id}`, { replace: true });
+      } else {
+        setSelectedConversationId(existingConversation.id);
+        navigate(`/messages/${existingConversation.id}`, { replace: true });
+      }
+    } else {
+      // No conversation exists, navigate to temporary chat
+      if (isMobile) {
+        navigate(`/messages/new?with=${userId}`, { replace: true });
+      } else {
+        navigate(`/messages/new?with=${userId}`, { replace: true });
+      }
+    }
+  }
+}, [searchParams, user, conversations, isMobile, navigate]);
+
   const handleConversationClick = (conversationId: string) => {
     if (isMobile) {
       // On mobile, navigate to separate page
@@ -118,6 +153,43 @@ export const ConversationsListPage: React.FC = () => {
       setSelectedConversationId(conversationId);
       navigate(`/messages/${conversationId}`, { replace: true });
     }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!conversationToDelete) return;
+    
+    try {
+      // Delete conversation document
+      await deleteDoc(doc(db, 'conversations', conversationToDelete));
+      
+      // Delete all messages in this conversation
+      const messagesQuery = query(
+        collection(db, 'messages'),
+        where('conversationId', '==', conversationToDelete)
+      );
+      const messagesSnapshot = await getDocs(messagesQuery);
+      const deletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+      toast.success(t('conversations.conversationDeleted'));
+      setDeleteModalOpen(false);
+      setConversationToDelete(null);
+      
+      // Clear selection if deleting the selected conversation
+      if (selectedConversationId === conversationToDelete) {
+        setSelectedConversationId(null);
+        navigate('/messages', { replace: true });
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      toast.error(t('conversations.deleteFailed'));
+    }
+  };
+
+  const confirmDelete = (conversationId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent conversation from being opened
+    setConversationToDelete(conversationId);
+    setDeleteModalOpen(true);
   };
 
   useEffect(() => {
@@ -180,7 +252,7 @@ export const ConversationsListPage: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, [user, navigate]);
+  }, [user, t]);
 
   const formatTime = (timestamp: any) => {
     if (!timestamp) return '';
@@ -238,69 +310,105 @@ export const ConversationsListPage: React.FC = () => {
           </div>
         ) : (
           <div className="p-4 space-y-2">
-            {filteredConversations.map((conversation) => (
-              <div
-                key={conversation.id}
+          {filteredConversations.map((conversation) => (
+            <div
+              key={conversation.id}
+              className={`p-4 rounded-lg cursor-pointer transition-colors relative group ${
+                selectedConversationId === conversation.id && !isMobile
+                  ? 'bg-white/10'
+                  : 'hover:bg-white/5'
+              }`}
+            >
+              <div 
                 onClick={() => {
-                  // Only restrict freelancers who aren't pro
                   if (userData?.userType === 'freelancer' && !userData?.isPro) {
                     onProModalOpen();
                     return;
                   }
                   handleConversationClick(conversation.id);
                 }}
-                className={`p-4 rounded-lg cursor-pointer transition-colors relative ${
-                  selectedConversationId === conversation.id && !isMobile
-                    ? 'bg-white/10'
-                    : 'hover:bg-white/5'
-                }`}
+                className={`flex items-center gap-3 pr-10 ${(userData?.userType === 'freelancer' && !userData?.isPro) ? 'blur-sm pointer-events-none select-none' : ''}`}
               >
-                <div className={`flex items-center gap-3 ${(userData?.userType === 'freelancer' && !userData?.isPro) ? 'blur-sm pointer-events-none select-none' : ''}`}>
-                  <div className="relative">
-                    <Avatar
-                      src={conversation.otherUser.photoURL}
-                      name={conversation.otherUser.displayName}
-                      className="w-12 h-12"
-                    />
-                    {conversation.unreadCount > 0 && (
-                      <Chip 
-                        color="danger" 
-                        size="sm"
-                        variant="solid"
-                        className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1"
-                      >
-                        {conversation.unreadCount}
-                      </Chip>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-semibold text-white truncate">
-                        {formatNameWithInitial(conversation.otherUser.displayName)}
-                      </h3>
-                      <span className="text-gray-400 text-xs">
-                        {formatTime(conversation.lastMessageTime)}
-                      </span>
-                    </div>
-                    <p className="text-gray-400 text-sm truncate">
-                      {conversation.lastMessage}
-                    </p>
-                  </div>
+                <div className="relative">
+                  <Avatar
+                    src={conversation.otherUser.photoURL}
+                    name={conversation.otherUser.displayName}
+                    className="w-12 h-12"
+                  />
+                  {conversation.unreadCount > 0 && (
+                    <Chip 
+                      color="danger" 
+                      size="sm"
+                      variant="solid"
+                      className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1"
+                    >
+                      {conversation.unreadCount}
+                    </Chip>
+                  )}
                 </div>
-                {(userData?.userType === 'freelancer' && !userData?.isPro) && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Icon icon="lucide:lock" className="text-white/30 text-xl" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-semibold text-white truncate">
+                      {formatNameWithInitial(conversation.otherUser.displayName)}
+                    </h3>
+                    <span className="text-gray-400 text-xs mr-8">
+                      {formatTime(conversation.lastMessageTime)}
+                    </span>
                   </div>
-                )}
+                  <p className="text-gray-400 text-sm truncate">
+                    {conversation.lastMessage}
+                  </p>
+                </div>
               </div>
-            ))}
+              
+              {/* Delete Button - Positioned lower, no modal */}
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    // Delete all messages first
+                    const messagesQuery = query(
+                      collection(db, 'messages'),
+                      where('conversationId', '==', conversation.id)
+                    );
+                    const messagesSnapshot = await getDocs(messagesQuery);
+                    const deletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+                    await Promise.all(deletePromises);
+                    
+                    // Then delete conversation
+                    await deleteDoc(doc(db, 'conversations', conversation.id));
+                    
+                    toast.success(t('conversations.conversationDeleted'));
+                    
+                    // Clear selection if deleting selected conversation
+                    if (selectedConversationId === conversation.id) {
+                      setSelectedConversationId(null);
+                      navigate('/messages', { replace: true });
+                    }
+                  } catch (error) {
+                    console.error('Error deleting conversation:', error);
+                    toast.error(t('conversations.deleteFailed'));
+                  }
+                }}
+                className="absolute right-2 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-500/20 rounded"
+                title={t('conversations.deleteConversation')}
+              >
+                <Icon icon="lucide:trash-2" className="text-red-400 text-base" />
+              </button>
+              
+              {(userData?.userType === 'freelancer' && !userData?.isPro) && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Icon icon="lucide:lock" className="text-white/30 text-xl" />
+                </div>
+              )}
+            </div>
+          ))}
           </div>
         )}
       </div>
     </div>
   );
 
-  // Mobile layout - just the conversations list
   // Mobile layout - just the conversations list
   if (isMobile) {
     return (
@@ -317,7 +425,6 @@ export const ConversationsListPage: React.FC = () => {
     );
   }
 
-  // Desktop layout - split view
   // Desktop layout - split view
   return (
     <>

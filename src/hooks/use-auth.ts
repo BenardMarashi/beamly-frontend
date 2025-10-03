@@ -6,7 +6,8 @@ import {
   GoogleAuthProvider,
   signOut,
   updateProfile,
-  User
+  User,
+  sendEmailVerification
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp, query, collection, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -23,41 +24,66 @@ export const useSignIn = () => {
   const [error, setError] = useState<string | null>(null);
   
   const signInWithEmail = async (email: string, password: string): Promise<User | null> => {
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  setError(null);
+  
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
     
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Update last active timestamp
-      await setDoc(doc(db, 'users', user.uid), {
-        lastActive: serverTimestamp()
-      }, { merge: true });
-      
-      toast.success('Successfully signed in!');
-      return user;
-    } catch (err: any) {
-      console.error('Sign in error:', err);
-      let errorMessage = 'Failed to sign in';
-      
-      if (err.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email';
-      } else if (err.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password';
-      } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later';
-      }
-      
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return null;
-    } finally {
-      setLoading(false);
+    // Get user document from Firestore
+    const userDocRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    // Check if this is a NEW user (created after implementation date)
+    const implementationDate = new Date('2025-10-03T00:00:00'); // ← SET TO TODAY
+    let isNewUser = true;
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const userCreatedAt = userData.createdAt?.toDate?.() || new Date(0);
+      isNewUser = userCreatedAt >= implementationDate;
     }
-  };
+    
+    // ONLY block NEW users who haven't verified their email
+    if (isNewUser && !user.emailVerified) {
+      toast.error(
+        'Please verify your email before signing in. Check your inbox for the verification link.',
+        { duration: 8000 }
+      );
+      await signOut(auth);
+      setError('Email not verified');
+      return null;
+    }
+    
+    // Update last active timestamp
+    await setDoc(doc(db, 'users', user.uid), {
+      lastActive: serverTimestamp()
+    }, { merge: true });
+    
+    toast.success('Successfully signed in!');
+    return user;
+  } catch (err: any) {
+    console.error('Sign in error:', err);
+    let errorMessage = 'Failed to sign in';
+    
+    if (err.code === 'auth/user-not-found') {
+      errorMessage = 'No account found with this email';
+    } else if (err.code === 'auth/wrong-password') {
+      errorMessage = 'Incorrect password';
+    } else if (err.code === 'auth/invalid-email') {
+      errorMessage = 'Invalid email address';
+    } else if (err.code === 'auth/too-many-requests') {
+      errorMessage = 'Too many failed attempts. Please try again later';
+    }
+    
+    setError(errorMessage);
+    toast.error(errorMessage);
+    return null;
+  } finally {
+    setLoading(false);
+  }
+};
   
   const signInWithGoogle = async (): Promise<User | null> => {
     setLoading(true);
@@ -281,6 +307,21 @@ export const useSignUp = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
+      try {
+        await sendEmailVerification(user, {
+          url: `${window.location.origin}/dashboard`,
+          handleCodeInApp: false
+        });
+        toast.success('Account created! Please check your email to verify your account.', {
+          duration: 6000
+        });
+      } catch (verificationError) {
+        console.error('Failed to send verification email:', verificationError);
+        toast.error('Account created but verification email failed. You can request it later.', {
+          duration: 6000
+        });
+      }
+
       // Update display name
       await updateProfile(user, { displayName });
       
