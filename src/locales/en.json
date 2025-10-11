@@ -3623,6 +3623,7 @@
   "updateEmailMessage": "Please sign out and contact support to update your email address.",
   "didntReceive": "Didn't receive the email? Check your spam folder or click \"Send Verification Email\" again.",
   "cannotContinue": "You cannot continue without verifying your email",
-  "checkEmail": "Check {{email}} for verification link"
+  "checkEmail": "Check {{email}} for verification link",
+  "auth.signOut":"Sign Out"
 }
 }

@@ -3493,6 +3493,7 @@
   "updateEmailMessage": "Ju lutemi dilni dhe kontaktoni mbështetjen për të përditësuar adresën tuaj të email-it.",
   "didntReceive": "Nuk e more email-in? Kontrollo dosjen e spam-it ose kliko \"Dërgo Email Verifikimi\" përsëri.",
   "cannotContinue": "Nuk mund të vazhdosh pa verifikuar email-in tënd",
-  "checkEmail": "Kontrollo {{email}} për linkun e verifikimit"
+  "checkEmail": "Kontrollo {{email}} për linkun e verifikimit",
+  "auth.signOut":"Dil"
 }
 }

@@ -18,39 +18,70 @@ export const ForgotPasswordPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email) {
-      toast.error(t('forgotPassword.errors.enterEmail'));
+    // Validate email is not empty
+    if (!email || !email.trim()) {
+      toast.error(t('forgotPassword.errors.enterEmail') || 'Please enter your email address', {
+        position: 'top-right',
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error(t('forgotPassword.errors.invalidEmail') || 'Please enter a valid email address', {
+        position: 'top-right',
+        duration: 3000,
+      });
       return;
     }
     
     setLoading(true);
     
     try {
-      await sendPasswordResetEmail(auth, email);
-      setEmailSent(true);
-      toast.success(t('forgotPassword.success.emailSent'), {
-        duration: 1000,
-        position: 'top-left',
+      // Send password reset email via Firebase
+      await sendPasswordResetEmail(auth, email.trim(), {
+        url: window.location.origin + '/login',
+        handleCodeInApp: false,
       });
+      
+      // Success! Show success state
+      setEmailSent(true);
+      toast.success(t('forgotPassword.success.emailSent') || 'Password reset email sent! Check your inbox.', {
+        duration: 4000,
+        position: 'top-right',
+      });
+      
+      console.log('Password reset email sent successfully to:', email);
+      
     } catch (error: any) {
       console.error('Error sending password reset email:', error);
       
-      if (error.code === 'auth/user-not-found') {
-        toast.error(t('forgotPassword.errors.userNotFound'), {
-          duration: 1000,
-          position: 'top-left',
-        });
-      } else if (error.code === 'auth/invalid-email') {
-        toast.error(t('forgotPassword.errors.invalidEmail'), {
-          duration: 1000,
-          position: 'top-left',
-        });
-      } else {
-        toast.error(t('forgotPassword.errors.sendFailed'), {
-          duration: 1000,
-          position: 'top-left',
-        });
+      // Handle different error types
+      let errorMessage = t('forgotPassword.errors.sendFailed') || 'Failed to send password reset email';
+      
+      switch (error.code) {
+        case 'auth/user-not-found':
+          errorMessage = t('forgotPassword.errors.userNotFound') || 'No account found with this email address';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = t('forgotPassword.errors.invalidEmail') || 'Invalid email address';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Too many requests. Please try again later.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your connection and try again.';
+          break;
+        default:
+          errorMessage = t('forgotPassword.errors.sendFailed') || 'Failed to send password reset email. Please try again.';
       }
+      
+      toast.error(errorMessage, {
+        duration: 4000,
+        position: 'top-right',
+      });
     } finally {
       setLoading(false);
     }
@@ -64,34 +95,47 @@ export const ForgotPasswordPage: React.FC = () => {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
+        {/* Header */}
         <div className="text-center mb-8">
           <div className="mb-6">
             <div className="w-20 h-20 bg-beamly-secondary/20 rounded-full flex items-center justify-center mx-auto">
-              <Icon icon="solar:lock-keyhole-minimalistic-bold-duotone" className="text-beamly-secondary" width={40} />
+              <Icon 
+                icon="solar:lock-keyhole-minimalistic-bold-duotone" 
+                className="text-beamly-secondary" 
+                width={40} 
+              />
             </div>
           </div>
-          <h1 className="text-3xl font-bold mb-3">{t('forgotPassword.title')}</h1>
+          <h1 className="text-3xl font-bold mb-3">
+            {t('forgotPassword.title') || 'Reset Your Password'}
+          </h1>
           <p className="text-gray-400 text-lg">
-            {t('forgotPassword.subtitle')}
+            {t('forgotPassword.subtitle') || "Enter your email and we'll send you instructions to reset your password"}
           </p>
         </div>
         
+        {/* Main Card */}
         <Card className="glass-effect border-none">
           <CardBody className="p-8">
             {!emailSent ? (
+              /* Form State - Before Email Sent */
               <>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="form-field">
                     <Input
                       type="email"
-                      label={t('forgotPassword.emailLabel')}
-                      placeholder={t('forgotPassword.emailPlaceholder')}
+                      label={t('forgotPassword.emailLabel') || 'Email Address'}
+                      placeholder={t('forgotPassword.emailPlaceholder') || 'you@example.com'}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       variant="bordered"
                       size="lg"
-                      startContent={<Icon icon="solar:letter-bold-duotone" className="text-gray-400" />}
+                      startContent={
+                        <Icon icon="solar:letter-bold-duotone" className="text-gray-400" />
+                      }
                       isRequired
+                      autoFocus
+                      disabled={loading}
                       classNames={{
                         input: "text-white",
                         inputWrapper: "bg-white/5 border-white/20 hover:border-white/30 data-[hover=true]:bg-white/10"
@@ -105,9 +149,10 @@ export const ForgotPasswordPage: React.FC = () => {
                     size="lg"
                     fullWidth
                     isLoading={loading}
+                    disabled={loading || !email}
                     className="bg-beamly-secondary text-beamly-primary font-semibold"
                   >
-                    {t('forgotPassword.sendButton')}
+                    {loading ? 'Sending...' : (t('forgotPassword.sendButton') || 'Send Reset Instructions')}
                   </Button>
                 </form>
                 
@@ -117,11 +162,12 @@ export const ForgotPasswordPage: React.FC = () => {
                     className="text-beamly-secondary hover:underline text-sm flex items-center justify-center gap-2 transition-all"
                   >
                     <Icon icon="solar:arrow-left-line-duotone" />
-                    {t('forgotPassword.backToLogin')}
+                    {t('forgotPassword.backToLogin') || 'Back to Login'}
                   </Link>
                 </div>
               </>
             ) : (
+              /* Success State - After Email Sent */
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -130,11 +176,17 @@ export const ForgotPasswordPage: React.FC = () => {
               >
                 <div className="mb-6">
                   <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Icon icon="solar:check-circle-bold-duotone" className="text-green-500" width={40} />
+                    <Icon 
+                      icon="solar:check-circle-bold-duotone" 
+                      className="text-green-500" 
+                      width={40} 
+                    />
                   </div>
-                  <h2 className="text-xl font-semibold mb-3">{t('forgotPassword.checkInbox')}</h2>
+                  <h2 className="text-xl font-semibold mb-3">
+                    {t('forgotPassword.checkInbox') || 'Check Your Inbox!'}
+                  </h2>
                   <p className="text-gray-400 mb-2">
-                    {t('forgotPassword.emailSentTo')}
+                    {t('forgotPassword.emailSentTo') || "We've sent password reset instructions to:"}
                   </p>
                   <p className="font-medium text-lg bg-white/5 rounded-lg px-4 py-2 inline-block">
                     {email}
@@ -149,11 +201,13 @@ export const ForgotPasswordPage: React.FC = () => {
                     onClick={() => navigate('/login')}
                     className="bg-beamly-secondary text-beamly-primary font-semibold"
                   >
-                    {t('forgotPassword.returnToLogin')}
+                    {t('forgotPassword.returnToLogin') || 'Return to Login'}
                   </Button>
                   
                   <div className="text-gray-400 text-sm">
-                    <p className="mb-2">{t('forgotPassword.noEmail')}</p>
+                    <p className="mb-2">
+                      {t('forgotPassword.noEmail') || "Didn't receive the email?"}
+                    </p>
                     <button
                       onClick={() => {
                         setEmailSent(false);
@@ -161,7 +215,7 @@ export const ForgotPasswordPage: React.FC = () => {
                       }}
                       className="text-beamly-secondary hover:underline font-medium"
                     >
-                      {t('forgotPassword.tryAgain')}
+                      {t('forgotPassword.tryAgain') || 'Try Again'}
                     </button>
                   </div>
                 </div>
@@ -170,11 +224,15 @@ export const ForgotPasswordPage: React.FC = () => {
           </CardBody>
         </Card>
         
+        {/* Footer Link */}
         <div className="mt-8 text-center">
           <p className="text-gray-500 text-sm">
-            {t('forgotPassword.rememberPassword')}{' '}
-            <Link to="/login" className="text-beamly-secondary hover:underline font-medium">
-              {t('forgotPassword.signIn')}
+            {t('forgotPassword.rememberPassword') || 'Remember your password?'}{' '}
+            <Link 
+              to="/login" 
+              className="text-beamly-secondary hover:underline font-medium"
+            >
+              {t('forgotPassword.signIn') || 'Sign in instead'}
             </Link>
           </p>
         </div>
