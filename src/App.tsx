@@ -14,7 +14,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { I18nextProvider } from 'react-i18next';
 import { EmailVerificationBanner } from './components/banners/EmailVerificationBanner';
 import i18n from './lib/i18n';
-
+import ForgotPasswordPage from './pages/forgot-password';
 // Layouts - Keep your current layout system
 import { MainLayout } from './layouts/main-layout';
 
@@ -210,6 +210,7 @@ const AppRoutes = () => {
           <Route path="/" element={user ? <Navigate to="/home" /> : <LandingPage />} />
           <Route path="/login" element={user ? <Navigate to="/home" /> : <LoginPage />} />
           <Route path="/signup" element={user ? <Navigate to="/home" /> : <SignupPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/browse-jobs" element={<BrowseJobsPage />} />
           <Route path="/browse-freelancers" element={<BrowseFreelancersPage />} />
           <Route path="/freelancer/:id" element={<FreelancerProfilePage />} />

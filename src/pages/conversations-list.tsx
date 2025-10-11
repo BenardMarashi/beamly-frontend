@@ -14,6 +14,8 @@ import { MessagesView } from '../components/MessagesView';
 import { UpgradeToProBanner } from '../components/banners/UpgradeToProBanner';
 import { useDisclosure } from '@nextui-org/react';
 import { formatNameWithInitial } from '../utils/nameFormatter';
+import { useMessageAccess } from '../hooks/use-message-access';
+
 
 interface ConversationWithUser {
   id: string;
@@ -34,6 +36,7 @@ export const ConversationsListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { conversationId } = useParams();
   const { user, userData } = useAuth();
+  const { hasMessageAccess } = useMessageAccess();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState<ConversationWithUser[]>([]);
@@ -243,7 +246,7 @@ export const ConversationsListPage: React.FC = () => {
                 key={conversation.id}
                 onClick={() => {
                   // Only restrict freelancers who aren't pro
-                  if (userData?.userType === 'freelancer' && !userData?.isPro) {
+                  if (!hasMessageAccess) {
                     onProModalOpen();
                     return;
                   }
@@ -255,7 +258,7 @@ export const ConversationsListPage: React.FC = () => {
                     : 'hover:bg-white/5'
                 }`}
               >
-                <div className={`flex items-center gap-3 ${(userData?.userType === 'freelancer' && !userData?.isPro) ? 'blur-sm pointer-events-none select-none' : ''}`}>
+                <div className={`flex items-center gap-3 ${!hasMessageAccess ? 'blur-sm pointer-events-none select-none' : ''}`}>
                   <div className="relative">
                     <Avatar
                       src={conversation.otherUser.photoURL}
@@ -287,7 +290,7 @@ export const ConversationsListPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                {(userData?.userType === 'freelancer' && !userData?.isPro) && (
+                {!hasMessageAccess && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Icon icon="lucide:lock" className="text-white/30 text-xl" />
                   </div>

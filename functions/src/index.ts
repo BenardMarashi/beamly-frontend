@@ -1054,22 +1054,32 @@ async function handleSubscriptionCreated(session: any) {
   const stripe = await getStripe();
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
 
-  // Determine plan type based on price
-  let planType = "monthly";
   const priceId = subscription.items.data[0].price.id;
-  if (priceId === process.env.STRIPE_QUARTERLY_PRICE_ID) planType = "quarterly";
-  if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) planType = "yearly";
+
+  // Determine subscription tier
+  let subscriptionTier: "messages" | "pro" = "pro";
+  let planType = "monthly";
+
+  if (priceId === process.env.STRIPE_MESSAGES_PRICE_ID) {
+    subscriptionTier = "messages";
+    planType = "messages";
+  } else {
+    subscriptionTier = "pro";
+    if (priceId === process.env.STRIPE_QUARTERLY_PRICE_ID) planType = "quarterly";
+    if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) planType = "yearly";
+    if (priceId === process.env.STRIPE_6MONTHS_PRICE_ID) planType = "sixmonths";
+  }
 
   await db.doc(`users/${userId}`).update({
+    subscriptionTier,
     subscriptionStatus: "active",
     subscriptionPlan: planType,
     stripeSubscriptionId: subscription.id,
     subscriptionStartDate: Timestamp.fromDate(new Date((subscription as any).current_period_start * 1000)),
     subscriptionEndDate: Timestamp.fromDate(new Date((subscription as any).current_period_end * 1000)),
-    isPro: true,
+    isPro: subscriptionTier === "pro",
   });
 
-  // Create transaction record
   await db.collection("transactions").add({
     type: "subscription",
     userId,
@@ -1077,7 +1087,7 @@ async function handleSubscriptionCreated(session: any) {
     currency: session.currency || "eur",
     status: "completed",
     stripeSessionId: session.id,
-    description: `${planType} subscription`,
+    description: `${subscriptionTier === "messages" ? "Messages-Only" : planType} subscription`,
     createdAt: FieldValue.serverTimestamp(),
     completedAt: FieldValue.serverTimestamp(),
   });
@@ -1103,7 +1113,6 @@ async function handleSubscriptionCancelled(subscription: any) {
   const { db } = getAdmin();
   const customerId = subscription.customer as string;
 
-  // Find user by customer ID
   const usersQuery = await db.collection("users")
     .where("stripeCustomerId", "==", customerId)
     .limit(1)
@@ -1112,6 +1121,7 @@ async function handleSubscriptionCancelled(subscription: any) {
   if (!usersQuery.empty) {
     const userDoc = usersQuery.docs[0];
     await userDoc.ref.update({
+      subscriptionTier: "free",
       subscriptionStatus: "cancelled",
       isPro: false,
     });

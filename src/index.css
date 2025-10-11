@@ -1592,4 +1592,12 @@ body.menu-open footer {
     font-size: 0.875rem !important;
   }
 }
+/* Upgrade Banner - Hide scrollbar but keep functionality */
+.upgrade-banner-scroll-container::-webkit-scrollbar {
+  display: none;
+}
 
+.upgrade-banner-scroll-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -3459,13 +3459,30 @@
   "benefit4": "Zhblloko veçoritë e plota të Beamly"
 },
 "upgradeProBanner": {
-  "title": "Zhblloko Mesazhet",
-  "description": "Abonohu në Pro për të parë dhe përgjigjur të gjitha mesazhet",
-  "benefit1": "Qasje e pakufizuar në mesazhe",
-  "benefit2": "Përparësi në rezultatet e kërkimit",
-  "priceNote": "Anulo në çdo kohë",
+  "title": "Hap Mesazhet",
+  "description": "Zgjidh një plan për të filluar mesazhet",
+  
+  "messagesTitle": "Vetëm Mesazhe",
+  "messagesPrice": "€3/muaj",
+  "messagesBenefit1": "Mesazhe të pakufizuara",
+  "messagesBenefit2": "Chat në kohë reale",
+  "messagesBenefit3": "Ndarja e skedarëve",
+  "getMessages": "Vetëm Mesazhe",
+  
+  "proTitle": "Pro",
+  "proPrice": "€10/muaj",
+  "proBenefit1": "Gjithçka në Mesazhe",
+  "proBenefit2": "Propozime të pakufizuara",
+  "proBenefit3": "Vetëm 5% komision",
+  "getPro": "Merr Pro",
+  
+  "currentPlan": "Plani Aktual",
+  "laterButton": "Më Vonë",
+  
+  "benefit1": "Mesazhe të pakufizuara me klientët",
+  "benefit2": "Propozime të pakufizuara për punë",
   "upgradeButton": "Përmirëso në Pro",
-  "laterButton": "Ndoshta Më Vonë"
+  "priceNote": "Fillon nga €9.99/muaj"
 },
 "emailVerification": {
   "title": "Verifiko Adresën Tënde të Email-it",
@@ -3493,7 +3510,87 @@
   "updateEmailMessage": "Ju lutemi dilni dhe kontaktoni mbështetjen për të përditësuar adresën tuaj të email-it.",
   "didntReceive": "Nuk e more email-in? Kontrollo dosjen e spam-it ose kliko \"Dërgo Email Verifikimi\" përsëri.",
   "cannotContinue": "Nuk mund të vazhdosh pa verifikuar email-in tënd",
-  "checkEmail": "Kontrollo {{email}} për linkun e verifikimit",
-  "auth.signOut":"Dil"
+  "checkEmail": "Kontrollo {{email}} për linkun e verifikimit"
+},
+"auth": {
+    "signOut": "Dil",
+    "signIn": "Hyr", 
+    "signUp": "Regjistrohu"
+  },
+  "proSubscription": {
+  "header": {
+    "title": "Abonohu në Pro",
+    "subtitle": "Hiq tarifat e komisionit dhe hap propozimet e pakufizuara"
+  },
+  "active": {
+    "title": "Abonimi Pro Aktiv",
+    "plan": "plan",
+    "renews": "Rinovohet",
+    "benefits": "Përfitimet e tua Pro",
+    "cancelButton": "Anulo Abonimin"
+  },
+  "plans": {
+    "free": {
+      "name": "Falas Përgjithmonë",
+      "feature1": "5 propozime në muaj",
+      "feature2": "Analitika të kufizuara",
+      "feature3": "Dukshmëri bazë e profilit",
+      "feature4": "15% komision mbi fitimet"
+    },
+    "messages": {
+      "name": "Vetëm Mesazhe",
+      "feature1": "Mesazhe të pakufizuara",
+      "feature2": "Chat në kohë reale",
+      "feature3": "Ndarje skedarësh",
+      "feature4": "Njoftime chat"
+    },
+    "monthly": {
+      "name": "Mujor",
+      "feature1": "Propozime të pakufizuara në muaj",
+      "feature2": "Listim prioritar në rezultatet e kërkimit",
+      "feature3": "Panel i plotë analitik",
+      "feature4": "Vetëm 5% komision - kursen 10%!",
+      "feature5": "Shenja PRO në profil",
+      "feature6": "Mbështetje prioritare"
+    },
+    "sixmonths": {
+      "name": "6 Muaj",
+      "feature1": "Gjithçka në planin Mujor",
+      "feature2": "Kursen 20% krahasuar me mujor",
+      "feature3": "Promovim i zgjeruar i profilit",
+      "feature4": "Vetëm 5% komision - kursen 10%!",
+      "feature5": "Mbështetje premium"
+    }
+  },
+  "intervals": {
+    "month": "muaj",
+    "sixmonths": "6 muaj"
+  },
+  "badges": {
+    "save20": "Kursen 20%",
+    "currentPlan": "Plani Aktual"
+  },
+  "pricing": {
+    "free": "Falas",
+    "saveVsMonthly": "Kursen {{savings}}% krahasuar me mujor"
+  },
+  "buttons": {
+    "alreadyFree": "Tashmë në Plan Falas",
+    "subscribe": "Abonohu në Planin {{plan}}"
+  },
+  "info": {
+    "commissionTitle": "Informacion mbi Komisionin",
+    "freePlan": "Plan falas: 15% komision mbi të gjitha fitimet",
+    "proPlan": "Planet Pro: vetëm 5% komision - kursen 10%!"
+  },
+  "footer": "Anulo në çdo kohë • Pagesë e sigurt nga Stripe • Aktivizim i menjëhershëm",
+  "messages": {
+    "alreadyFree": "Ju jeni tashmë në planin falas",
+    "invalidPlan": "Plan i pavlefshëm i zgjedhur",
+    "checkoutFailed": "Dështoi krijimi i sesionit të pagesës",
+    "cancelConfirm": "Jeni të sigurt që doni të anuloni abonimin tuaj? Do të ktheheni në planin falas me 15% komision.",
+    "cancelSuccess": "Abonimi u anulua me sukses",
+    "cancelFailed": "Dështoi anulimi i abonimit"
+  }
 }
 }

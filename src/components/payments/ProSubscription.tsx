@@ -4,64 +4,20 @@ import { Card, CardBody, CardHeader, Button, Chip, RadioGroup, Radio } from '@ne
 import { Icon } from '@iconify/react';
 import { useAuth } from '../../contexts/AuthContext';
 import { StripeService } from '../../services/stripe-service';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
-
 const STRIPE_PRICE_IDS = {
+  messages: 'price_1SH4I0DtB4sjDNJy2iNybsuv',
   monthly: 'price_1RoqOADtB4sjDNJywCzlCHBM',
   sixmonths: 'price_1Rt9g9DtB4sjDNJy5eXZpg7d',
   quarterly: 'price_1RoqOADtB4sjDNJyCiGCXLZx',
   yearly: 'price_1RoqOADtB4sjDNJyGYfrEVTu'
 };
 
-const SUBSCRIPTION_PLANS = [
-  {
-    id: 'free',
-    name: 'Free Forever',
-    price: 0,
-    interval: '',
-    savings: 0,
-    features: [
-      '5 proposals per month',
-      'Partial analytics',
-      'Basic profile visibility',
-      '15% commission on earnings' // Updated from 15%
-    ]
-  },
-  {
-    id: 'monthly',
-    name: 'Monthly',
-    price: 9.99,
-    interval: 'month',
-    savings: 0,
-    features: [
-      'Unlimited proposals per month',
-      'Priority listing in search results', // Added
-      'Full analytics dashboard',
-      '5% commission only - save 10%!', // Updated
-      'PRO badge on profile', // Added
-      'Priority support'
-    ]
-  },
-  {
-    id: 'sixmonths',
-    name: '6 Months',
-    price: 47.99,
-    interval: '6 months',
-    savings: 20,
-    isPopular: true,
-    features: [
-      'Everything in Monthly plan',
-      'Save 20% compared to monthly',
-      'Extended profile promotion',
-      '5% commission only - save 10%!',
-      'Premium support'
-    ]
-  }
-];
-
 export const ProSubscription: React.FC = () => {
   const { user, userData } = useAuth();
+  const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState('monthly');
   const [loading, setLoading] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<{
@@ -70,8 +26,67 @@ export const ProSubscription: React.FC = () => {
     endDate?: Date;
   }>({ isActive: false });
 
-  // Check if user is on free plan (no active subscription)
   const isFreePlan = !currentSubscription.isActive;
+
+  // Define plans with translations
+  const SUBSCRIPTION_PLANS = [
+    {
+      id: 'free',
+      name: t('proSubscription.plans.free.name'),
+      price: 0,
+      interval: '',
+      savings: 0,
+      features: [
+        t('proSubscription.plans.free.feature1'),
+        t('proSubscription.plans.free.feature2'),
+        t('proSubscription.plans.free.feature3'),
+        t('proSubscription.plans.free.feature4')
+      ]
+    },
+    {
+      id: 'messages',
+      name: t('proSubscription.plans.messages.name'),
+      price: 3,
+      interval: t('proSubscription.intervals.month'),
+      savings: 0,
+      features: [
+        t('proSubscription.plans.messages.feature1'),
+        t('proSubscription.plans.messages.feature2'),
+        t('proSubscription.plans.messages.feature3'),
+        t('proSubscription.plans.messages.feature4')
+      ]
+    },
+    {
+      id: 'monthly',
+      name: t('proSubscription.plans.monthly.name'),
+      price: 9.99,
+      interval: t('proSubscription.intervals.month'),
+      savings: 0,
+      features: [
+        t('proSubscription.plans.monthly.feature1'),
+        t('proSubscription.plans.monthly.feature2'),
+        t('proSubscription.plans.monthly.feature3'),
+        t('proSubscription.plans.monthly.feature4'),
+        t('proSubscription.plans.monthly.feature5'),
+        t('proSubscription.plans.monthly.feature6')
+      ]
+    },
+    {
+      id: 'sixmonths',
+      name: t('proSubscription.plans.sixmonths.name'),
+      price: 47.99,
+      interval: t('proSubscription.intervals.sixmonths'),
+      savings: 20,
+      isPopular: true,
+      features: [
+        t('proSubscription.plans.sixmonths.feature1'),
+        t('proSubscription.plans.sixmonths.feature2'),
+        t('proSubscription.plans.sixmonths.feature3'),
+        t('proSubscription.plans.sixmonths.feature4'),
+        t('proSubscription.plans.sixmonths.feature5')
+      ]
+    }
+  ];
 
   useEffect(() => {
     checkSubscriptionStatus();
@@ -90,67 +105,74 @@ export const ProSubscription: React.FC = () => {
     }
   };
 
-const handleSubscribe = async () => {
-  if (!user?.uid) return;
-  
-  if (selectedPlan === 'free') {
-    toast('You are already on the free plan');
-    return;
-  }
-  
-  setLoading(true);
-  try {
-    // Get the actual Stripe price ID
-    let priceId = '';
-    switch(selectedPlan) {
-      case 'monthly':
-        priceId = STRIPE_PRICE_IDS.monthly;
-        break;
-      case 'sixmonths':
-        priceId = STRIPE_PRICE_IDS.sixmonths;
-        break;
-      default:
-        toast.error('Invalid plan selected');
-        setLoading(false);
-        return;
-    }
-
-    // Now call the service with the actual price ID
-    const result = await StripeService.createSubscriptionCheckout(
-      user.uid,
-      priceId  // Pass the actual Stripe price ID here!
-    );
+  const handleSubscribe = async () => {
+    if (!user?.uid) return;
     
-    if (result.success && result.checkoutUrl) {
-      window.location.href = result.checkoutUrl;
+    if (selectedPlan === 'free') {
+      toast(t('proSubscription.messages.alreadyFree'));
+      return;
     }
-  } catch (error) {
-    console.error('Error creating checkout:', error);
-    toast.error('Failed to create checkout session');
-  } finally {
-    setLoading(false);
-  }
-};
+    
+    setLoading(true);
+    try {
+      let priceId = '';
+      switch(selectedPlan) {
+        case 'messages':
+          priceId = STRIPE_PRICE_IDS.messages;
+          break;
+        case 'monthly':
+          priceId = STRIPE_PRICE_IDS.monthly;
+          break;
+        case 'sixmonths':
+          priceId = STRIPE_PRICE_IDS.sixmonths;
+          break;
+        default:
+          toast.error(t('proSubscription.messages.invalidPlan'));
+          setLoading(false);
+          return;
+      }
+
+      const result = await StripeService.createSubscriptionCheckout(
+        user.uid,
+        priceId
+      );
+      
+      if (result.success && result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+      }
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      toast.error(t('proSubscription.messages.checkoutFailed'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCancelSubscription = async () => {
-    if (!user?.uid || !window.confirm('Are you sure you want to cancel your subscription? You will return to the free plan with 15% commission.')) return;
+    if (!user?.uid || !window.confirm(t('proSubscription.messages.cancelConfirm'))) return;
     
     setLoading(true);
     try {
       const result = await StripeService.cancelSubscription(user.uid);
       if (result.success) {
-        toast.success('Subscription cancelled successfully');
+        toast.success(t('proSubscription.messages.cancelSuccess'));
         checkSubscriptionStatus();
       }
     } catch (error) {
       console.error('Error cancelling subscription:', error);
-      toast.error('Failed to cancel subscription');
+      toast.error(t('proSubscription.messages.cancelFailed'));
     } finally {
       setLoading(false);
     }
   };
 
   if (currentSubscription.isActive) {
+    const planName = currentSubscription.plan === 'sixmonths' 
+      ? t('proSubscription.plans.sixmonths.name')
+      : currentSubscription.plan === 'messages'
+      ? t('proSubscription.plans.messages.name')
+      : t('proSubscription.plans.monthly.name');
+
     return (
       <Card className="w-full max-w-2xl mx-auto glass-effect">
         <CardHeader className="flex gap-3">
@@ -158,9 +180,11 @@ const handleSubscribe = async () => {
             <Icon icon="lucide:crown" className="text-2xl text-yellow-400" />
           </div>
           <div className="flex flex-col">
-            <p className="text-lg font-semibold text-white">Pro Subscription Active</p>
+            <p className="text-lg font-semibold text-white">
+              {t('proSubscription.active.title')}
+            </p>
             <p className="text-sm text-gray-400">
-              {currentSubscription.plan === 'sixmonths' ? '6 Months' : 'Monthly'} plan • Renews {currentSubscription.endDate?.toLocaleDateString()}
+              {planName} {t('proSubscription.active.plan')} • {t('proSubscription.active.renews')} {currentSubscription.endDate?.toLocaleDateString()}
             </p>
           </div>
         </CardHeader>
@@ -168,7 +192,7 @@ const handleSubscribe = async () => {
           <div className="space-y-4">
             <div className="bg-green-500/10 rounded-lg p-4">
               <h4 className="font-medium text-green-400 mb-2">
-                Your Pro Benefits
+                {t('proSubscription.active.benefits')}
               </h4>
               <ul className="space-y-2 text-sm">
                 {SUBSCRIPTION_PLANS.find(p => p.id === currentSubscription.plan)?.features.map((feature, index) => (
@@ -187,7 +211,7 @@ const handleSubscribe = async () => {
               onPress={handleCancelSubscription}
               isLoading={loading}
             >
-              Cancel Subscription
+              {t('proSubscription.active.cancelButton')}
             </Button>
           </div>
         </CardBody>
@@ -202,8 +226,12 @@ const handleSubscribe = async () => {
           <Icon icon="lucide:crown" className="text-2xl text-yellow-400" />
         </div>
         <div className="flex flex-col">
-          <p className="text-lg font-semibold text-white">Upgrade to Pro</p>
-          <p className="text-sm text-gray-400">Remove commission fees and unlock unlimited proposals</p>
+          <p className="text-lg font-semibold text-white">
+            {t('proSubscription.header.title')}
+          </p>
+          <p className="text-sm text-gray-400">
+            {t('proSubscription.header.subtitle')}
+          </p>
         </div>
       </CardHeader>
       <CardBody>
@@ -212,7 +240,7 @@ const handleSubscribe = async () => {
           onValueChange={setSelectedPlan}
           className="w-full"
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {SUBSCRIPTION_PLANS.map((plan) => (
               <Card
                 key={plan.id}
@@ -230,7 +258,7 @@ const handleSubscribe = async () => {
                     size="sm"
                     className="absolute -top-2 right-4 z-10"
                   >
-                    Save 20%
+                    {t('proSubscription.badges.save20')}
                   </Chip>
                 )}
                 {isFreePlan && plan.id === 'free' && (
@@ -239,7 +267,7 @@ const handleSubscribe = async () => {
                     size="sm"
                     className="absolute -top-2 left-4 z-10"
                   >
-                    Current Plan
+                    {t('proSubscription.badges.currentPlan')}
                   </Chip>
                 )}
                 <CardBody className="p-4 md:p-6 h-auto">
@@ -253,7 +281,9 @@ const handleSubscribe = async () => {
                     <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
                     <div className="mt-2">
                       {plan.price === 0 ? (
-                        <span className="text-3xl font-bold text-white">Free</span>
+                        <span className="text-3xl font-bold text-white">
+                          {t('proSubscription.pricing.free')}
+                        </span>
                       ) : (
                         <>
                           <span className="text-3xl font-bold text-white">€{plan.price}</span>
@@ -263,7 +293,7 @@ const handleSubscribe = async () => {
                     </div>
                     {plan.savings > 0 && (
                       <p className="text-sm text-green-400 mt-1">
-                        Save {plan.savings}% vs monthly
+                        {t('proSubscription.pricing.saveVsMonthly', { savings: plan.savings })}
                       </p>
                     )}
                   </div>
@@ -273,12 +303,12 @@ const handleSubscribe = async () => {
                         <Icon 
                           icon="lucide:check" 
                           className={`mt-0.5 flex-shrink-0 min-w-[16px] ${
-                            feature.includes('15% commission') ? 'text-red-400' : 'text-green-400'
+                            feature.includes('15%') ? 'text-red-400' : 'text-green-400'
                           }`}
                         />
                         <span className={
-                          feature.includes('15% commission') ? 'text-gray-400' : 
-                          feature.includes('0% commission') ? 'text-green-400 font-medium' : 
+                          feature.includes('15%') ? 'text-gray-400' : 
+                          feature.includes('0%') ? 'text-green-400 font-medium' : 
                           'text-gray-300'
                         }>
                           {feature}
@@ -303,23 +333,25 @@ const handleSubscribe = async () => {
             startContent={!loading && <Icon icon="lucide:credit-card" />}
           >
             {selectedPlan === 'free' 
-              ? 'Already on Free Plan' 
-              : `Subscribe to ${SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan)?.name} Plan`}
+              ? t('proSubscription.buttons.alreadyFree')
+              : t('proSubscription.buttons.subscribe', { 
+                  plan: SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan)?.name 
+                })}
           </Button>
           
           <div className="bg-blue-500/10 rounded-lg p-4">
             <div className="flex gap-3">
               <Icon icon="lucide:info" className="text-blue-400 mt-0.5" />
               <div className="text-sm text-gray-300">
-                <p className="font-medium mb-1">Commission Information</p>
-                <p>Free plan: 15% commission on all earnings</p>
-                <p>Pro plans: 5% commission only - save 10%!</p>
+                <p className="font-medium mb-1">{t('proSubscription.info.commissionTitle')}</p>
+                <p>{t('proSubscription.info.freePlan')}</p>
+                <p>{t('proSubscription.info.proPlan')}</p>
               </div>
             </div>
           </div>
           
           <p className="text-center text-sm text-gray-500">
-            Cancel anytime • Secure payment by Stripe • Instant activation
+            {t('proSubscription.footer')}
           </p>
         </div>
       </CardBody>

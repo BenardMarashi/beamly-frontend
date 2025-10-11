@@ -3538,13 +3538,30 @@
   "benefit4": "Unlock all features"
 },
 "upgradeProBanner": {
-  "title": "Unlock Your Messages",
-  "description": "Subscribe to Pro to view and respond to all your messages",
-  "benefit1": "Unlimited message access",
-  "benefit2": "Priority listing in search results",
-  "priceNote": "Cancel anytime",
+  "title": "Unlock Messaging",
+  "description": "Choose a plan to start messaging",
+  
+  "messagesTitle": "Messages Only",
+  "messagesPrice": "€3/month",
+  "messagesBenefit1": "Unlimited messages",
+  "messagesBenefit2": "Real-time chat",
+  "messagesBenefit3": "File sharing",
+  "getMessages": "Get Messages",
+  
+  "proTitle": "Pro",
+  "proPrice": "€10/month",
+  "proBenefit1": "Everything in Messages",
+  "proBenefit2": "Unlimited proposals",
+  "proBenefit3": "5% commission only",
+  "getPro": "Get Pro",
+  
+  "currentPlan": "Current Plan",
+  "laterButton": "Maybe Later",
+  
+  "benefit1": "Unlimited messaging with clients",
+  "benefit2": "Unlimited job proposals",
   "upgradeButton": "Upgrade to Pro",
-  "laterButton": "Maybe Later"
+  "priceNote": "Starting at €9.99/month"
 },
 "howItWorks": {
   "title": "How It Works",
@@ -3623,7 +3640,87 @@
   "updateEmailMessage": "Please sign out and contact support to update your email address.",
   "didntReceive": "Didn't receive the email? Check your spam folder or click \"Send Verification Email\" again.",
   "cannotContinue": "You cannot continue without verifying your email",
-  "checkEmail": "Check {{email}} for verification link",
-  "auth.signOut":"Sign Out"
+  "checkEmail": "Check {{email}} for verification link"
+},
+  "auth": {
+    "signOut": "Sign Out",
+    "signIn": "Sign In", 
+    "signUp": "Sign Up"
+  },
+"proSubscription": {
+  "header": {
+    "title": "Upgrade to Pro",
+    "subtitle": "Remove commission fees and unlock unlimited proposals"
+  },
+  "active": {
+    "title": "Pro Subscription Active",
+    "plan": "plan",
+    "renews": "Renews",
+    "benefits": "Your Pro Benefits",
+    "cancelButton": "Cancel Subscription"
+  },
+  "plans": {
+    "free": {
+      "name": "Free Forever",
+      "feature1": "5 proposals per month",
+      "feature2": "Partial analytics",
+      "feature3": "Basic profile visibility",
+      "feature4": "15% commission on earnings"
+    },
+    "messages": {
+      "name": "Messages Only",
+      "feature1": "Unlimited messaging",
+      "feature2": "Real-time chat",
+      "feature3": "File sharing",
+      "feature4": "Chat notifications"
+    },
+    "monthly": {
+      "name": "Monthly",
+      "feature1": "Unlimited proposals per month",
+      "feature2": "Priority listing in search results",
+      "feature3": "Full analytics dashboard",
+      "feature4": "5% commission only - save 10%!",
+      "feature5": "PRO badge on profile",
+      "feature6": "Priority support"
+    },
+    "sixmonths": {
+      "name": "6 Months",
+      "feature1": "Everything in Monthly plan",
+      "feature2": "Save 20% compared to monthly",
+      "feature3": "Extended profile promotion",
+      "feature4": "5% commission only - save 10%!",
+      "feature5": "Premium support"
+    }
+  },
+  "intervals": {
+    "month": "month",
+    "sixmonths": "6 months"
+  },
+  "badges": {
+    "save20": "Save 20%",
+    "currentPlan": "Current Plan"
+  },
+  "pricing": {
+    "free": "Free",
+    "saveVsMonthly": "Save {{savings}}% vs monthly"
+  },
+  "buttons": {
+    "alreadyFree": "Already on Free Plan",
+    "subscribe": "Subscribe to {{plan}} Plan"
+  },
+  "info": {
+    "commissionTitle": "Commission Information",
+    "freePlan": "Free plan: 15% commission on all earnings",
+    "proPlan": "Pro plans: 5% commission only - save 10%!"
+  },
+  "footer": "Cancel anytime • Secure payment by Stripe • Instant activation",
+  "messages": {
+    "alreadyFree": "You are already on the free plan",
+    "invalidPlan": "Invalid plan selected",
+    "checkoutFailed": "Failed to create checkout session",
+    "cancelConfirm": "Are you sure you want to cancel your subscription? You will return to the free plan with 15% commission.",
+    "cancelSuccess": "Subscription cancelled successfully",
+    "cancelFailed": "Failed to cancel subscription"
+  }
 }
 }

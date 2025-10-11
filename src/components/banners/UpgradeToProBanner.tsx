@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@nextui-org/react';
+import { Button, Card, CardBody } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useMessageAccess } from '../../hooks/use-message-access';
 
 interface UpgradeToProBannerProps {
   isOpen: boolean;
@@ -16,10 +17,11 @@ export const UpgradeToProBanner: React.FC<UpgradeToProBannerProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isMessagesUser, isProUser } = useMessageAccess();
 
-  const handleUpgrade = () => {
+  const handleUpgrade = (plan: 'messages' | 'pro') => {
     onClose();
-    navigate('/billing?tab=subscription');
+    navigate(`/billing?plan=${plan}`);
   };
 
   if (!isOpen) return null;
@@ -48,15 +50,15 @@ export const UpgradeToProBanner: React.FC<UpgradeToProBannerProps> = ({
                 stiffness: 300, 
                 damping: 25 
               }}
-              className="w-full max-w-md"
+              className="w-full max-w-2xl max-h-[90vh] overflow-hidden"
             >
               <div className="bg-gradient-to-br from-[#FCE90D]/20 via-[#0F43EE]/20 to-blue-600/20 backdrop-blur-xl rounded-2xl border border-[#FCE90D]/30 shadow-2xl overflow-hidden">
                 {/* Top accent bar */}
                 <div className="h-1.5 bg-gradient-to-r from-[#FCE90D] to-[#0F43EE]" />
                 
                 <div className="p-5 md:p-6">
-                  {/* Icon and Title */}
-                  <div className="text-center mb-4">
+                  {/* Header */}
+                  <div className="text-center mb-5">
                     <div className="inline-flex p-3 rounded-full bg-[#FCE90D]/20 mb-3">
                       <Icon 
                         icon="lucide:lock" 
@@ -71,41 +73,120 @@ export const UpgradeToProBanner: React.FC<UpgradeToProBannerProps> = ({
                     </p>
                   </div>
 
-                  {/* Simple Benefits */}
-                  <div className="bg-white/5 rounded-lg p-4 mb-5 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Icon icon="lucide:check" className="text-[#FCE90D]" />
-                      <span className="text-gray-300 text-sm">
-                        {t('upgradeProBanner.benefit1')}
-                      </span>
+                  {/* Horizontal Scrolling Plans */}
+                  <div className="relative mb-5">
+                    <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory upgrade-banner-scroll-container">
+                      {/* Messages Plan */}
+                      <div className="flex-shrink-0 w-[280px] md:w-[calc(50%-0.5rem)] snap-center">
+                        <Card className="bg-white/5 border border-[#0F43EE]/30 h-full">
+                          <CardBody className="p-4">
+                            <div className="text-center mb-3">
+                              <Icon 
+                                icon="lucide:message-circle" 
+                                className="text-2xl text-[#0F43EE] mb-2 mx-auto" 
+                              />
+                              <h4 className="text-white font-bold text-lg mb-1">
+                                {t('upgradeProBanner.messagesTitle')}
+                              </h4>
+                              <div className="text-[#FCE90D] font-bold text-2xl mb-3">
+                                {t('upgradeProBanner.messagesPrice')}
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2 mb-4">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Icon icon="lucide:check" className="text-green-400 flex-shrink-0" />
+                                <span className="text-gray-300">
+                                  {t('upgradeProBanner.messagesBenefit1')}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Icon icon="lucide:check" className="text-green-400 flex-shrink-0" />
+                                <span className="text-gray-300">
+                                  {t('upgradeProBanner.messagesBenefit2')}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Icon icon="lucide:check" className="text-green-400 flex-shrink-0" />
+                                <span className="text-gray-300">
+                                  {t('upgradeProBanner.messagesBenefit3')}
+                                </span>
+                              </div>
+                            </div>
+
+                            <Button
+                              size="md"
+                              className="w-full bg-[#0F43EE] text-white font-semibold"
+                              onPress={() => handleUpgrade('messages')}
+                              isDisabled={isMessagesUser || isProUser}
+                            >
+                              {isMessagesUser ? t('upgradeProBanner.currentPlan') : t('upgradeProBanner.getMessages')}
+                            </Button>
+                          </CardBody>
+                        </Card>
+                      </div>
+
+                      {/* Pro Plan */}
+                      <div className="flex-shrink-0 w-[280px] md:w-[calc(50%-0.5rem)] snap-center">
+                        <Card className="bg-white/5 border border-[#FCE90D]/50 h-full">
+                          <CardBody className="p-4">
+                            <div className="text-center mb-3">
+                              <Icon 
+                                icon="lucide:crown" 
+                                className="text-2xl text-[#FCE90D] mb-2 mx-auto" 
+                              />
+                              <h4 className="text-white font-bold text-lg mb-1">
+                                {t('upgradeProBanner.proTitle')}
+                              </h4>
+                              <div className="text-[#FCE90D] font-bold text-2xl mb-3">
+                                {t('upgradeProBanner.proPrice')}
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2 mb-4">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Icon icon="lucide:check" className="text-green-400 flex-shrink-0" />
+                                <span className="text-gray-300">
+                                  {t('upgradeProBanner.proBenefit1')}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Icon icon="lucide:check" className="text-green-400 flex-shrink-0" />
+                                <span className="text-gray-300">
+                                  {t('upgradeProBanner.proBenefit2')}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Icon icon="lucide:check" className="text-green-400 flex-shrink-0" />
+                                <span className="text-gray-300">
+                                  {t('upgradeProBanner.proBenefit3')}
+                                </span>
+                              </div>
+                            </div>
+
+                            <Button
+                              size="md"
+                              className="w-full bg-[#FCE90D] text-black font-bold"
+                              onPress={() => handleUpgrade('pro')}
+                              isDisabled={isProUser}
+                            >
+                              {isProUser ? t('upgradeProBanner.currentPlan') : t('upgradeProBanner.getPro')}
+                            </Button>
+                          </CardBody>
+                        </Card>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Icon icon="lucide:check" className="text-[#FCE90D]" />
-                      <span className="text-gray-300 text-sm">
-                        {t('upgradeProBanner.benefit2')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-400 text-xs">
-                      <Icon icon="lucide:info-circle" className="ml-0.5" />
-                      <span>{t('upgradeProBanner.priceNote')}</span>
-                    </div>
+                    
+                    {/* Scroll indicator dots (mobile only) */}
                   </div>
                   
-                  {/* Actions */}
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  {/* Close Button */}
+                  <div className="text-center">
                     <Button
-                      size="md"
-                      className="flex-1 bg-[#FCE90D] text-black font-bold hover:bg-[#FCE90D]/90"
-                      onPress={handleUpgrade}
-                      startContent={<Icon icon="lucide:crown" />}
-                    >
-                      {t('upgradeProBanner.upgradeButton')}
-                    </Button>
-                    <Button
-                      size="md"
+                      size="sm"
                       variant="light"
                       onPress={onClose}
-                      className="flex-1 text-gray-400 hover:text-white"
+                      className="text-gray-400 hover:text-white"
                     >
                       {t('upgradeProBanner.laterButton')}
                     </Button>

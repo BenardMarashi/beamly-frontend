@@ -5,6 +5,8 @@ export interface Language {
   proficiency: 'basic' | 'conversational' | 'fluent' | 'native';
 }
 
+export type SubscriptionTier = 'free' | 'messages' | 'pro';
+
 export interface UserData {
   uid: string;
   email: string;
@@ -13,6 +15,7 @@ export interface UserData {
   userType: 'freelancer' | 'client' | 'both';
   profileCompleted?: boolean;
   category?: string;
+  
   // Basic Info
   bio?: string;
   
@@ -20,11 +23,11 @@ export interface UserData {
   skills?: string[];
   hourlyRate?: number;
   experienceLevel?: 'entry' | 'intermediate' | 'expert';
-  experience?: string; // Experience description/summary
+  experience?: string;
   languages?: string[];
   isAvailable?: boolean;
   
-  // Stats (usually calculated/updated by system)
+  // Stats
   rating?: number;
   reviewCount?: number;
   completedProjects?: number;
@@ -34,7 +37,7 @@ export interface UserData {
   industry?: string;
   activeJobs?: number;
   
-  // Stripe Connect fields (for freelancers)
+  // Stripe Connect fields
   stripeConnectAccountId?: string;
   stripeConnectStatus?: 'pending' | 'active' | 'restricted';
   stripeConnectChargesEnabled?: boolean;
@@ -46,18 +49,21 @@ export interface UserData {
   availableBalance?: number;
   pendingBalance?: number;
   
-  // Stripe Customer fields (for subscriptions)
+  // Stripe Customer fields
   stripeCustomerId?: string;
   
-  // Subscription fields
-  isPro?: boolean;
+  // NEW: Unified subscription fields
+  subscriptionTier?: SubscriptionTier; // 'free', 'messages', or 'pro'
   subscriptionStatus?: 'active' | 'cancelled' | 'expired';
-  subscriptionPlan?: string;
+  subscriptionPlan?: string; // 'monthly', 'sixmonths', 'yearly', 'messages'
   stripeSubscriptionId?: string;
   subscriptionStartDate?: Date;
   subscriptionEndDate?: Date;
-  monthlyProposals?: number; // Current month's proposal count
-  lastProposalReset?: Date; // Last time the counter was reset
+  
+  // Legacy fields (keep for backward compatibility)
+  isPro?: boolean;
+  monthlyProposals?: number;
+  lastProposalReset?: Date;
   
   // System fields
   createdAt?: Date;
@@ -65,7 +71,7 @@ export interface UserData {
   lastActive?: Date;
   isVerified?: boolean;
   isBlocked?: boolean;
-  joinedAt?: Date; // Alternative to createdAt for display
+  joinedAt?: Date;
   
   // Notification settings
   notifications?: {
@@ -75,6 +81,6 @@ export interface UserData {
   };
   
   // Additional profile metadata
-  savedProfiles?: string[]; // IDs of saved freelancer profiles
-  viewCount?: number; // Profile view count
+  savedProfiles?: string[];
+  viewCount?: number;
 }
