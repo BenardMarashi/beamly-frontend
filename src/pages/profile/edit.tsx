@@ -227,7 +227,7 @@ export const EditProfilePage: React.FC = () => {
       toast.error(t('editProfile.errors.bioRequired'));
       return false;
     }
-    if (!profileData.category) {
+    if ((userData?.userType === 'freelancer' || userData?.userType === 'both') && !profileData.category) {
       toast.error(t('editProfile.errors.categoryRequired'));
       return false;
     }

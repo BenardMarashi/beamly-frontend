@@ -137,6 +137,11 @@ export const ProfileCompletionBanner: React.FC = () => {
     return null;
   }
 
+  // Only show for freelancers - don't show for clients
+  if (userData.userType === 'client') {
+    return null;
+  }
+
   // Desktop Modal Version (Blocking)
   // Mobile Modal Version (Blocking) - Same as Desktop
 if (isMobile && forceModal && isVisible) {

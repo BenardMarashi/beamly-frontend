@@ -5,6 +5,7 @@ export const useMessageAccess = () => {
   
   // Check if user has message access (messages OR pro tier)
   const hasMessageAccess = 
+    userData?.userType === 'client' ||  
     userData?.subscriptionTier === 'messages' || 
     userData?.subscriptionTier === 'pro' ||
     userData?.isPro === true;
