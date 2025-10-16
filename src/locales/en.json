@@ -3719,7 +3719,10 @@
     "invalidPlan": "Invalid plan selected",
     "checkoutFailed": "Failed to create checkout session",
     "cancelConfirm": "Are you sure you want to cancel your subscription? You will return to the free plan with 15% commission.",
-    "cancelSuccess": "Subscription cancelled successfully",
+    "cancelConfirmDetailed": "Are you sure you want to cancel your subscription? Your access will continue until {{date}}, then you'll return to the free plan.",
+    "cancelWarning": "After cancellation, you'll return to 15% commission on all earnings and lose access to premium features.",
+    "cancelNote": "You will keep access until {{date}}. No refunds for remaining time.",
+    "cancelSuccess": "Subscription cancelled successfully. Access continues until your billing period ends.",
     "cancelFailed": "Failed to cancel subscription"
   }
 }

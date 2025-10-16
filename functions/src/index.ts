@@ -1049,68 +1049,127 @@ export const stripeWebhook = onRequest(
 async function handleSubscriptionCreated(session: any) {
   const { db, FieldValue, Timestamp } = getAdmin();
   const userId = session.metadata?.userId;
-  if (!userId || !session.subscription) return;
 
-  const stripe = await getStripe();
-  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-
-  const priceId = subscription.items.data[0].price.id;
-
-  // Determine subscription tier
-  let subscriptionTier: "messages" | "pro" = "pro";
-  let planType = "monthly";
-
-  if (priceId === process.env.STRIPE_MESSAGES_PRICE_ID) {
-    subscriptionTier = "messages";
-    planType = "messages";
-  } else {
-    subscriptionTier = "pro";
-    if (priceId === process.env.STRIPE_QUARTERLY_PRICE_ID) planType = "quarterly";
-    if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) planType = "yearly";
-    if (priceId === process.env.STRIPE_6MONTHS_PRICE_ID) planType = "sixmonths";
+  if (!userId || !session.subscription) {
+    console.error("Missing userId or subscription in session:", { userId, hasSubscription: !!session.subscription });
+    return;
   }
 
-  await db.doc(`users/${userId}`).update({
-    subscriptionTier,
-    subscriptionStatus: "active",
-    subscriptionPlan: planType,
-    stripeSubscriptionId: subscription.id,
-    subscriptionStartDate: Timestamp.fromDate(new Date((subscription as any).current_period_start * 1000)),
-    subscriptionEndDate: Timestamp.fromDate(new Date((subscription as any).current_period_end * 1000)),
-    isPro: subscriptionTier === "pro",
-  });
+  try {
+    const stripe = await getStripe();
+    const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
 
-  await db.collection("transactions").add({
-    type: "subscription",
-    userId,
-    amount: (session.amount_total || 0) / 100,
-    currency: session.currency || "eur",
-    status: "completed",
-    stripeSessionId: session.id,
-    description: `${subscriptionTier === "messages" ? "Messages-Only" : planType} subscription`,
-    createdAt: FieldValue.serverTimestamp(),
-    completedAt: FieldValue.serverTimestamp(),
-  });
+    const priceId = subscription.items.data[0].price.id;
+
+    // Determine subscription tier
+    let subscriptionTier: "messages" | "pro" = "pro";
+    let planType = "monthly";
+
+    if (priceId === process.env.STRIPE_MESSAGES_PRICE_ID) {
+      subscriptionTier = "messages";
+      planType = "messages";
+    } else {
+      subscriptionTier = "pro";
+      if (priceId === process.env.STRIPE_QUARTERLY_PRICE_ID) planType = "quarterly";
+      if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) planType = "yearly";
+      if (priceId === process.env.STRIPE_6MONTHS_PRICE_ID) planType = "sixmonths";
+    }
+
+    // Ensure timestamps are valid numbers
+    const startTimestamp = Number(subscription.current_period_start);
+    const endTimestamp = Number(subscription.current_period_end);
+
+    // Convert to Firestore Timestamps (Stripe gives seconds, Firestore needs seconds too)
+    await db.doc(`users/${userId}`).update({
+      subscriptionTier,
+      subscriptionStatus: "active",
+      subscriptionPlan: planType,
+      stripeSubscriptionId: subscription.id,
+      subscriptionStartDate: Timestamp.fromMillis(startTimestamp * 1000),
+      subscriptionEndDate: Timestamp.fromMillis(endTimestamp * 1000),
+      isPro: subscriptionTier === "pro",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`✅ Subscription created for user ${userId}: ${subscriptionTier} (${planType}) until ${new Date(endTimestamp * 1000).toISOString()}`);
+
+    await db.collection("transactions").add({
+      type: "subscription",
+      userId,
+      amount: (session.amount_total || 0) / 100,
+      currency: session.currency || "eur",
+      status: "completed",
+      stripeSessionId: session.id,
+      stripeSubscriptionId: subscription.id,
+      description: `${subscriptionTier === "messages" ? "Messages-Only" : planType} subscription`,
+      createdAt: FieldValue.serverTimestamp(),
+      completedAt: FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error in handleSubscriptionCreated:", error);
+    throw error;
+  }
 }
 
 async function handleSubscriptionPayment(invoice: any) {
-  const { db, FieldValue } = getAdmin();
-  // Log the payment for records
-  await db.collection("transactions").add({
-    type: "subscription",
-    userId: invoice.metadata?.userId,
-    amount: invoice.amount_paid / 100,
-    currency: invoice.currency,
-    status: "completed",
-    stripeInvoiceId: invoice.id,
-    description: "Subscription renewal",
-    createdAt: FieldValue.serverTimestamp(),
-    completedAt: FieldValue.serverTimestamp(),
-  });
+  const { db, FieldValue, Timestamp } = getAdmin();
+
+  // Get subscription ID from invoice
+  const subscriptionId = invoice.subscription;
+  if (!subscriptionId) {
+    console.error("No subscription ID in invoice");
+    return;
+  }
+
+  // Get subscription details from Stripe to update period dates
+  const stripe = await getStripe();
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+  // Find user by customer ID
+  const customerId = invoice.customer;
+  const usersQuery = await db.collection("users")
+    .where("stripeCustomerId", "==", customerId)
+    .limit(1)
+    .get();
+
+  if (!usersQuery.empty) {
+    const userDoc = usersQuery.docs[0];
+    const userId = userDoc.id;
+
+    // ✅ UPDATE SUBSCRIPTION DATES FOR RENEWAL
+    const startTimestamp = Number(subscription.current_period_start);
+    const endTimestamp = Number(subscription.current_period_end);
+
+    // ✅ UPDATE SUBSCRIPTION DATES FOR RENEWAL
+    await userDoc.ref.update({
+      subscriptionStartDate: Timestamp.fromMillis(startTimestamp * 1000),
+      subscriptionEndDate: Timestamp.fromMillis(endTimestamp * 1000),
+      subscriptionStatus: "active",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`✅ Subscription renewed for user ${userId} until ${new Date(endTimestamp * 1000).toISOString()}`);
+
+    // Log the payment transaction
+    await db.collection("transactions").add({
+      type: "subscription",
+      userId: userId,
+      amount: invoice.amount_paid / 100,
+      currency: invoice.currency,
+      status: "completed",
+      stripeInvoiceId: invoice.id,
+      stripeSubscriptionId: subscriptionId,
+      description: "Subscription renewal",
+      createdAt: FieldValue.serverTimestamp(),
+      completedAt: FieldValue.serverTimestamp(),
+    });
+  } else {
+    console.error(`User not found for customer ${customerId}`);
+  }
 }
 
 async function handleSubscriptionCancelled(subscription: any) {
-  const { db } = getAdmin();
+  const { db, FieldValue } = getAdmin();
   const customerId = subscription.customer as string;
 
   const usersQuery = await db.collection("users")
@@ -1120,11 +1179,19 @@ async function handleSubscriptionCancelled(subscription: any) {
 
   if (!usersQuery.empty) {
     const userDoc = usersQuery.docs[0];
+    const userId = userDoc.id;
+
     await userDoc.ref.update({
       subscriptionTier: "free",
       subscriptionStatus: "cancelled",
       isPro: false,
+      // Keep subscriptionEndDate so user still has access until period ends
+      updatedAt: FieldValue.serverTimestamp(),
     });
+
+    console.log(`✅ Subscription cancelled for user ${userId}, access until ${new Date(subscription.current_period_end * 1000).toISOString()}`);
+  } else {
+    console.error(`User not found for customer ${customerId} during cancellation`);
   }
 }
 

@@ -173,6 +173,14 @@ export const ProSubscription: React.FC = () => {
       ? t('proSubscription.plans.messages.name')
       : t('proSubscription.plans.monthly.name');
 
+    const endDateFormatted = currentSubscription.endDate 
+      ? currentSubscription.endDate.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })
+      : '';
+
     return (
       <Card className="w-full max-w-2xl mx-auto glass-effect">
         <CardHeader className="flex gap-3">
@@ -184,7 +192,7 @@ export const ProSubscription: React.FC = () => {
               {t('proSubscription.active.title')}
             </p>
             <p className="text-sm text-gray-400">
-              {planName} {t('proSubscription.active.plan')} • {t('proSubscription.active.renews')} {currentSubscription.endDate?.toLocaleDateString()}
+              {planName} {t('proSubscription.active.plan')} • {t('proSubscription.active.renews')} {endDateFormatted}
             </p>
           </div>
         </CardHeader>
@@ -197,7 +205,7 @@ export const ProSubscription: React.FC = () => {
               <ul className="space-y-2 text-sm">
                 {SUBSCRIPTION_PLANS.find(p => p.id === currentSubscription.plan)?.features.map((feature, index) => (
                   <li key={index} className="flex gap-2 text-gray-300">
-                    <Icon icon="lucide:check-circle" className="mt-0.5 text-green-400" />
+                    <Icon icon="lucide:check-circle" className="mt-0.5 text-green-400 shrink-0" />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -208,11 +216,23 @@ export const ProSubscription: React.FC = () => {
               color="danger"
               variant="flat"
               className="w-full"
-              onPress={handleCancelSubscription}
+              onPress={() => {
+                // Show custom confirmation modal instead of browser confirm
+                if (window.confirm(
+                  `${t('proSubscription.messages.cancelConfirmDetailed', { date: endDateFormatted })}\n\n` +
+                  `${t('proSubscription.messages.cancelWarning')}`
+                )) {
+                  handleCancelSubscription();
+                }
+              }}
               isLoading={loading}
             >
               {t('proSubscription.active.cancelButton')}
             </Button>
+
+            <p className="text-xs text-center text-gray-500">
+              {t('proSubscription.messages.cancelNote', { date: endDateFormatted })}
+            </p>
           </div>
         </CardBody>
       </Card>

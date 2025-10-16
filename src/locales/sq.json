@@ -3589,7 +3589,10 @@
     "invalidPlan": "Plan i pavlefshëm i zgjedhur",
     "checkoutFailed": "Dështoi krijimi i sesionit të pagesës",
     "cancelConfirm": "Jeni të sigurt që doni të anuloni abonimin tuaj? Do të ktheheni në planin falas me 15% komision.",
-    "cancelSuccess": "Abonimi u anulua me sukses",
+    "cancelConfirmDetailed": "Jeni të sigurt që doni të anuloni abonimin tuaj? Qasja juaj do të vazhdojë deri më {{date}}, pastaj do të ktheheni në planin falas.",
+    "cancelWarning": "Pas anulimit, do të ktheheni në 15% komision mbi të gjitha fitimet dhe do të humbisni qasjen në veçoritë premium.",
+    "cancelNote": "Do të mbani qasjen deri më {{date}}. Nuk ka rimbursim për kohën e mbetur.",
+    "cancelSuccess": "Abonimi u anulua me sukses. Qasja vazhdon deri në fund të periudhës tuaj të faturimit.",
     "cancelFailed": "Dështoi anulimi i abonimit"
   }
 }

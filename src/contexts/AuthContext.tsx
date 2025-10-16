@@ -121,6 +121,7 @@ useEffect(() => {
             stripeCustomerId: data.stripeCustomerId,
             
             // Subscription fields
+            subscriptionTier: data.subscriptionTier || 'free',
             isPro: data.isPro || false,
             subscriptionStatus: data.subscriptionStatus,
             subscriptionPlan: data.subscriptionPlan,

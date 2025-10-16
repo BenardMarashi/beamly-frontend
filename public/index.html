@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- Favicons -->
-     <link rel="icon" href="/favicon.ico">
+    <link rel="icon" href="/favicon.ico">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -37,6 +37,47 @@
     
     <!-- Manifest -->
     <link rel="manifest" href="/site.webmanifest">
+    
+    <!-- Preconnect to external origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Schema.org structured data for logo - CRITICAL FOR GOOGLE SEARCH -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Beamly",
+      "url": "https://beamlyapp.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://beamlyapp.com/android-chrome-512x512.png",
+        "width": 512,
+        "height": 512
+      },
+      "description": "Find and hire skilled freelancers or offer your services on Beamly. Connect, collaborate, and grow your business with top talent worldwide.",
+      "sameAs": [
+        "https://twitter.com/beamlyapp",
+        "https://facebook.com/beamlyapp",
+        "https://linkedin.com/company/beamlyapp"
+      ]
+    }
+    </script>
+    
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #000;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
