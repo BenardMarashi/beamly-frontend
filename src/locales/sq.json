@@ -382,7 +382,7 @@
     "noIssues": "Nuk ka probleme",
     "noProblems": "Nuk ka probleme",
     "noTasks": "Nuk ka detyra",
-    "noJobs": "Nuk ka punë",
+    "noJobs": "Nuk ka projekte",
     "noProjects": "Nuk ka projekte",
     "noAssignments": "Nuk ka caktime",
     "noDeadlines": "Nuk ka afate",
@@ -461,34 +461,34 @@
   },
   "navigation": {
     "home": "Kryefaqja",
-    "freelancers": "Punëtorë të pavarur",
-    "lookingForWork": "Kërkoj punë",
+    "freelancers": "Freelancerë",
+    "lookingForWork": "Kërkoj projekte",
     "explore": "Eksploro",
     "dashboard": "Paneli",
     "messages": "Mesazhe",
     "notifications": "Njoftime",
     "settings": "Cilësimet",
     "howItWorks": "Si funksionon",
-    "billing": "Faturimi",
+    "billing": "Tarifimi",
     "profile": "Profili",
     "openMenu": "Hap menunë",
     "closeMenu": "Mbyll menunë",
     "mobileMenu": "Menyja e navigimit mobil",
     "accountSettings": "Cilësimet e llogarisë",
     "preferences": "Preferencat",
-    "freelancerRole": "Punëtor i pavarur",
+    "freelancerRole": "Freelancer",
     "clientRole": "Klient",
-    "findWork": "Gjej punë",
-    "myJobs": "Punët e mia",
-    "postJob": "Posto punë",
+    "findWork": "Gjej projekte",
+    "myJobs": "Projektet e mia",
+    "postJob": "Posto projekt",
     "proposals": "Propozime",
     "contracts": "Kontratat",
     "reports": "Raporte",
     "earnings": "Fitimet",
     "portfolio": "Portofoli",
     "browseProjects": "Shfleto projekte",
-    "savedJobs": "Punë të ruajtura",
-    "appliedJobs": "Punë të aplikuara",
+    "savedJobs": "Projekte të ruajtura",
+    "appliedJobs": "Projekte të aplikuara",
     "invitations": "Ftesa",
     "analytics": "Analitika",
     "paymentMethods": "Metodat e pagesës",
@@ -509,14 +509,14 @@
   "nav": {
     "home": "Kryefaqja",
     "browseFreelancers": "Shfleto Freelancerët",
-    "lookingForWork": "Kërkoj Punë",
+    "lookingForWork": "Kërkoj Projekte",
     "dashboard": "Paneli",
     "messages": "Mesazhe",
     "postProject": "Posto Projekt",
     "portfolio": "Portfoli",
-    "billing": "Faturimi",
-    "postJob": "Posto Punë",
-    "myJobs": "Punët e Mia",
+    "billing": "Tarifimi",
+    "postJob": "Posto projekt",
+    "myJobs": "Projektet e mia",
     "analytics": "Analitika",
     "notifications": "Njoftime",
     "settings": "Cilësimet",
@@ -531,28 +531,28 @@
     "unknownClient": "Klient i panjohur",
     "unknownUser": "Përdorues i panjohur",
     "untitledProject": "Projekt pa titull",
-    "untitledJob": "Punë pa titull",
+    "untitledJob": "Projekt pa titull",
     "anonymous": "Anonim",
     "noDeadline": "Pa afat",
     "dueInDays": "Mbaron në {{days}} ditë",
     "overdue": "Vonuar",
-    "jobCategories": "Kategoritë e Punëve",
+    "jobCategories": "Kategoritë e Projekteve",
     "seeAll": "Shiko të Gjitha",
     "explore": "Eksploro",
     "topFreelancers": "Freelancerët Kryesorë",
-    "featuredJobs": "Punët e Rekomanduara",
+    "featuredJobs": "Projektet e Rekomanduara",
     "freelancer": "Freelancer",
     "projects": "Projekte",
     "projectsCount": "{{count}} projekt",
     "projectsCount_plural": "{{count}} projekte",
     "noFreelancersAvailable": "Nuk ka freelancerë të disponueshëm për momentin",
-    "noJobsAvailable": "Nuk ka punë të disponueshme për momentin",
-    "postJob": "Posto një Punë",
+    "noJobsAvailable": "Nuk ka projekte të disponueshme për momentin",
+    "postJob": "Posto një projekt",
     "view": "Shiko",
     "recentActivity": "Aktiviteti i fundit",
     "yourActiveProjects": "Projektet tuaja aktive",
     "noActiveProjects": "Nuk ka projekte aktive për momentin",
-    "postNewJob": "Posto një punë të re",
+    "postNewJob": "Posto një projekt të re",
     "findNewProjects": "Gjej projekte të reja",
     "categories": {
       "design": "Dizajn",
@@ -567,7 +567,7 @@
       "translation": "Përkthim"
     },
     "errors": {
-      "loadJobs": "Dështoi ngarkimi i punëve. Ju lutemi provoni përsëri.",
+      "loadJobs": "Dështoi ngarkimi i projekteve. Ju lutemi provoni përsëri.",
       "loadFreelancers": "Dështoi ngarkimi i freelancerëve. Ju lutemi provoni përsëri.",
       "loadProjects": "Dështoi ngarkimi i projekteve. Ju lutemi provoni përsëri.",
       "loadNotifications": "Dështoi ngarkimi i njoftimeve. Ju lutemi provoni përsëri.",
@@ -663,7 +663,7 @@
       "advertising": "Reklamat"
     },
     "billing": {
-      "title": "Faturimi",
+      "title": "Tarifimi",
       "paymentMethods": "Metodat e pagesës",
       "addPaymentMethod": "Shto metodë pagese",
       "defaultPaymentMethod": "Metoda e parazgjedhur e pagesës",
@@ -702,7 +702,7 @@
       "tipsAndTricks": "Këshilla dhe truqe",
       "communityDigest": "Përmbledhje komuniteti",
       "jobRecommendations": "Rekomandime pune",
-      "freelancerRecommendations": "Rekomandime punëtorësh të pavarur",
+      "freelancerRecommendations": "Rekomandime freelancerësh",
       "priceAlerts": "Alarme çmimesh",
       "savedSearchAlerts": "Alarme kërkimesh të ruajtura"
     },
@@ -730,7 +730,7 @@
     "title": "Gjej shërbimet",
     "freelance": "freelance",
     "titleEnd": "të përshtatshme për biznesin tënd",
-    "subtitle": "Lidhu me freelancerë të talentuar dhe përfundoji projektet shpejt dhe me efikasitet në Beamly.",
+    "subtitle": "Regjistrohu në Beamly sot dhe lidhuni me freelancersat më të mirë nga e gjithë Shqipëria dhe Kosova",
     "searchPlaceholder": "Kërko shërbime...",
     "searchButton": "Kërko",
     "popular": "Të njohura",
@@ -843,14 +843,14 @@
   },
   "features": {
     "why": "Pse të zgjidhni",
-    "subtitle": "Ne po revolucionarizojmë tregun e punës së pavarur me këto veçori unike",
+    "subtitle": "Ne po revolucionarizojmë tregun e freelancerëve me këto veçori unike",
     "qualityWork": {
-      "title": "Punë cilësore",
+      "title": "Projekte cilësore",
       "description": "Gjeni shërbimet dhe talentet me cilësinë më të lartë me procesin tonë të rreptë të verifikimit."
     },
     "zeroCommission": {
       "title": "Zero komision",
-      "description": "Mbani më shumë nga ajo që fitoni me politikën tonë të zero komisionit për punëtorët e pavarur."
+      "description": "Mbani më shumë nga ajo që fitoni me politikën tonë të zero komisionit për freelancerë."
     },
     "securePayments": {
       "title": "Pagesa të sigurta",
@@ -862,7 +862,7 @@
     },
     "aiMatching": {
       "title": "Përputhje me AI",
-      "description": "Algoritmi ynë i avancuar AI ju përputhet me punëtorin e pavarur ose klientin perfekt."
+      "description": "Algoritmi ynë i avancuar AI ju përputhet me freelancerin ose klientin perfekt."
     },
     "disputeResolution": {
       "title": "Zgjidhja e mosmarrëveshjeve",
@@ -890,15 +890,15 @@
     "description": "Shfletoni mijëra shërbime ose postoni një kërkesë."
   },
   "step3": {
-    "title": "Punësoni punëtorë të pavarur",
-    "description": "Zgjidhni punëtorin e pavarur perfekt për projektin tuaj dhe bashkëpunoni."
+    "title": "Punësoni freelancerë",
+    "description": "Zgjidhni freelancerin perfekt për projektin tuaj dhe bashkëpunoni."
   },
   "step4": {
     "title": "Përfundoni projektin",
     "description": "Miratoni punën dhe lëshoni pagesën kur jeni të kënaqur."
   },
   "forFreelancers": {
-    "title": "Për punëtorët e pavarur",
+    "title": "Për freelancerët",
     "step1": {
       "title": "Ndërtoni profilin tuaj",
       "description": "Tregoni aftësitë, portofolin dhe përvojën tuaj."
@@ -921,8 +921,8 @@
   "title": "Si Funksionon",
   "titleEnd": "funksionon",
   "subtitle": "Filloni udhëtimin tuaj në disa hapa të thjeshtë",
-  "description": "Pavarësisht nëse jeni punëtor i pavarur që kërkon mundësi ose klient që kërkon talent, ne e kemi bërë procesin të thjeshtë dhe efikas.",
-  "forFreelancers": "Për punëtorët e pavarur",
+  "description": "Pavarësisht nëse jeni freelancer që kërkon mundësi ose klient që kërkon talent, ne e kemi bërë procesin të thjeshtë dhe efikas.",
+  "forFreelancers": "Për freelancerët",
   "forClients": "Për Klientët",
   "step1": {
     "title": "Krijoni një llogari",
@@ -933,12 +933,12 @@
     "description": "Shfletoni mijëra shërbime ose postoni një kërkesë."
   },
   "step3": {
-    "title": "Punësoni punëtorë të pavarur",
-    "description": "Zgjidhni punëtorin e pavarur perfekt për projektin tuaj dhe bashkëpunoni."
+    "title": "Punësoni freelancerë",
+    "description": "Zgjidhni freelancerin perfekt për projektin tuaj dhe bashkëpunoni."
   },
   "step4": {
     "title": "Përfundoni projektin",
-    "description": "Miratoni punën dhe lëshoni pagesën kur jeni të kënaqur."
+    "description": "Miratoni projektin dhe lëshoni pagesën kur jeni të kënaqur."
   },
   "freelancers": {
     "step1": {
@@ -946,7 +946,7 @@
       "description": "Tregoni aftësitë, portofolin dhe përvojën tuaj."
     },
     "step2": {
-      "title": "Shfletoni punët",
+      "title": "Shfletoni projektet",
       "description": "Gjeni projekte që përputhen me ekspertizën dhe interesat tuaja."
     },
     "step3": {
@@ -955,33 +955,33 @@
     },
     "step4": {
       "title": "Merrni pagesën",
-      "description": "Përfundoni punën dhe merrni pagesa të sigurta."
+      "description": "Përfundoni projektin dhe merrni pagesa të sigurta."
     },
     "step5": {
       "title": "Merrni Pagesën në Mënyrë të Sigurt",
-      "description": "Përfundoni punën dhe merrni pagesën përmes platformës sonë të sigurt. Ndërtoni reputacionin tuaj me vlerësimet e klientëve."
+      "description": "Përfundoni projektin dhe merrni pagesën përmes platformës sonë të sigurt. Ndërtoni reputacionin tuaj me vlerësimet e klientëve."
     }
   },
   "clients": {
     "step1": {
-      "title": "Postoni Punën Tuaj",
-      "description": "Përshkruani projektin tuaj, vendosni buxhetin dhe specifikoni aftësitë që ju nevojiten. Puna juaj do të jetë e dukshme për mijëra punëtorë të pavarur të kualifikuar."
+      "title": "Postoni Projektin Tuaj",
+      "description": "Përshkruani projektin tuaj, vendosni buxhetin dhe specifikoni aftësitë që ju nevojiten. Puna juaj do të jetë e dukshme për mijëra freelancerë të kualifikuar."
     },
     "step2": {
       "title": "Merrni Propozime",
-      "description": "Merrni propozime nga punëtorë të pavarur të interesuar brenda disa orëve. Rishikoni profilet e tyre, portfolet dhe tarifat e propozuara."
+      "description": "Merrni propozime nga freelancerë të interesuar brenda disa orëve. Rishikoni profilet e tyre, portfolet dhe tarifat e propozuara."
     },
     "step3": {
       "title": "Zgjidhni më të Mirën",
-      "description": "Krahasoni propozimet, intervistoni kandidatët nëse është e nevojshme dhe zgjidhni punëtorin e pavarur që përputhet më mirë me kërkesat e projektit tuaj."
+      "description": "Krahasoni propozimet, intervistoni kandidatët nëse është e nevojshme dhe zgjidhni freelancerin që përputhet më mirë me kërkesat e projektit tuaj."
     },
     "step4": {
       "title": "Bashkëpunoni",
-      "description": "Punoni drejtpërdrejt me punëtorin tuaj të pavarur. Komunikoni përmes platformës sonë, ndani skedarë dhe ndiqni përparimin e projektit."
+      "description": "Punoni drejtpërdrejt me freelancerin tuaj. Komunikoni përmes platformës sonë, ndani skedarë dhe ndiqni përparimin e projektit."
     },
     "step5": {
       "title": "Përfundoni dhe Vlerësoni",
-      "description": "Pasi të jeni të kënaqur me punën, lironi pagesën dhe lini një vlerësim. Ndërtoni marrëdhënie të qëndrueshme me punëtorë të talentuar të pavarur."
+      "description": "Pasi të jeni të kënaqur me punën, lironi pagesën dhe lini një vlerësim. Ndërtoni marrëdhënie të qëndrueshme me freelancerë të talentuar."
     }
   }
 },
@@ -989,11 +989,11 @@
     "title": "Çfarë thonë",
     "users": "përdoruesit",
     "say": "tanë",
-    "subtitle": "Bashkohuni me mijëra klientë dhe punëtorë të pavarur të kënaqur",
+    "subtitle": "Bashkohuni me mijëra klientë dhe freelancerë të kënaqur",
     "roles": {
       "marketingDirector": "Drejtor marketingu",
       "startupFounder": "Themelues startup-i",
-      "freelancer": "Dizajner i pavarur",
+      "freelancer": "Dizajner",
       "developer": "Zhvillues Full Stack",
       "contentCreator": "Krijues përmbajtjeje",
       "businessOwner": "Pronar biznesi",
@@ -1003,7 +1003,7 @@
     "selfEmployed": "I vetëpunësuar",
     "sarah": "Beamly ka transformuar mënyrën se si gjejmë talente krijuese. Cilësia e punës dhe shpejtësia e dorëzimit kanë qenë të jashtëzakonshme.",
     "michael": "Si themelues i një startup-i, Beamly ka qenë i paçmuar. Kam gjetur zhvillues dhe dizajnerë të mrekullueshëm që kanë ndihmuar në realizimin e vizionit tim.",
-    "jessica": "Politika e zero komisionit është revolucionare! Kam arritur të rris biznesin tim të pavarur në mënyrë të konsiderueshme që kur u bashkova me Beamly.",
+    "jessica": " Kam arritur të rris biznesin tim të pavarur në mënyrë të konsiderueshme që kur u bashkova me Beamly.",
     "readMore": "Lexo më shumë vlerësime",
     "writeReview": "Shkruaj një vlerësim",
     "rating": "Vlerësimi",
@@ -1013,11 +1013,11 @@
     "ready": "Gati për të",
     "start": "filluar",
     "project": "projektin tuaj?",
-    "description": "Bashkohuni me Beamly sot dhe lidhuni me punëtorët më të mirë të pavarur nga e gjithë bota. Pavarësisht nëse keni nevojë për një detyrë të shpejtë ose një projekt kompleks, ne ju mbulojmë.",
-    "hireFreelancer": "Punëso një punëtor të pavarur",
-    "becomeFreelancer": "Bëhu punëtor i pavarur",
+    "description": "Regjistrohu në Beamly sot dhe lidhuni me freelancersat më të mirë nga e gjithë Shqipëria dhe Kosova. Pavarësisht nëse keni nevojë për një detyrë të shpejtë ose një projekt kompleks, ne ju mbulojmë.",
+    "hireFreelancer": "Punëso një freelancer",
+    "becomeFreelancer": "Bëhu freelancer",
     "postProject": "Posto projektin tënd të parë",
-    "browseJobs": "Shfleto punët e disponueshme",
+    "browseJobs": "Shfleto projektet e disponueshme",
     "getStarted": "Fillo tani",
     "learnMore": "Mëso më shumë",
     "watchDemo": "Shiko demonstrimin",
@@ -1046,7 +1046,7 @@
     "signUp": "Regjistrohu",
     "goBack": "Kthehu prapa",
     "accountType": "Lloji i llogarisë",
-    "freelancer": "Punëtor i pavarur",
+    "freelancer": "Freelancer",
     "company": "Kompani",
     "loginWith": "Ose hyni me",
     "google": "Google",
@@ -1091,7 +1091,7 @@
     "login": "Hyni",
     "goBack": "Kthehu prapa",
     "accountType": "Lloji i llogarisë",
-    "freelancer": "Punëtor i pavarur",
+    "freelancer": "Freelancer",
     "company": "Kompani",
     "skills": "Aftësitë (të ndara me presje)",
     "skillsPlaceholder": "p.sh., Dizajn ueb, Dizajn logo, Shkrim përmbajtjeje",
@@ -1139,17 +1139,17 @@
     "subtitle": "Ja çfarë po ndodh me llogarinë tuaj sot.",
     "posted": "Postuar",
     "active": "Aktiv",
-    "activeJobs": "Punë Aktive",
+    "activeJobs": "Projektet Aktive",
     "pending": "Në Pritje",
     "pendingProposals": "Propozime në Pritje",
-    "recentJobs": "Punët e Fundit",
+    "recentJobs": "Projektet e Fundit",
     "recentProposals": "Propozimet e Fundit",
     "noRecentActivity": "Nuk ka aktivitet të fundit",
     "quickActions": "Veprime të Shpejta",
-    "findWork": "Gjej Punë",
+    "findWork": "Gjej Projekte",
     "postProject": "Posto Projekt",
     "editProfile": "Ndrysho Profilin",
-    "postJob": "Posto Punë",
+    "postJob": "Posto Projekt",
     "findTalent": "Gjej Talent",
     "messages": "Mesazhe",
     "analytics": "Analitika",
@@ -1163,9 +1163,9 @@
     "balance": "Bilanci",
     "notifications": "Njoftime",
     "viewAll": "Shiko të gjitha",
-    "jobs": "Punë",
+    "jobs": "Projekte",
     "settings": "Cilësimet",
-    "billing": "Faturimi",
+    "billing": "Tarifimi",
     "withdraw": "Tërhiq",
     "earnings": "Fitimet",
     "totalEarned": "Totali i fituar",
@@ -1195,7 +1195,7 @@
       "completedProjects": "Projekte të përfunduara",
       "activeProjects": "Projekte aktive",
       "totalClients": "Klientë total",
-      "totalFreelancers": "Punëtorë të pavarur total",
+      "totalFreelancers": "Freelancerë total",
       "avgProjectValue": "Vlera mesatare e projektit",
       "avgCompletionTime": "Koha mesatare e përfundimit",
       "successRate": "Norma e suksesit",
@@ -1261,9 +1261,9 @@
     "connectWith": "Lidhu me {{platform}}"
   },
   "footer": {
-    "description": "Beamly lidh bizneset me punëtorë të talentuar të pavarur duke ofruar shërbime cilësore me zero komision.",
+    "description": "Beamly lidh bizneset me freelancerë të talentuar duke ofruar shërbime cilësore me zero komision.",
     "forClients": "Për klientët",
-    "forFreelancers": "Për punëtorët e pavarur",
+    "forFreelancers": "Për freelancerët",
     "legal": {
       "title": "Ligjore",
       "privacyPolicy": "Politika e privatësisë",
@@ -1289,7 +1289,7 @@
       "resources": "Burimet e klientit"
     },
     "freelancers": {
-      "howToFindWork": "Si të gjeni punë",
+      "howToFindWork": "Si të gjeni projekte",
       "marketplaceInsights": "Analiza e tregut",
       "community": "Komuniteti",
       "zeroCommission": "Zero komision",
@@ -1297,7 +1297,7 @@
       "successTips": "Këshilla suksesi",
       "skillTests": "Testet e aftësive",
       "certifications": "Certifikimet",
-      "resources": "Burimet e punëtorit të pavarur"
+      "resources": "Burimet e freelancerëve"
     },
     "resources": {
       "helpSupport": "Ndihmë dhe mbështetje",
@@ -1338,12 +1338,12 @@
     }
   },
   "lookingForWork": {
-    "title": "Gjej Punë",
+    "title": "Gjej Projekte",
     "subtitle": "Zbulo mundësi që përputhen me aftësitë tuaja",
-    "searchPlaceholder": "Kërkoni punë sipas titullit, aftësive ose fjalëve kyçe...",
-    "searchButton": "Kërko Punë",
+    "searchPlaceholder": "Kërkoni projekte sipas titullit, aftësive ose fjalëve kyçe...",
+    "searchButton": "Kërko projekte",
     "popularSkills": "Aftësitë Popullore",
-    "noResults": "Nuk u gjetën punë",
+    "noResults": "Nuk u gjetën projekte",
     "tryAdjusting": "Provoni të rregulloni kërkimin ose filtrat",
     "negotiable": "E Negociueshme",
     "proposals": "propozime",
@@ -1379,8 +1379,11 @@
     "filters": {
       "title": "Filtrat",
       "experienceLevel": "Niveli i përvojës",
+      "category": "Kategoria",
+      "budgetRange": "Gama e Buxhetit",
+      "duration": "Kohëzgjatja e Projektit",
       "entry": "Nivel fillestar",
-      "intermediate": "I ndërmjetëm",
+      "intermediate": "Mesatar",
       "expert": "Ekspert",
       "projectType": "Lloji i projektit",
       "fixedPrice": "Çmim fiks",
@@ -1394,7 +1397,7 @@
       "maxBudget": "Buxheti maksimal",
       "clientInfo": "Informacioni i klientit",
       "verifiedPayment": "Pagesa e verifikuar",
-      "previousHires": "Punësime të mëparshme",
+      "previousHires": "Projekte të mëparshme",
       "clientRating": "Vlerësimi i klientit",
       "location": "Vendndodhja",
       "remote": "Në distancë",
@@ -1418,7 +1421,7 @@
       "invite": "Ftesë",
       "postedOn": "Postuar {{time}}",
       "proposals": "{{count}} propozime",
-      "hires": "{{count}} punësime",
+      "hires": "{{count}} Projekte",
       "spent": "€{{amount}}+ shpenzuar",
       "location": "{{location}}",
       "estimatedTime": "Koha e vlerësuar: {{time}}",
@@ -1431,7 +1434,7 @@
       "aboutClient": "Rreth klientit"
     },
     "noJobsFound": {
-      "title": "Nuk u gjetën punë",
+      "title": "Nuk u gjetën projekte",
       "description": "Provoni të rregulloni kërkimin ose filtrat",
       "suggestions": {
         "title": "Sugjerime:",
@@ -1442,17 +1445,17 @@
       },
       "cta": {
         "createAlert": "Krijo alarm pune",
-        "browseAll": "Shfleto të gjitha punët",
+        "browseAll": "Shfleto të gjitha projektet",
         "postProfile": "Posto profilin tënd"
       }
     },
     "loadMore": "Ngarko më shumë",
-    "loading": "Po ngarkohen punët...",
+    "loading": "Po ngarkohen projektet...",
     "endOfResults": "Fundi i rezultateve",
     "savedJobs": {
-      "title": "Punë të ruajtura",
-      "empty": "Nuk ka punë të ruajtura ende",
-      "emptyDescription": "Ruani punët për t'i parë më vonë"
+      "title": "Projekte të ruajtura",
+      "empty": "Nuk ka projekte të ruajtura ende",
+      "emptyDescription": "Ruani projektet për t'i parë më vonë"
     },
     "jobAlerts": {
       "title": "Alarmet e punëve",
@@ -1499,7 +1502,7 @@
     }
   },
   "freelancerProfile": {
-    "title": "Profili i punëtorit të pavarur",
+    "title": "Profili i freelancerit",
     "about": "Rreth meje",
     "aboutMe": "Rreth Meje",
     "skills": "Aftësitë",
@@ -1541,7 +1544,7 @@
     "reviews.notHelpful": "Jo e dobishme",
     "reviews.reportReview": "Raporto vlerësimin",
     "reviews.clientReview": "Vlerësimi i klientit",
-    "reviews.freelancerResponse": "Përgjigja e punëtorit të pavarur",
+    "reviews.freelancerResponse": "Përgjigja e freelancerit",
     "reviews.review": "vlerësim",
     "reviews.reviewsCount": "vlerësime",
     "review": "Vlerësim",
@@ -1605,10 +1608,10 @@
       "topRated": "Më i vlerësuar",
       "risingTalent": "Talent në rritje",
       "oneHundredPercent": "100% Sukses pune",
-      "preferredFreelancer": "Punëtor i pavarur i preferuar"
+      "preferredFreelancer": "Freelanceri i preferuar"
     },
     "similar": {
-      "title": "Punëtorë të ngjashëm të pavarur",
+      "title": "Freelancerë të ngjashëm",
       "viewProfile": "Shiko profilin",
       "compare": "Krahaso"
     },
@@ -1621,7 +1624,7 @@
     },
     "experienceLevels": {
       "entry": "Nivel Fillestar",
-      "intermediate": "I Ndërmjetëm",
+      "intermediate": "Mesatar",
       "expert": "Ekspert",
       "freelancer": "Freelancer"
     },
@@ -1675,7 +1678,7 @@
     "draftAvailable": "Keni një draft të ruajtur nga {{date}}",
     "load": "Ngarko",
     "loginRequired": "Ju lutemi hyni për të postuar projekte",
-    "freelancersOnly": "Vetëm punëtorët e pavarur mund të postojnë projekte",
+    "freelancersOnly": "Vetëm freelancerët mund të postojnë projekte",
     "projectDetails": "Detajet e projektit",
     "skillsAndLinks": "Aftësitë dhe lidhjet",
     "technologiesUsed": "Teknologjitë e përdorura",
@@ -1925,7 +1928,7 @@
       "starred": "Me yll",
       "attachments": "Me bashkëngjitje",
       "fromClients": "Nga klientët",
-      "fromFreelancers": "Nga punëtorët e pavarur",
+      "fromFreelancers": "Nga freelancerët",
       "contracts": "Mesazhe kontratash"
     },
     "emptyStates": {
@@ -2248,7 +2251,7 @@
 },
   "search": {
     "title": "Kërko",
-    "placeholder": "Kërko për punë, punëtorë të pavarur ose shërbime...",
+    "placeholder": "Kërko për punë, freelancerë ose shërbime...",
     "recent": "Kërkimet e fundit",
     "popular": "Kërkimet popullore",
     "suggested": "Të sugjeruara",
@@ -2259,7 +2262,7 @@
     "categories": {
       "all": "Të gjitha",
       "jobs": "Punët",
-      "freelancers": "Punëtorët e pavarur",
+      "freelancers": "Freelancerë",
       "services": "Shërbimet",
       "projects": "Projektet",
       "clients": "Klientët"
@@ -2784,7 +2787,7 @@
     "saving": "Duke ruajtur...",
     "experienceLevels": {
       "entry": "Nivel Fillestar (0-2 vite)",
-      "intermediate": "I Ndërmjetëm (2-5 vite)",
+      "intermediate": "Mesatar (2-5 vite)",
       "expert": "Ekspert (5+ vite)"
     },
     "categories": {
@@ -2877,7 +2880,7 @@
     },
     "experienceLevel": {
       "entry": "Nivel Fillestar",
-      "intermediate": "I Ndërmjetëm",
+      "intermediate": "Mesatar",
       "expert": "Ekspert",
       "professional": "Profesionist"
     }
@@ -3132,7 +3135,7 @@
     "pendingRejected": "Në Pritje/Refuzuar"
   },
   "billing": {
-    "title": "Faturimi & Pagesat",
+    "title": "Tarifimi & Pagesat",
     "subtitle": "Menaxho pagesat dhe transaksionet tuaja",
     "tabs": {
       "earnings": "Fitimet",
@@ -3280,7 +3283,7 @@
     },
     "experienceLevels": {
       "entry": "Nivel Fillestar",
-      "intermediate": "I Ndërmjetëm",
+      "intermediate": "Mesatar",
       "expert": "Ekspert"
     },
     "durations": {
