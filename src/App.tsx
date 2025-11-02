@@ -2,7 +2,6 @@ import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { NextUIProvider } from '@nextui-org/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { NotificationProvider } from './contexts/NotificationContext';
 import { ThemeProvider } from './contexts/theme-context';
 import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -440,7 +439,6 @@ function App() {
           <ThemeProvider>
             <Router>
               <AuthProvider>
-                <NotificationProvider>
                   <EmailVerificationBanner />
                   <div className="min-h-screen bg-background text-foreground">
                     <Suspense fallback={<LoadingSpinner />}>
@@ -491,7 +489,6 @@ function App() {
                       }}
                     />
                   </div>
-                </NotificationProvider>
               </AuthProvider>
             </Router>
           </ThemeProvider>

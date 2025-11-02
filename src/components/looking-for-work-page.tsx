@@ -51,8 +51,12 @@ interface Job {
   status?: string;
   proposalsCount?: number;
 }
+interface LookingForWorkPageProps {
+  setCurrentPage?: (page: string) => void;
+  isDarkMode?: boolean;
+}
 
-export const LookingForWorkPage: React.FC = () => {
+export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -68,12 +72,11 @@ export const LookingForWorkPage: React.FC = () => {
 
   const categories = [
     { value: "all", label: t('lookingForWork.categories.all') },
-    { value: "web-development", label: t('lookingForWork.categories.webDevelopment') },
-    { value: "mobile-development", label: t('lookingForWork.categories.mobileDevelopment') },
-    { value: "graphic-design", label: t('lookingForWork.categories.graphicDesign') },
+    { value: "development", label: t('lookingForWork.categories.webDevelopment') },
+    { value: "design", label: t('lookingForWork.categories.graphicDesign') },
+    { value: "marketing", label: t('lookingForWork.categories.digitalMarketing') },
     { value: "writing", label: t('lookingForWork.categories.writing') },
-    { value: "digital-marketing", label: t('lookingForWork.categories.digitalMarketing') },
-    { value: "video-animation", label: t('lookingForWork.categories.videoAnimation') },
+    { value: "video", label: t('lookingForWork.categories.videoAnimation') },
     { value: "data-science", label: t('lookingForWork.categories.dataScience') },
     { value: "business", label: t('lookingForWork.categories.business') }
   ];
@@ -88,11 +91,12 @@ export const LookingForWorkPage: React.FC = () => {
 
   const durations = [
     { value: "all", label: t('lookingForWork.duration.all') },
-    { value: "less-week", label: t('lookingForWork.duration.lessWeek') },
-    { value: "1-4-weeks", label: t('lookingForWork.duration.1to4weeks') },
+    { value: "less-than-week", label: t('lookingForWork.duration.lessWeek') },
+    { value: "1-2-weeks", label: "1-2 Weeks" },
+    { value: "1-month", label: "1 Month" },
     { value: "1-3-months", label: t('lookingForWork.duration.1to3months') },
     { value: "3-6-months", label: t('lookingForWork.duration.3to6months') },
-    { value: "6+months", label: t('lookingForWork.duration.6plusMonths') }
+    { value: "more-than-6-months", label: t('lookingForWork.duration.6plusMonths') }
   ];
 
   const popularSkills = [
@@ -111,92 +115,114 @@ export const LookingForWorkPage: React.FC = () => {
     fetchJobs(shouldReset);
   }, [selectedCategory, selectedBudget, selectedDuration, currentPage, searchQuery]);
 
-  const fetchJobs = async (reset = false) => {
-    setLoading(true);
-    
-    // Reset pagination if needed
-    if (reset) {
-      lastDocRef.current = null;
+const fetchJobs = async (reset = false) => {
+  setLoading(true);
+  
+  if (reset) {
+    lastDocRef.current = null;
+  }
+  
+  try {
+    // ✅ MINIMAL CONSTRAINTS - Only what Firestore can handle
+    const constraints: QueryConstraint[] = [
+      where("status", "==", "open"),
+      orderBy("createdAt", "desc")
+    ];
+
+    // ✅ Only add category filter (equality filter works fine)
+    if (selectedCategory !== "all") {
+      constraints.push(where("category", "==", selectedCategory));
     }
+
+    // ❌ REMOVE BUDGET FILTER - Will filter in memory
+    // ❌ REMOVE DURATION FILTER - Will filter in memory
+
+    // Fetch more to compensate for in-memory filtering
+    const fetchLimit = jobsPerPage * 3; // Fetch 3x to account for filters
+
+    if (!reset && lastDocRef.current) {
+      constraints.push(startAfter(lastDocRef.current));
+    }
+
+    constraints.push(limit(fetchLimit));
+
+    const q = query(collection(db, "jobs"), ...constraints);
+    const querySnapshot = await getDocs(q);
     
-    try {
-      const constraints: QueryConstraint[] = [
-        where("status", "==", "open"),
-        orderBy("createdAt", "desc")
-      ];
+    let jobsData = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as Job));
 
-      // Add category filter
-      if (selectedCategory !== "all") {
-        constraints.push(where("category", "==", selectedCategory));
-      }
+    console.log("📊 Fetched jobs:", jobsData.length);
 
-      // Add budget filter
-      if (selectedBudget !== "all") {
-        const [min, max] = selectedBudget.split("-").map(v => v === "5000+" ? 5000 : parseInt(v));
-        if (max) {
-          constraints.push(where("budgetMax", ">=", min));
-          constraints.push(where("budgetMin", "<=", max));
+    // ✅ FILTER BUDGET IN MEMORY
+    if (selectedBudget !== "all") {
+      jobsData = jobsData.filter(job => {
+        if (selectedBudget === "5000+") {
+          return (job.budgetMin && job.budgetMin >= 5000) || (job.budgetMax && job.budgetMax >= 5000);
         } else {
-          constraints.push(where("budgetMin", ">=", min));
+          const [minStr, maxStr] = selectedBudget.split("-");
+          const min = parseInt(minStr);
+          const max = parseInt(maxStr);
+          
+          // Check if job budget overlaps with selected range
+          const jobMin = job.budgetMin || 0;
+          const jobMax = job.budgetMax || job.budgetMin || 0;
+          
+          return jobMin <= max && jobMax >= min;
         }
-      }
-
-      // Add duration filter
-      if (selectedDuration !== "all") {
-        constraints.push(where("duration", "==", selectedDuration));
-      }
-
-      // Add pagination
-      if (!reset && lastDocRef.current) {
-        constraints.push(startAfter(lastDocRef.current));
-      }
-
-      constraints.push(limit(jobsPerPage));
-
-      const q = query(collection(db, "jobs"), ...constraints);
-      const querySnapshot = await getDocs(q);
-      
-      let jobsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Job));
-
-      // Apply search filter in memory if searchQuery exists
-      if (searchQuery.trim()) {
-        const searchLower = searchQuery.toLowerCase();
-        jobsData = jobsData.filter(job => 
-          job.title?.toLowerCase().includes(searchLower) ||
-          job.description?.toLowerCase().includes(searchLower) ||
-          job.skills?.some(skill => skill.toLowerCase().includes(searchLower)) ||
-          job.category?.toLowerCase().includes(searchLower) ||
-          job.company?.toLowerCase().includes(searchLower) ||
-          job.clientName?.toLowerCase().includes(searchLower)
-        );
-      }
-
-      if (reset) {
-        setJobs(jobsData);
-      } else {
-        setJobs(prev => [...prev, ...jobsData]);
-      }
-
-      if (querySnapshot.docs.length > 0) {
-        lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
-      }
-
-      // Estimate total pages
-      if (querySnapshot.docs.length < jobsPerPage) {
-        setTotalPages(currentPage);
-      } else {
-        setTotalPages(currentPage + 1);
-      }
-    } catch (error) {
-      console.error("Error fetching jobs:", error);
-      setJobs([]);
-    } finally {
-      setLoading(false);
+      });
+      console.log(`💰 After budget filter (${selectedBudget}):`, jobsData.length);
     }
-  };
+
+    // ✅ FILTER DURATION IN MEMORY
+    if (selectedDuration !== "all") {
+      jobsData = jobsData.filter(job => job.duration === selectedDuration);
+      console.log(`⏱️ After duration filter (${selectedDuration}):`, jobsData.length);
+    }
+
+    // ✅ FILTER SEARCH IN MEMORY
+    if (searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase();
+      jobsData = jobsData.filter(job => 
+        job.title?.toLowerCase().includes(searchLower) ||
+        job.description?.toLowerCase().includes(searchLower) ||
+        job.skills?.some(skill => skill.toLowerCase().includes(searchLower)) ||
+        job.category?.toLowerCase().includes(searchLower) ||
+        job.company?.toLowerCase().includes(searchLower) ||
+        job.clientName?.toLowerCase().includes(searchLower)
+      );
+      console.log(`🔍 After search filter (${searchQuery}):`, jobsData.length);
+    }
+
+    // Limit to jobsPerPage after all filtering
+    const finalJobs = jobsData.slice(0, jobsPerPage);
+    console.log("✅ Final jobs to display:", finalJobs.length);
+
+    if (reset) {
+      setJobs(finalJobs);
+    } else {
+      setJobs(prev => [...prev, ...finalJobs]);
+    }
+
+    if (querySnapshot.docs.length > 0) {
+      lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
+    }
+
+    // Update pagination
+    if (finalJobs.length < jobsPerPage || querySnapshot.docs.length < fetchLimit) {
+      setTotalPages(currentPage);
+    } else {
+      setTotalPages(currentPage + 1);
+    }
+  } catch (error) {
+    console.error("❌ Error fetching jobs:", error);
+    setJobs([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,11 +236,26 @@ export const LookingForWorkPage: React.FC = () => {
   };
 
   const formatBudget = (job: Job) => {
+    // Check for pre-formatted budget string
     if (job.budget) return job.budget;
     if (job.budgetRange) return job.budgetRange;
+    
+    // Check for fixed price
     if (job.fixedPrice) return `€${job.fixedPrice}`;
-    if (job.budgetMin && job.budgetMax) return `€${job.budgetMin} - €${job.budgetMax}`;
+    
+    // ✅ FIX #6: Improved budget range formatting
+    // Only show range if min and max are different
+    if (job.budgetMin && job.budgetMax && job.budgetMin !== job.budgetMax) {
+      return `€${job.budgetMin} - €${job.budgetMax}`;
+    }
+    
+    // Show minimum if available
     if (job.budgetMin) return `€${job.budgetMin}+`;
+    
+    // Show maximum if available
+    if (job.budgetMax) return `€${job.budgetMax}`;
+    
+    // Default to negotiable
     return t('lookingForWork.negotiable');
   };
 

@@ -140,13 +140,34 @@ export const ConversationsListPage: React.FC = () => {
 
       for (const docSnapshot of snapshot.docs) {
         const data = docSnapshot.data();
+        
+        // ✅ CRITICAL FIX: Skip conversations with empty lastMessage
+        // Also check for undefined and null
+        if (!data.lastMessage || 
+            typeof data.lastMessage !== 'string' || 
+            data.lastMessage.trim() === '') {
+          console.log(`Skipping empty conversation: ${docSnapshot.id}`);
+          continue;
+        }
+        
         const otherUserId = data.participants.find((id: string) => id !== user.uid);
         
+        // Skip if no other user found (shouldn't happen)
+        if (!otherUserId) {
+          console.warn(`Conversation ${docSnapshot.id} has no other user`);
+          continue;
+        }
+        
         // Skip if we've already processed a conversation with this user
-        if (otherUserId && !seenParticipants.has(otherUserId)) {
-          seenParticipants.add(otherUserId);
-          
-          // Always fetch fresh user data from users collection
+        if (seenParticipants.has(otherUserId)) {
+          console.log(`Skipping duplicate conversation with user: ${otherUserId}`);
+          continue;
+        }
+        
+        seenParticipants.add(otherUserId);
+        
+        // Always fetch fresh user data from users collection
+        try {
           const userDoc = await getDoc(doc(db, 'users', otherUserId));
           let otherUserData = null;
           
@@ -163,7 +184,7 @@ export const ConversationsListPage: React.FC = () => {
           if (otherUserData) {
             conversationsData.push({
               id: docSnapshot.id,
-              lastMessage: data.lastMessage || t('conversations.noMessages'),
+              lastMessage: data.lastMessage,
               lastMessageTime: data.lastMessageTime,
               unreadCount: data.participantDetails?.[user.uid]?.unreadCount || 0,
               otherUser: {
@@ -175,6 +196,9 @@ export const ConversationsListPage: React.FC = () => {
               }
             });
           }
+        } catch (error) {
+          console.error(`Error fetching user data for ${otherUserId}:`, error);
+          // Continue processing other conversations
         }
       }
 

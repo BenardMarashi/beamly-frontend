@@ -104,9 +104,10 @@ The platform supports two user types: `freelancer` and `client`. Users can be bo
 
 **Pro/Subscription System:**
 - `isPro` flag indicates premium subscription status
-- Subscription plans: monthly, quarterly, yearly
-- Premium features may include: unlimited proposals, priority listing, advanced analytics
+- Subscription plans: monthly, quarterly, 6-months, yearly
+- Premium features include: unlimited proposals (vs 5/month for free), lower platform fees (5% vs 15%), priority listing
 - Subscription status tracked in user profile with start/end dates
+- Free users can purchase message bundles for additional messaging
 
 ### Collections Structure
 - `users`: User profiles with userType field ('freelancer' | 'client' | 'both'), subscription status, Stripe IDs
@@ -136,6 +137,8 @@ Environment variables are validated and typed in `src/config/env.ts` with sophis
 - **STRIPE_WEBHOOK_SECRET**: For validating Stripe webhooks
 - **STRIPE_QUARTERLY_PRICE_ID**: Subscription price IDs
 - **STRIPE_YEARLY_PRICE_ID**: Subscription price IDs
+- **STRIPE_6MONTHS_PRICE_ID**: Subscription price IDs
+- **STRIPE_MESSAGES_PRICE_ID**: Message bundle price ID
 - **APP_URL**: Application URL for redirects
 
 ### Testing Approach
@@ -171,7 +174,7 @@ Environment variables are validated and typed in `src/config/env.ts` with sophis
 
 ### Firebase Functions
 - Located in `functions/src/` directory
-- Main entry point: `functions/src/stripe.ts` (contains all functions)
+- Main entry point: `functions/src/index.ts` (contains all functions)
 - Deploy with `npm run deploy:functions`
 - View logs with `npm run logs`
 
@@ -181,7 +184,7 @@ Environment variables are validated and typed in `src/config/env.ts` with sophis
 - **Payments**: `createJobPaymentIntent`, `releasePaymentToFreelancer`, `getStripeBalance`
 - **Subscriptions**: `createSubscriptionCheckout`, `cancelSubscription`
 - **Utilities**: `uploadFile`, `createStripePayout`
-- **Scheduled**: `checkExpiredSubscriptions`, `calculateDailyAnalytics`
+- **Scheduled**: `checkExpiredSubscriptions`, `calculateDailyAnalytics`, `resetMonthlyProposals`
 - **Webhooks**: `stripeWebhook` (handles Stripe events)
 - **HTTP Functions**: `createJob`, `submitProposal`, `sendMessage`
 
@@ -288,22 +291,23 @@ The platform uses Stripe for all payment processing:
 **Freelancer Payments (Stripe Connect):**
 - Freelancers create Connect accounts for receiving payments
 - Escrow system holds client payments until job completion
-- Platform takes 10% fee on job payments
+- Platform takes 15% fee on job payments for free users, 5% for Pro users
 - Payouts available to freelancer bank accounts
 
 **Client Payments:**
-- Job payments create payment intents
+- Job payments create payment intents with 5% client commission
 - Funds held in escrow during job progress
 - Released to freelancer upon job completion
 
 **Subscription System:**
-- Pro subscriptions with monthly/quarterly/yearly plans
+- Pro subscriptions with monthly/quarterly/yearly/6-months plans
 - Managed through Stripe Checkout
 - Automatic renewal and expiration handling
+- Free users limited to 5 proposals per month
 
 **Payment Flow:**
 1. Client accepts proposal → Payment captured to escrow
-2. Job marked complete → Payment released to freelancer (minus 10% fee)
+2. Job marked complete → Payment released to freelancer (minus platform fee)
 3. Freelancer can withdraw available balance
 
 ### Push Notifications

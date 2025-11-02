@@ -553,7 +553,6 @@ export const createStripeAccountLink = onCall(
   }
 );
 
-// Create Payment Intent for Job (Escrow)
 export const createJobPaymentIntent = onCall(
   {
     region: "us-central1",
@@ -588,6 +587,11 @@ export const createJobPaymentIntent = onCall(
       const numericAmount = typeof amount === "string" ?
         parseFloat(amount.replace(/[^0-9.]/g, "")) : amount;
 
+      // ✅ Validate amount
+      if (!numericAmount || numericAmount <= 0 || isNaN(numericAmount)) {
+        throw new HttpsError("invalid-argument", "Invalid payment amount");
+      }
+
       // Add 5% client commission
       const clientCommissionRate = 0.05;
       const totalAmount = numericAmount * (1 + clientCommissionRate);
@@ -603,7 +607,7 @@ export const createJobPaymentIntent = onCall(
       // Create payment intent
       const stripe = await getStripe();
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: amountInCents, // Includes 5% client commission
+        amount: amountInCents,
         currency: "eur",
         metadata: {
           jobId,
@@ -626,8 +630,8 @@ export const createJobPaymentIntent = onCall(
         proposalId,
         clientId: request.auth.uid,
         freelancerId: proposalData.freelancerId,
-        amount: totalAmount, // Store total amount (including client commission)
-        originalAmount: numericAmount, // Store original amount
+        amount: totalAmount,
+        originalAmount: numericAmount,
         clientCommission: totalAmount - numericAmount,
         currency: "eur",
         status: "pending",
@@ -635,6 +639,23 @@ export const createJobPaymentIntent = onCall(
         stripePaymentIntentId: paymentIntent.id,
         createdAt: FieldValue.serverTimestamp(),
       });
+
+      // ✅ FIX #6: Create escrow transaction
+      await db.collection("transactions").add({
+        type: "escrow",
+        userId: proposalData.freelancerId,
+        amount: Math.round(numericAmount * 100) / 100,
+        currency: "eur",
+        status: "pending",
+        description: `Payment held in escrow for job: ${jobId}`,
+        jobId: jobId,
+        proposalId: proposalId,
+        clientId: request.auth.uid,
+        stripePaymentIntentId: paymentIntent.id,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      console.log(`✅ Created escrow transaction for payment intent ${paymentIntent.id}`);
 
       return {
         success: true,
@@ -690,12 +711,11 @@ export const releasePaymentToFreelancer = onCall(
       const isProFreelancer = freelancerData?.isPro || false;
 
       // Calculate commissions
-      // The payment amount includes the client's 5% commission already
-      const totalAmount = paymentData.amount; // This includes client's 5%
-      const originalAmount = paymentData.originalAmount || (totalAmount / 1.05); // Base amount
-      const clientCommission = totalAmount - originalAmount; // Client's 5%
+      const totalAmount = paymentData.amount;
+      const originalAmount = paymentData.originalAmount || (totalAmount / 1.05);
+      const clientCommission = totalAmount - originalAmount;
 
-      // Freelancer commission: 15% for free, 5% for pro (calculated on original amount)
+      // Freelancer commission: 15% for free, 5% for pro
       const freelancerCommissionPercent = isProFreelancer ? 0.05 : 0.15;
       const freelancerCommission = originalAmount * freelancerCommissionPercent;
       const freelancerPayout = originalAmount - freelancerCommission;
@@ -703,10 +723,10 @@ export const releasePaymentToFreelancer = onCall(
       // Platform keeps: client commission + freelancer commission
       const platformTotal = clientCommission + freelancerCommission;
 
-      // Create transfer to freelancer (in cents)
+      // Create transfer to freelancer
       const stripe = await getStripe();
       const transfer = await stripe.transfers.create({
-        amount: Math.round(freelancerPayout * 100), // Convert to cents
+        amount: Math.round(freelancerPayout * 100),
         currency: "eur",
         destination: connectAccountId,
         metadata: {
@@ -718,7 +738,7 @@ export const releasePaymentToFreelancer = onCall(
         },
       });
 
-      // Update payment status with detailed commission breakdown
+      // Update payment status
       await paymentDoc.ref.update({
         status: "released",
         releasedAt: FieldValue.serverTimestamp(),
@@ -731,6 +751,42 @@ export const releasePaymentToFreelancer = onCall(
         platformTotal: platformTotal,
         isProFreelancer,
       });
+
+      // ✅ FIX #1: Create release transaction (with duplicate check)
+      const existingReleaseTransaction = await db.collection("transactions")
+        .where("paymentId", "==", paymentDoc.id)
+        .where("type", "==", "release")
+        .limit(1)
+        .get();
+
+      if (existingReleaseTransaction.empty) {
+        // Validate amount
+        if (!freelancerPayout || freelancerPayout <= 0 || isNaN(freelancerPayout)) {
+          throw new HttpsError("invalid-argument", "Invalid payout amount");
+        }
+
+        // Create release transaction
+        await db.collection("transactions").add({
+          type: "release",
+          userId: freelancerId,
+          amount: Math.round(freelancerPayout * 100) / 100,
+          currency: "eur",
+          status: "completed",
+          description: `Payment released for job: ${jobId}`,
+          jobId: jobId,
+          paymentId: paymentDoc.id,
+          stripeTransferId: transfer.id,
+          originalAmount: originalAmount,
+          freelancerCommission: freelancerCommission,
+          platformTotal: platformTotal,
+          createdAt: FieldValue.serverTimestamp(),
+          completedAt: FieldValue.serverTimestamp(),
+        });
+
+        console.log(`✅ Created release transaction for payment ${paymentDoc.id}`);
+      } else {
+        console.log(`Release transaction already exists for payment ${paymentDoc.id}`);
+      }
 
       // Update freelancer's earnings
       await db.doc(`users/${freelancerId}`).update({
@@ -949,6 +1005,7 @@ export const getStripeBalance = onCall(
           success: true,
           available: 0,
           pending: 0,
+          currency: "eur",
         };
       }
 
@@ -958,18 +1015,31 @@ export const getStripeBalance = onCall(
         stripeAccount: connectAccountId,
       });
 
-      // Sum available balance across all currencies
-      const available = balance.available.reduce((sum: number, bal: any) => sum + bal.amount, 0) / 100;
-      const pending = balance.pending.reduce((sum: number, bal: any) => sum + bal.amount, 0) / 100;
+      // ✅ FIX #5: Prioritize EUR, fallback to sum of all currencies
+      const availableEUR = balance.available.find((bal: any) => bal.currency === "eur");
+      const pendingEUR = balance.pending.find((bal: any) => bal.currency === "eur");
+
+      const available = availableEUR
+        ? availableEUR.amount / 100
+        : balance.available.reduce((sum: number, bal: any) => sum + bal.amount, 0) / 100;
+      const pending = pendingEUR
+        ? pendingEUR.amount / 100
+        : balance.pending.reduce((sum: number, bal: any) => sum + bal.amount, 0) / 100;
 
       return {
         success: true,
-        available,
-        pending,
+        available: Math.round(available * 100) / 100,
+        pending: Math.round(pending * 100) / 100,
+        currency: availableEUR ? "eur" : "mixed",
       };
     } catch (error: unknown) {
       console.error("Error getting balance:", error);
-      throw new HttpsError("internal", (error as Error).message);
+      return {
+        success: false,
+        error: (error as Error).message,
+        available: 0,
+        pending: 0,
+      };
     }
   }
 );
@@ -1199,38 +1269,63 @@ async function handleJobPaymentSucceeded(paymentIntent: any) {
   const { db, FieldValue } = getAdmin();
   const { jobId, proposalId, freelancerId } = paymentIntent.metadata;
 
-  // Update payment record
-  await db.doc(`payments/${paymentIntent.id}`).update({
-    status: "held_in_escrow",
-    paidAt: FieldValue.serverTimestamp(),
-  });
+  try {
+    console.log(`Processing payment success for ${paymentIntent.id}`);
 
-  // Update proposal status WITH paymentStatus field
-  await db.doc(`proposals/${proposalId}`).update({
-    status: "accepted",
-    acceptedAt: FieldValue.serverTimestamp(),
-    paymentStatus: "escrow",  // ADD THIS LINE - THIS IS WHAT'S MISSING!
-    projectStatus: "ongoing",   // ADD THIS LINE TOO!
-  });
+    // Update payment record
+    await db.doc(`payments/${paymentIntent.id}`).update({
+      status: "held_in_escrow",
+      paidAt: FieldValue.serverTimestamp(),
+    });
 
-  // Update job status
-  await db.doc(`jobs/${jobId}`).update({
-    status: "in_progress",
-    paymentStatus: "escrow",
-    assignedFreelancerId: freelancerId,
-    assignedProposalId: proposalId,
-  });
+    // Update proposal status WITH paymentStatus field
+    await db.doc(`proposals/${proposalId}`).update({
+      status: "accepted",
+      acceptedAt: FieldValue.serverTimestamp(),
+      paymentStatus: "escrow",
+      projectStatus: "ongoing",
+    });
 
-  // Create notification for freelancer
-  await db.collection("notifications").add({
-    userId: freelancerId,
-    type: "proposal",
-    title: "Proposal Accepted!",
-    body: "Your proposal has been accepted and the payment is secured in escrow.",
-    data: { jobId, proposalId },
-    read: false,
-    createdAt: FieldValue.serverTimestamp(),
-  });
+    // Update job status
+    await db.doc(`jobs/${jobId}`).update({
+      status: "in_progress",
+      paymentStatus: "escrow",
+      assignedFreelancerId: freelancerId,
+      assignedProposalId: proposalId,
+    });
+
+    // ✅ FIX #7: Update escrow transaction status from "pending" to "completed"
+    const transactionsQuery = await db.collection("transactions")
+      .where("stripePaymentIntentId", "==", paymentIntent.id)
+      .where("type", "==", "escrow")
+      .limit(1)
+      .get();
+      if (!transactionsQuery.empty) {
+      await transactionsQuery.docs[0].ref.update({
+        status: "completed",
+        completedAt: FieldValue.serverTimestamp(),
+      });
+     console.log(`✅ Updated escrow transaction to completed for payment ${paymentIntent.id}`);
+      } else {
+      console.warn(`⚠️ No escrow transaction found for payment ${paymentIntent.id}`);
+    }
+
+    // Create notification for freelancer
+    await db.collection("notifications").add({
+      userId: freelancerId,
+      type: "proposal",
+      title: "Proposal Accepted!",
+      body: "Your proposal has been accepted and the payment is secured in escrow.",
+      data: { jobId, proposalId },
+      read: false,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    console.log(`✅ Payment success handled for job ${jobId}`);
+  } catch (error) {
+    console.error("Error handling job payment success:", error);
+    throw error;
+  }
 }
 
 async function handleConnectAccountUpdated(account: any) {
