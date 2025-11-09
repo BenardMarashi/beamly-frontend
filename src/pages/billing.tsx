@@ -31,8 +31,9 @@ import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { StripeService } from '../services/stripe-service';
-import { ProSubscription } from '../components/payments/ProSubscription';
+import { ProSubscriptionDual as ProSubscription } from '../components/payments/ProSubscriptionDual';
 import { StripeConnectOnboarding } from '../components/payments/StripeConnectOnboarding';
+
 
 interface Transaction {
   id: string;

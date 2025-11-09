@@ -1,8 +1,11 @@
 // functions/src/index.ts
+import * as functions from "firebase-functions";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
 import { defineSecret, defineString } from "firebase-functions/params";
+import axios from "axios";
+
 
 
 // One source of truth for your site URL.
@@ -2065,3 +2068,269 @@ export const healthCheck = onRequest(
     });
   }
 );
+
+interface AppleReceiptValidationRequest {
+  "receipt-data": string;
+  password?: string;
+  "exclude-old-transactions"?: boolean;
+}
+
+interface AppleReceiptValidationResponse {
+  status: number;
+  receipt: any;
+  latest_receipt_info?: any[];
+  pending_renewal_info?: any[];
+  environment?: "Production" | "Sandbox";
+}
+
+/**
+ * Validate Apple IAP Receipt
+ * Called from frontend after successful purchase
+ */
+export const validateAppleReceipt = onCall(
+  {
+    region: "us-central1",
+    maxInstances: 10,
+    secrets: [stripeSecretKey], // Reuse existing secret config
+  },
+  async (request) => {
+    // Ensure user is authenticated
+    if (!request.auth) {
+      throw new HttpsError(
+        "unauthenticated",
+        "User must be authenticated to validate receipts"
+      );
+    }
+
+    const { userId, receiptData, transactionId, productId, planType } = request.data;
+
+    // Validate input
+    if (!userId || !receiptData || !productId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Missing required fields: userId, receiptData, or productId"
+      );
+    }
+
+    // Ensure user can only validate their own receipts
+    if (request.auth.uid !== userId) {
+      throw new HttpsError(
+        "permission-denied",
+        "You can only validate receipts for your own account"
+      );
+    }
+
+    try {
+      console.log(`🍎 Validating Apple receipt for user ${userId}, product ${productId}`);
+
+      // Try production environment first
+      let validationResponse = await validateWithApple(receiptData, false);
+
+      // If receipt is from sandbox, try sandbox environment
+      if (validationResponse.status === 21007) {
+        console.log("Receipt is from sandbox, retrying with sandbox URL...");
+        validationResponse = await validateWithApple(receiptData, true);
+      }
+
+      // Check validation status
+      if (validationResponse.status !== 0) {
+        const errorMessage = getAppleStatusMessage(validationResponse.status);
+        console.error(`Apple receipt validation failed: ${errorMessage}`);
+        throw new HttpsError(
+          "invalid-argument",
+          `Receipt validation failed: ${errorMessage}`
+        );
+      }
+
+      console.log("✅ Receipt validated successfully");
+
+      // Process the validated purchase
+      await processAppleIAPPurchase({
+        userId,
+        receiptData: validationResponse.receipt,
+        transactionId,
+        productId,
+        planType,
+        environment: validationResponse.environment || "Production",
+      });
+
+      return {
+        success: true,
+        message: "Subscription activated successfully",
+        receipt: validationResponse.receipt,
+      };
+
+    } catch (error: any) {
+      console.error("Error validating Apple receipt:", error);
+
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
+      throw new HttpsError(
+        "internal",
+        `Failed to validate receipt: ${error.message}`
+      );
+    }
+  }
+);
+
+/**
+ * Validate receipt with Apple's servers
+ */
+async function validateWithApple(
+  receiptData: string,
+  sandbox: boolean
+): Promise<AppleReceiptValidationResponse> {
+  const url = sandbox
+    ? "https://sandbox.itunes.apple.com/verifyReceipt"
+    : "https://buy.itunes.apple.com/verifyReceipt";
+
+  // Get shared secret from Firebase config
+  // Set via: firebase functions:config:set apple.shared_secret="YOUR_SECRET"
+  const sharedSecret = functions.config().apple?.shared_secret;
+
+  const requestData: AppleReceiptValidationRequest = {
+    "receipt-data": receiptData,
+    password: sharedSecret,
+    "exclude-old-transactions": true,
+  };
+
+  try {
+    const response = await axios.post(url, requestData, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      timeout: 10000, // 10 second timeout
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error("Error calling Apple validation API:", error.message);
+    throw new Error(`Apple API call failed: ${error.message}`);
+  }
+}
+
+/**
+ * Process validated purchase and update Firestore
+ */
+async function processAppleIAPPurchase(purchaseData: {
+  userId: string;
+  receiptData: any;
+  transactionId: string;
+  productId: string;
+  planType: string;
+  environment: string;
+}) {
+  const { db, FieldValue, Timestamp } = getAdmin();
+  const batch = db.batch();
+
+  const { userId, receiptData, transactionId, productId, environment } = purchaseData;
+
+  // Determine subscription details based on product ID
+  let subscriptionTier: "pro" | "messages" = "pro";
+  let subscriptionPlan = "monthly";
+  let subscriptionDuration = 30; // days
+
+  if (productId === "03") {
+    // Messages subscription
+    subscriptionTier = "messages";
+    subscriptionPlan = "messages";
+    subscriptionDuration = 30;
+  } else if (productId === "01") {
+    // Pro Monthly
+    subscriptionTier = "pro";
+    subscriptionPlan = "monthly";
+    subscriptionDuration = 30;
+  } else if (productId === "02") {
+    // Pro 6 Months
+    subscriptionTier = "pro";
+    subscriptionPlan = "sixmonths";
+    subscriptionDuration = 180;
+  }
+
+  // Calculate subscription dates
+  const now = new Date();
+  const startDate = Timestamp.now();
+  const endDate = Timestamp.fromDate(
+    new Date(now.getTime() + subscriptionDuration * 24 * 60 * 60 * 1000)
+  );
+
+  // Update user document
+  const userRef = db.collection("users").doc(userId);
+  batch.update(userRef, {
+    subscriptionTier,
+    subscriptionStatus: "active",
+    subscriptionPlan,
+    subscriptionPlatform: "apple",
+    subscriptionStartDate: startDate,
+    subscriptionEndDate: endDate,
+    isPro: subscriptionTier === "pro",
+    appleTransactionId: transactionId,
+    appleProductId: productId,
+    appleEnvironment: environment,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  // Log transaction
+  const transactionRef = db.collection("transactions").doc();
+  batch.set(transactionRef, {
+    type: "apple_iap",
+    userId,
+    subscriptionTier,
+    subscriptionPlan,
+    productId,
+    transactionId,
+    amount: getProductPrice(productId),
+    currency: "USD",
+    platformFee: 0.30, // Apple takes 30%
+    status: "completed",
+    platform: "apple",
+    environment,
+    receiptData: JSON.stringify(receiptData),
+    createdAt: FieldValue.serverTimestamp(),
+    completedAt: FieldValue.serverTimestamp(),
+  });
+
+  // Commit batch
+  await batch.commit();
+
+  console.log(`✅ User ${userId} subscription updated: ${subscriptionTier} (${subscriptionPlan})`);
+}
+
+/**
+ * Get product price based on product ID
+ */
+function getProductPrice(productId: string): number {
+  const prices: Record<string, number> = {
+    "01": 9.99,   // Pro Monthly
+    "02": 47.99,  // Pro 6 Months
+    "03": 3.00,    // Messages
+  };
+  return prices[productId] || 0;
+}
+
+/**
+ * Get human-readable error message for Apple status codes
+ */
+function getAppleStatusMessage(status: number): string {
+  const messages: Record<number, string> = {
+    0: "Success",
+    21000: "The App Store could not read the JSON object you provided",
+    21002: "The receipt-data property was malformed or missing",
+    21003: "The receipt could not be authenticated",
+    21004: "The shared secret you provided does not match",
+    21005: "The receipt server is not currently available",
+    21006: "This receipt is valid but the subscription has expired",
+    21007: "This receipt is from the test environment",
+    21008: "This receipt is from the production environment",
+    21009: "Internal data access error",
+    21010: "The user account cannot be found or has been deleted",
+  };
+
+  return messages[status] || `Unknown error (status ${status})`;
+}
+
+// ========================================
+// END OF APPLE IAP FUNCTIONS
+// ========================================

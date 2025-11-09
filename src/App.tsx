@@ -16,6 +16,7 @@ import i18n from './lib/i18n';
 import ForgotPasswordPage from './pages/forgot-password';
 // Layouts - Keep your current layout system
 import { MainLayout } from './layouts/main-layout';
+import { PaymentProvider } from './contexts/PaymentContext';
 
 // Regular imports for frequently used pages
 import { LandingPage } from './pages/landing';
@@ -437,6 +438,7 @@ function App() {
       <I18nextProvider i18n={i18n}>
         <NextUIProvider>
           <ThemeProvider>
+            <PaymentProvider>
             <Router>
               <AuthProvider>
                   <EmailVerificationBanner />
@@ -491,6 +493,7 @@ function App() {
                   </div>
               </AuthProvider>
             </Router>
+            </PaymentProvider>
           </ThemeProvider>
         </NextUIProvider>
       </I18nextProvider>
