@@ -1,15 +1,7 @@
 // src/contexts/PaymentContext.tsx
-/**
- * Payment Context for managing payment methods across the app
- * Automatically selects Apple IAP for iOS or Stripe for web/Android
- */
-
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { 
   detectPlatform, 
-  shouldUseAppleIAP, 
-  getPaymentMethod,
-  logPlatformInfo,
   type PlatformInfo 
 } from '../utils/platform-detection';
 
@@ -25,58 +17,46 @@ interface PaymentContextType {
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
 
-interface PaymentProviderProps {
-  children: ReactNode;
-}
+const defaultPlatform: PlatformInfo = {
+  isIOS: false,
+  isAndroid: false,
+  isMobile: false,
+  isWeb: true,
+  isApplixApp: false,
+  shouldUseAppleIAP: false,
+  userAgent: ''
+};
 
-export const PaymentProvider: React.FC<PaymentProviderProps> = ({ children }) => {
-  const [platform, setPlatform] = useState<PlatformInfo>(() => detectPlatform());
-  const [paymentMethod, setPaymentMethod] = useState<'apple_iap' | 'stripe'>(() => getPaymentMethod());
+export const PaymentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [platform, setPlatform] = useState<PlatformInfo>(defaultPlatform);
+  const [paymentMethod, setPaymentMethod] = useState<'apple_iap' | 'stripe'>('stripe');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Detect platform on mount
-    const platformInfo = detectPlatform();
-    setPlatform(platformInfo);
-    
-    // Set payment method based on platform
-    const method = getPaymentMethod();
-    setPaymentMethod(method);
+    try {
+      // Detect platform safely
+      const platformInfo = detectPlatform();
+      setPlatform(platformInfo);
+      
+      // Determine payment method
+      const method = platformInfo.shouldUseAppleIAP ? 'apple_iap' : 'stripe';
+      setPaymentMethod(method);
 
-    // Log platform info for debugging
-    if (import.meta.env.DEV) {
-      logPlatformInfo();
-    }
+      setIsLoading(false);
 
-    setIsLoading(false);
-
-    // Log payment method selection
-    console.log(`💳 Payment Method Selected: ${method.toUpperCase()}`);
-    if (platformInfo.shouldUseAppleIAP) {
-      console.log('🍎 Apple In-App Purchase is ACTIVE (iOS detected)');
-    } else {
-      console.log('💰 Stripe Payment is ACTIVE (Web/Android detected)');
+      // Safe logging
+      if (typeof console !== 'undefined') {
+        console.log('💳 Payment Method:', method.toUpperCase());
+        console.log('📱 Platform:', platformInfo.isIOS ? 'iOS' : platformInfo.isAndroid ? 'Android' : 'Web');
+      }
+    } catch (error) {
+      // Fallback to safe defaults if anything fails
+      console.error('PaymentContext initialization error:', error);
+      setPlatform(defaultPlatform);
+      setPaymentMethod('stripe');
+      setIsLoading(false);
     }
   }, []);
-
-  // Re-detect platform if user agent changes (rare, but possible)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        const newPlatform = detectPlatform();
-        const newMethod = getPaymentMethod();
-        
-        if (newMethod !== paymentMethod) {
-          console.log(`🔄 Payment method changed: ${paymentMethod} → ${newMethod}`);
-          setPlatform(newPlatform);
-          setPaymentMethod(newMethod);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [paymentMethod]);
 
   const value: PaymentContextType = {
     paymentMethod,
@@ -95,9 +75,6 @@ export const PaymentProvider: React.FC<PaymentProviderProps> = ({ children }) =>
   );
 };
 
-/**
- * Hook to use payment context
- */
 export const usePayment = (): PaymentContextType => {
   const context = useContext(PaymentContext);
   
@@ -107,20 +84,5 @@ export const usePayment = (): PaymentContextType => {
   
   return context;
 };
-
-/**
- * HOC to wrap components that need payment context
- */
-export function withPayment<P extends object>(
-  Component: React.ComponentType<P>
-): React.FC<P> {
-  return function WithPaymentComponent(props: P) {
-    return (
-      <PaymentProvider>
-        <Component {...props} />
-      </PaymentProvider>
-    );
-  };
-}
 
 export default PaymentContext;

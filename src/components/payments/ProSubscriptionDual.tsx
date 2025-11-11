@@ -75,20 +75,22 @@ export const ProSubscriptionDual: React.FC = () => {
         t('proSubscription.plans.free.feature4')
       ]
     },
-    {
-      id: 'messages',
-      name: t('proSubscription.plans.messages.name'),
-      price: 3,
-      interval: t('proSubscription.intervals.month'),
-      features: [
-        t('proSubscription.plans.messages.feature1'),
-        t('proSubscription.plans.messages.feature2'),
-        t('proSubscription.plans.messages.feature3'),
-        t('proSubscription.plans.messages.feature4')
-      ],
-      stripePriceId: STRIPE_PRICE_IDS.messages,
-      appleProductId: '03' // Messages product from App Store Connect
-    },
+    /* ← COMMENT OUT THIS ENTIRE BLOCK
+  {
+    id: 'messages',
+    name: t('proSubscription.plans.messages.name'),
+    price: 3,
+    interval: t('proSubscription.intervals.month'),
+    features: [
+      t('proSubscription.plans.messages.feature1'),
+      t('proSubscription.plans.messages.feature2'),
+      t('proSubscription.plans.messages.feature3'),
+      t('proSubscription.plans.messages.feature4')
+    ],
+    stripePriceId: STRIPE_PRICE_IDS.messages,
+    appleProductId: '03' // Messages product from App Store Connect
+  },
+  */ // ← END COMMENT
     {
       id: 'monthly',
       name: t('proSubscription.plans.monthly.name'),
@@ -334,8 +336,10 @@ export const ProSubscriptionDual: React.FC = () => {
   if (currentSubscription.isActive) {
     const planName = currentSubscription.plan === 'sixmonths' 
       ? t('proSubscription.plans.sixmonths.name')
-      : currentSubscription.plan === 'messages'
-      ? t('proSubscription.plans.messages.name')
+/* ← COMMENT OUT THESE LINES
+    : currentSubscription.plan === 'messages'
+    ? t('proSubscription.plans.messages.name')
+    */ 
       : t('proSubscription.plans.monthly.name');
 
     const endDateFormatted = currentSubscription.endDate 
@@ -425,7 +429,7 @@ export const ProSubscriptionDual: React.FC = () => {
           onValueChange={setSelectedPlan}
           className="w-full"
         >
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {SUBSCRIPTION_PLANS.map((plan) => (
               <Card
                 key={plan.id}

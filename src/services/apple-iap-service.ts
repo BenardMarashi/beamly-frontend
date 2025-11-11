@@ -31,9 +31,9 @@ interface IAPInitRequest {
 
 // Product ID mapping based on App Store Connect configuration
 const APPLE_PRODUCT_IDS = {
-  proMonthly: '01',  // Pro Monthly subscription
-  pro6Months: '02',  // Pro 6 Months subscription
-  messages: '03'     // Messages subscription
+  proMonthly: '01',
+  pro6Months: '02',
+  messages: '03'
 } as const;
 
 export class AppleIAPService {

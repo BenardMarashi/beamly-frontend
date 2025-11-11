@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 const STRIPE_PRICE_IDS = {
-  messages: 'price_1SH4I0DtB4sjDNJy2iNybsuv',
+//  messages: 'price_1SH4I0DtB4sjDNJy2iNybsuv',
   monthly: 'price_1RoqOADtB4sjDNJywCzlCHBM',
   sixmonths: 'price_1Rt9g9DtB4sjDNJy5eXZpg7d',
   quarterly: 'price_1RoqOADtB4sjDNJyCiGCXLZx',
@@ -43,19 +43,21 @@ export const ProSubscription: React.FC = () => {
         t('proSubscription.plans.free.feature4')
       ]
     },
-    {
-      id: 'messages',
-      name: t('proSubscription.plans.messages.name'),
-      price: 3,
-      interval: t('proSubscription.intervals.month'),
-      savings: 0,
-      features: [
-        t('proSubscription.plans.messages.feature1'),
-        t('proSubscription.plans.messages.feature2'),
-        t('proSubscription.plans.messages.feature3'),
-        t('proSubscription.plans.messages.feature4')
-      ]
-    },
+  /* ← COMMENT OUT THIS ENTIRE BLOCK
+  {
+    id: 'messages',
+    name: t('proSubscription.plans.messages.name'),
+    price: 3,
+    interval: t('proSubscription.intervals.month'),
+    savings: 0,
+    features: [
+      t('proSubscription.plans.messages.feature1'),
+      t('proSubscription.plans.messages.feature2'),
+      t('proSubscription.plans.messages.feature3'),
+      t('proSubscription.plans.messages.feature4')
+    ]
+  },
+  */ // ← END COMMENT
     {
       id: 'monthly',
       name: t('proSubscription.plans.monthly.name'),
@@ -117,9 +119,9 @@ export const ProSubscription: React.FC = () => {
     try {
       let priceId = '';
       switch(selectedPlan) {
-        case 'messages':
-          priceId = STRIPE_PRICE_IDS.messages;
-          break;
+//        case 'messages':
+//          priceId = STRIPE_PRICE_IDS.messages;
+//          break;
         case 'monthly':
           priceId = STRIPE_PRICE_IDS.monthly;
           break;
@@ -169,8 +171,10 @@ export const ProSubscription: React.FC = () => {
   if (currentSubscription.isActive) {
     const planName = currentSubscription.plan === 'sixmonths' 
       ? t('proSubscription.plans.sixmonths.name')
-      : currentSubscription.plan === 'messages'
-      ? t('proSubscription.plans.messages.name')
+/* ← COMMENT OUT THIS LINE
+    : currentSubscription.plan === 'messages'
+    ? t('proSubscription.plans.messages.name')
+    */ 
       : t('proSubscription.plans.monthly.name');
 
     const endDateFormatted = currentSubscription.endDate 

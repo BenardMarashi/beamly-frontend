@@ -11,7 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ConversationService } from '../services/firebase-services';
 import { toast } from 'react-hot-toast';
 import { MessagesView } from '../components/MessagesView';
-import { UpgradeToProBanner } from '../components/banners/UpgradeToProBanner';
+//import { UpgradeToProBanner } from '../components/banners/UpgradeToProBanner';
 import { useDisclosure } from '@nextui-org/react';
 import { formatNameWithInitial } from '../utils/nameFormatter';
 import { useMessageAccess } from '../hooks/use-message-access';
@@ -45,7 +45,7 @@ export const ConversationsListPage: React.FC = () => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(conversationId || null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [processedConversationIds, setProcessedConversationIds] = useState<Set<string>>(new Set());
-  const { isOpen: isProModalOpen, onOpen: onProModalOpen, onClose: onProModalClose } = useDisclosure();
+  //const { isOpen: isProModalOpen, onOpen: onProModalOpen, onClose: onProModalClose } = useDisclosure();
 
   // Handle window resize
   useEffect(() => {
@@ -269,11 +269,12 @@ export const ConversationsListPage: React.FC = () => {
               <div
                 key={conversation.id}
                 onClick={() => {
-                  // Only restrict freelancers who aren't pro
-                  if (!hasMessageAccess) {
-                    onProModalOpen();
-                    return;
-                  }
+                    /*
+                    if (!hasMessageAccess) {
+                      onProModalOpen();
+                      return;
+                    }
+                    */
                   handleConversationClick(conversation.id);
                 }}
                 className={`p-4 rounded-lg cursor-pointer transition-colors relative ${
@@ -282,7 +283,7 @@ export const ConversationsListPage: React.FC = () => {
                     : 'hover:bg-white/5'
                 }`}
               >
-                <div className={`flex items-center gap-3 ${!hasMessageAccess ? 'blur-sm pointer-events-none select-none' : ''}`}>
+                <div>
                   <div className="relative">
                     <Avatar
                       src={conversation.otherUser.photoURL}
@@ -339,7 +340,12 @@ export const ConversationsListPage: React.FC = () => {
             </CardBody>
           </Card>
         </div>
-        <UpgradeToProBanner isOpen={isProModalOpen} onClose={onProModalClose} />
+        {/* 
+        <UpgradeToProBanner 
+          isOpen={isProModalOpen}
+          onClose={onProModalClose}
+        />
+        */}
       </>
     );
   }
@@ -380,7 +386,12 @@ export const ConversationsListPage: React.FC = () => {
           </CardBody>
         </Card>
       </div>
-      <UpgradeToProBanner isOpen={isProModalOpen} onClose={onProModalClose} />
+      {/* 
+<UpgradeToProBanner 
+  isOpen={isProModalOpen}
+  onClose={onProModalClose}
+/>
+*/}
     </>
   );
   

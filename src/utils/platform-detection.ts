@@ -54,15 +54,15 @@ export function detectPlatform(): PlatformInfo {
   // Check if running in Appilix app (has appilix global object)
   const isApplixApp = typeof window !== 'undefined' && 
                       (window.hasOwnProperty('appilix') || 
-                       /appilix/i.test(userAgent) ||
-                       /app{/i.test(userAgent)); // App{VERSION_CODE} pattern
+                      /appilix/i.test(userAgent) ||
+                      /app{/i.test(userAgent));
 
   const isMobile = isIOS || isAndroid;
   const isWeb = !isMobile || (!isApplixApp && !ua.includes('app'));
 
   // CRITICAL: Only use Apple IAP if on iOS
   // This is the key compliance requirement
-  const shouldUseAppleIAP = isIOS;
+  const shouldUseAppleIAP = isIOS && isApplixApp;
 
   return {
     isIOS,

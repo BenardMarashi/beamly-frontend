@@ -19,8 +19,8 @@ interface Country {
 export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = ({ onComplete }) => {
   const { user, userData } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState('CZ');
+  //const [countries, setCountries] = useState<Country[]>([]);
+  //const [selectedCountry, setSelectedCountry] = useState('CZ');
   const [accountStatus, setAccountStatus] = useState<{
     exists: boolean;
     detailsSubmitted: boolean;
@@ -33,10 +33,10 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
     payoutsEnabled: false,
   });
 
-  useEffect(() => {
+  /*useEffect(() => {
     checkAccountStatus();
     fetchCountries();
-  }, [user?.uid]);
+  }, [user?.uid]);*/
 
   // Check for success return from Stripe
   useEffect(() => {
@@ -52,12 +52,12 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
     }
   }, []);
 
-  const fetchCountries = async () => {
+  /*const fetchCountries = async () => {
     const result = await StripeService.getSupportedCountries();
     if (result.success && result.countries) {
       setCountries(result.countries);
     }
-  };
+  };*/
 
   const checkAccountStatus = async () => {
     if (!user?.uid || !userData?.stripeConnectAccountId) return;
@@ -93,7 +93,7 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
       
       // Create account if doesn't exist
       if (!accountId) {
-        const result = await StripeService.createConnectAccount(user.uid, selectedCountry);
+        const result = await StripeService.createConnectAccount(user.uid, 'CZ');
         if (result.success && result.onboardingUrl) {
           window.location.href = result.onboardingUrl;
           return;
@@ -243,7 +243,7 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
             </div>
           </div>
 
-          <Select
+          {/*/<Select
             label="Select Your Country"
             placeholder="Choose your country"
             selectedKeys={[selectedCountry]}
@@ -262,7 +262,7 @@ export const StripeConnectOnboarding: React.FC<StripeConnectOnboardingProps> = (
                 </div>
               </SelectItem>
             ))}
-          </Select>
+          </Select>*/}
           
           <Button
             color="primary"

@@ -76,7 +76,7 @@ export const UpgradeToProBanner: React.FC<UpgradeToProBannerProps> = ({
                   {/* Horizontal Scrolling Plans */}
                   <div className="relative mb-5">
                     <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory upgrade-banner-scroll-container">
-                      {/* Messages Plan */}
+                      {/* Messages Plan 
                       <div className="flex-shrink-0 w-[280px] md:w-[calc(50%-0.5rem)] snap-center">
                         <Card className="bg-white/5 border border-[#0F43EE]/30 h-full">
                           <CardBody className="p-4">
@@ -124,7 +124,7 @@ export const UpgradeToProBanner: React.FC<UpgradeToProBannerProps> = ({
                             </Button>
                           </CardBody>
                         </Card>
-                      </div>
+                      </div>*/}
 
                       {/* Pro Plan */}
                       <div className="flex-shrink-0 w-[280px] md:w-[calc(50%-0.5rem)] snap-center">

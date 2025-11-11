@@ -3247,12 +3247,12 @@
     }
   },
   "postJob": {
-    "title": "Posto një Punë të Re",
-    "jobDetails": "Detajet e Punës",
-    "jobTitle": "Titulli i Punës",
+    "title": "Posto një Projekt të ri",
+    "jobDetails": "Detajet e Projektit",
+    "jobTitle": "Titulli i Projektit",
     "jobTitlePlaceholder": "p.sh. Nevojitet Zhvillues Full Stack për Faqe E-commerce",
-    "jobDescription": "Përshkrimi i Punës",
-    "jobDescriptionPlaceholder": "Përshkruani kërkesat e punës, përgjegjësitë dhe aftësitë specifike të nevojshme...",
+    "jobDescription": "Përshkrimi i Projektit",
+    "jobDescriptionPlaceholder": "Përshkruani kërkesat e pojektit, përgjegjësitë dhe aftësitë specifike të nevojshme...",
     "category": "Kategoria",
     "selectCategory": "Zgjidhni një kategori",
     "skillsExperience": "Aftësitë & Përvoja",
@@ -3271,7 +3271,7 @@
     "enterAmount": "Vendosni shumën",
     "min": "Min",
     "max": "Maks",
-    "postJobButton": "Posto Punën",
+    "postJobButton": "Posto Projektin",
     "categories": {
       "development": "Zhvillim",
       "design": "Dizajn",
@@ -3282,7 +3282,7 @@
       "business": "Biznes"
     },
     "experienceLevels": {
-      "entry": "Nivel Fillestar",
+      "entry": "Fillestar",
       "intermediate": "Mesatar",
       "expert": "Ekspert"
     },
@@ -3295,17 +3295,17 @@
       "moreThan6months": "Më shumë se 6 muaj"
     },
     "errors": {
-      "loginRequired": "Ju lutemi identifikohuni për të postuar punë",
-      "onlyClients": "Vetëm klientët mund të postojnë punë. Tipi juaj i llogarisë është: {{userType}}",
+      "loginRequired": "Ju lutemi identifikohuni për të postuar projekte",
+      "onlyClients": "Vetëm klientët mund të postojnë projekte. Tipi juaj i llogarisë është: {{userType}}",
       "fillRequired": "Ju lutemi plotësoni të gjitha fushat e kërkuara",
       "addSkill": "Ju lutemi shtoni të paktën një aftësi",
       "validFixedPrice": "Ju lutemi vendosni një çmim fiks të vlefshëm",
       "validHourlyRate": "Ju lutemi vendosni një gamë të vlefshme të tarifës orare",
       "selectExperience": "Ju lutemi zgjidhni nivelin e përvojës",
-      "postFailed": "Dështoi postimi i punës. Ju lutemi provoni përsëri."
+      "postFailed": "Dështoi postimi i projektit. Ju lutemi provoni përsëri."
     },
     "success": {
-      "posted": "Puna u postua me sukses!"
+      "posted": "Projekti u postua me sukses!"
     }
   },
   "menu": {

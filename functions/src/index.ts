@@ -1138,15 +1138,17 @@ async function handleSubscriptionCreated(session: any) {
     let subscriptionTier: "messages" | "pro" = "pro";
     let planType = "monthly";
 
-    if (priceId === process.env.STRIPE_MESSAGES_PRICE_ID) {
-      subscriptionTier = "messages";
-      planType = "messages";
-    } else {
+    /*
+if (priceId === process.env.STRIPE_MESSAGES_PRICE_ID) {
+  subscriptionTier = "messages";
+  planType = "messages";
+} else {
+*/
       subscriptionTier = "pro";
       if (priceId === process.env.STRIPE_QUARTERLY_PRICE_ID) planType = "quarterly";
       if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) planType = "yearly";
       if (priceId === process.env.STRIPE_6MONTHS_PRICE_ID) planType = "sixmonths";
-    }
+//    }
 
     // Ensure timestamps are valid numbers
     const startTimestamp = Number(subscription.current_period_start);
@@ -1174,7 +1176,7 @@ async function handleSubscriptionCreated(session: any) {
       status: "completed",
       stripeSessionId: session.id,
       stripeSubscriptionId: subscription.id,
-      description: `${subscriptionTier === "messages" ? "Messages-Only" : planType} subscription`,
+      description: /*`${subscriptionTier === "messages" ? "Messages-Only" : planType} subscription`*/`Subscription (${planType})`,
       createdAt: FieldValue.serverTimestamp(),
       completedAt: FieldValue.serverTimestamp(),
     });
