@@ -1658,8 +1658,8 @@ export const checkProposalLimit = onCall(
         });
       }
 
-      const canSubmit = monthlyProposals < 5;
-      const remaining = Math.max(0, 5 - monthlyProposals);
+      const canSubmit = monthlyProposals < 3;
+      const remaining = Math.max(0, 3 - monthlyProposals);
 
       return {
         canSubmit,
@@ -1729,10 +1729,10 @@ export const submitProposal = onCall(
           });
         }
 
-        if (monthlyProposals >= 5) {
+        if (monthlyProposals >= 3) {
           throw new HttpsError(
             "resource-exhausted",
-            "You've reached your monthly limit of 5 proposals. Upgrade to Pro for unlimited proposals."
+            "You've reached your monthly limit of 3 proposals. Upgrade to Pro for unlimited proposals."
           );
         }
       }

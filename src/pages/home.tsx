@@ -176,187 +176,87 @@ export const HomePage: React.FC = () => {
     if (!user) return;
 
     const fetchTopFreelancers = async () => {
-      try {
-        // Step 1: Query ALL Pro users first (no limit, we want all of them)
-        const proUsersQuery = query(
-          collection(db, 'users'),
-          where('userType', 'in', ['freelancer', 'both']),
-          where('isPro', '==', true)
-        );
+  try {
+    // Fetch ALL freelancers in one query (like browse-freelancers does)
+    const allUsersQuery = query(
+      collection(db, 'users'),
+      where('userType', 'in', ['freelancer', 'both']),
+      limit(500)
+    );
 
-        const proSnapshot = await getDocs(proUsersQuery);
-        const proUsers = proSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            displayName: data.displayName || t('home.unknownUser'),
-            title: data.title || '',
-            photoURL: data.photoURL || '',
-            rating: data.rating || 0,
-            ratingCount: data.ratingCount || 0,
-            completedProjects: data.completedJobs || 0,
-            portfolioCount: data.portfolioCount || 0,
-            skills: data.skills || [],
-            isPro: true
-          } as Freelancer;
-        });
+    const snapshot = await getDocs(allUsersQuery);
+    const allUsers = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        displayName: data.displayName || t('home.unknownUser'),
+        title: data.title || '',
+        photoURL: data.photoURL || '',
+        rating: data.rating || 0,
+        ratingCount: data.ratingCount || 0,
+        completedProjects: data.completedJobs || 0,
+        portfolioCount: data.portfolioCount || 0,
+        skills: data.skills || [],
+        isPro: data.isPro === true
+      } as Freelancer;
+    }).filter(user => user.displayName && user.displayName !== t('home.unknownUser'));
 
-        // Sort Pro users by rating
-        proUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-
-        console.log(`Found ${proUsers.length} Pro users`);
-
-        // Step 2: Query regular users (non-Pro)
-        // We need enough to fill up to 10 total, accounting for Pro users we already have
-        const regularUsersNeeded = Math.max(10 - proUsers.length, 0);
-        
-        if (regularUsersNeeded > 0) {
-          // Query more than needed to ensure we get the best rated ones
-          const regularUsersQuery = query(
-            collection(db, 'users'),
-            where('userType', 'in', ['freelancer', 'both']),
-            where('isPro', '==', false),
-            limit(500) // Get more to sort by rating
-          );
-
-          const regularSnapshot = await getDocs(regularUsersQuery);
-          const regularUsers = regularSnapshot.docs.map(doc => {
-            const data = doc.data();
-              return {
-              id: doc.id,
-              displayName: data.displayName || t('home.unknownUser'),
-              title: data.title || '',
-              photoURL: data.photoURL || '',
-              rating: data.rating || 0,
-              ratingCount: data.ratingCount || 0,
-              completedProjects: data.completedJobs || 0,
-              portfolioCount: data.portfolioCount || 0,
-              skills: data.skills || [],
-              isPro: false
-            } as Freelancer;
-          })  .filter(user => user.displayName && user.displayName !== t('home.unknownUser'));
-
-
-          // Sort regular users by rating and take only what we need
-          // Helper: Check for real profile picture
-          const hasRealPhoto = (photoURL?: string): boolean => {
-            if (!photoURL) return false;
-            const url = photoURL.trim();
-            if (url === '' || url === 'null' || url === 'undefined') return false;
-            if (!url.startsWith('http')) return false;
-            if (url.includes('ui-avatars.com')) return false;
-            return true;
-          };
-
-          // Sort regular users: Photo+Portfolio > Photo only > Rest, then by rating
-          regularUsers.sort((a, b) => {
-            const aHasPhoto = hasRealPhoto(a.photoURL);
-            const bHasPhoto = hasRealPhoto(b.photoURL);
-            const aHasPortfolio = (a.portfolioCount || 0) > 0;
-            const bHasPortfolio = (b.portfolioCount || 0) > 0;
-            
-            // Tier: Photo+Portfolio=2, Photo only=1, Neither=0
-            let aTier = 0;
-            if (aHasPhoto && aHasPortfolio) aTier = 2;
-            else if (aHasPhoto) aTier = 1;
-            
-            let bTier = 0;
-            if (bHasPhoto && bHasPortfolio) bTier = 2;
-            else if (bHasPhoto) bTier = 1;
-            
-            // Higher tier first
-            if (aTier !== bTier) return bTier - aTier;
-            
-            // Within same tier, sort by rating
-            return (b.rating || 0) - (a.rating || 0);
-          });
-          const topRegularUsers = regularUsers.slice(0, regularUsersNeeded);
-
-          console.log(`Found ${regularUsers.length} regular users, using ${topRegularUsers.length}`);
-
-          // Combine: ALL Pro users first, then top regular users (up to 10 total)
-          const combinedFreelancers = [...proUsers, ...topRegularUsers].slice(0, 10);
-          setTopFreelancers(combinedFreelancers);
-        } else {
-          // If we have 10 or more Pro users, just show the top 10 Pro users
-          setTopFreelancers(proUsers.slice(0, 10));
-        }
-      } catch (error) {
-        console.error("Error fetching freelancers with separate queries:", error);
-        
-        // Fallback: Try to get users without the isPro filter
-        try {
-          const fallbackQuery = query(
-            collection(db, 'users'),
-            where('userType', 'in', ['freelancer', 'both']),
-            limit(500) // Increase limit to have better chance of getting Pro users
-          );
-
-          const fallbackSnapshot = await getDocs(fallbackQuery);
-          const allFreelancers = fallbackSnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-            id: doc.id,
-            displayName: data.displayName || t('home.unknownUser'),
-            title: data.title || '',
-            photoURL: data.photoURL || '',
-            rating: data.rating || 0,
-            ratingCount: data.ratingCount || 0,
-            completedProjects: data.completedJobs || 0,
-            portfolioCount: data.portfolioCount || 0,
-            skills: data.skills || [],
-            isPro: data.isPro === true
-          } as Freelancer;
-          });
-
-          // Separate and sort
-          const proUsers = allFreelancers.filter(f => f.isPro === true);
-          const regularUsers = allFreelancers.filter(f => f.isPro !== true);
-
-          // Pro users by rating
-          proUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-
-          // Helper for fallback
-          const hasRealPhoto = (photoURL?: string): boolean => {
-            if (!photoURL) return false;
-            const url = photoURL.trim();
-            if (url === '' || url === 'null' || url === 'undefined') return false;
-            if (!url.startsWith('http')) return false;
-            if (url.includes('ui-avatars.com')) return false;
-            return true;
-          };
-
-          // Regular users: tiered sorting
-          regularUsers.sort((a, b) => {
-            const aHasPhoto = hasRealPhoto(a.photoURL);
-            const bHasPhoto = hasRealPhoto(b.photoURL);
-            const aHasPortfolio = ((a as any).portfolioCount || 0) > 0;
-            const bHasPortfolio = ((b as any).portfolioCount || 0) > 0;
-            
-            let aTier = 0;
-            if (aHasPhoto && aHasPortfolio) aTier = 2;
-            else if (aHasPhoto) aTier = 1;
-            
-            let bTier = 0;
-            if (bHasPhoto && bHasPortfolio) bTier = 2;
-            else if (bHasPhoto) bTier = 1;
-            
-            if (aTier !== bTier) return bTier - aTier;
-            return (b.rating || 0) - (a.rating || 0);
-          });
-          
-          const sortedFreelancers = [...proUsers, ...regularUsers].slice(0, 10);
-          console.log(`Fallback: ${proUsers.length} Pro users, ${regularUsers.length} regular users`);
-          
-          setTopFreelancers(sortedFreelancers);
-        } catch (fallbackError) {
-          console.error("Fallback query also failed:", fallbackError);
-          setTopFreelancers([]);
-        }
-      } finally {
-        setLoading(false);
-      }
+    // Helper: Check for real profile picture
+    const hasRealPhoto = (photoURL?: string): boolean => {
+      if (!photoURL) return false;
+      const url = photoURL.trim();
+      if (url === '' || url === 'null' || url === 'undefined') return false;
+      if (!url.startsWith('http')) return false;
+      if (url.includes('ui-avatars.com')) return false;
+      return true;
     };
+
+    // Sort: PRO first, then Photo+Portfolio, then Photo only, then rest
+    allUsers.sort((a, b) => {
+      // 1. PRO users always first
+      if (a.isPro && !b.isPro) return -1;
+      if (!a.isPro && b.isPro) return 1;
+      
+      // 2. Among PRO users: sort by rating
+      if (a.isPro && b.isPro) {
+        return (b.rating || 0) - (a.rating || 0);
+      }
+      
+      // 3. Non-PRO: tiered sorting
+      const aHasPhoto = hasRealPhoto(a.photoURL);
+      const bHasPhoto = hasRealPhoto(b.photoURL);
+      const aHasPortfolio = (a.portfolioCount || 0) > 0;
+      const bHasPortfolio = (b.portfolioCount || 0) > 0;
+      
+      let aTier = 0;
+      if (aHasPhoto && aHasPortfolio) aTier = 2;
+      else if (aHasPhoto) aTier = 1;
+      
+      let bTier = 0;
+      if (bHasPhoto && bHasPortfolio) bTier = 2;
+      else if (bHasPhoto) bTier = 1;
+      
+      if (aTier !== bTier) return bTier - aTier;
+      
+      // Within same tier: sort by rating
+      return (b.rating || 0) - (a.rating || 0);
+    });
+
+    // DEBUG
+    console.log('=== HOME SORTING DEBUG ===');
+    allUsers.slice(0, 15).forEach((f, i) => {
+      const tier = f.isPro ? 'PRO' : (hasRealPhoto(f.photoURL) && f.portfolioCount! > 0 ? '2' : hasRealPhoto(f.photoURL) ? '1' : '0');
+      console.log(`${i+1}. ${f.displayName} | ${tier} | portfolio=${f.portfolioCount}`);
+    });
+
+    setTopFreelancers(allUsers.slice(0, 10));
+  } catch (error) {
+    console.error("Error fetching freelancers:", error);
+    setTopFreelancers([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
     fetchTopFreelancers();
   }, [user, t]);
@@ -498,12 +398,11 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-[calc(100vh-64px)] pb-8">
-      {/* Welcome section with search */}
-      
+    {/* Welcome section with search */}
       <ProfileCompletionBanner />
       <div className="px-4">
         <div className={`${isDarkMode ? 'glass-effect' : 'bg-white shadow-md'} mt-4 p-4 md:p-6 rounded-2xl md:rounded-3xl max-w-7xl mx-auto`}>
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-4 md:mb-6">
+          <div className="flex flex-row flex-wrap md:flex-nowrap items-center gap-x-3 gap-y-1 mb-4 md:mb-6">
             <Avatar 
               src={userData?.photoURL} 
               name={userData?.displayName || 'User'}
@@ -513,7 +412,7 @@ export const HomePage: React.FC = () => {
                 name: "text-beamly-secondary font-bold"
               }}
             />
-            <div className="flex-1">
+            <div className="basis-full md:basis-auto md:flex-1 order-last md:order-none">
               <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                 {t('home.greeting', { name: userData?.displayName || t('home.there') })}
               </p>

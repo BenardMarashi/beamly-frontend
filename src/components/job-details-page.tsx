@@ -30,7 +30,7 @@ interface JobDetails {
   clientJobsPosted?: number;
   clientCountry?: string;
   postedAt: any;
-  proposals: number;
+  proposalCount?: number;
   status: 'open' | 'in-progress' | 'completed' | 'cancelled';
 }
 
@@ -266,7 +266,7 @@ const handleApply = () => {
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">{t('jobDetails.proposals')}</span>
-                    <span className="text-white">{job.proposals}</span>
+                    <span className="text-white">{job.proposalCount || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">{t('jobDetails.status')}</span>

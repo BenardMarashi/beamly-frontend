@@ -33,6 +33,11 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
+/**
+ * FIXED: Corrected cropping function
+ * The previous version used putImageData incorrectly, causing the cropped image
+ * to be dislocated to the corner. This version uses drawImage properly.
+ */
 const getCroppedImg = async (
   imageSrc: string,
   pixelCrop: CroppedArea,
@@ -40,108 +45,85 @@ const getCroppedImg = async (
 ): Promise<Blob> => {
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d', {
-    // iPad optimization: Use lower memory options
-    alpha: false,
-    desynchronized: true,
-    willReadFrequently: false
-  });
+  const ctx = canvas.getContext('2d');
 
   if (!ctx) {
     throw new Error('No 2d context');
   }
 
-  // iPad-specific memory optimization
+  // iPad-specific optimizations
   const isIPadDevice = isIPad();
-  const MAX_CANVAS_SIZE = isIPadDevice ? 2048 : 4096; // Limit canvas size on iPad
-  const JPEG_QUALITY = isIPadDevice ? 0.8 : 0.95; // Lower quality on iPad
-  
-  // Calculate safe canvas size
-  const maxSize = Math.min(
-    Math.max(image.width, image.height),
-    MAX_CANVAS_SIZE
-  );
-  
-  // Reduce safe area calculation for iPad
-  const safeAreaMultiplier = isIPadDevice ? 1.5 : 2;
-  const safeArea = Math.min(
-    safeAreaMultiplier * ((maxSize / 2) * Math.sqrt(2)),
-    MAX_CANVAS_SIZE
-  );
+  const MAX_OUTPUT_SIZE = isIPadDevice ? 1024 : 2048;
+  const JPEG_QUALITY = isIPadDevice ? 0.8 : 0.92;
 
-  // Set canvas size with limits
-  canvas.width = Math.min(safeArea, MAX_CANVAS_SIZE);
-  canvas.height = Math.min(safeArea, MAX_CANVAS_SIZE);
+  // Calculate the bounding box of the rotated image
+  const rotRad = (rotation * Math.PI) / 180;
+  const bBoxWidth = Math.abs(Math.cos(rotRad) * image.width) + Math.abs(Math.sin(rotRad) * image.height);
+  const bBoxHeight = Math.abs(Math.sin(rotRad) * image.width) + Math.abs(Math.cos(rotRad) * image.height);
 
-  // Clear canvas first (helps with memory)
+  // Set canvas size to the bounding box
+  canvas.width = bBoxWidth;
+  canvas.height = bBoxHeight;
+
+  // Fill with white background
   ctx.fillStyle = 'white';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.save();
+  // Translate to center, rotate, then translate back
   ctx.translate(canvas.width / 2, canvas.height / 2);
-  ctx.rotate((rotation * Math.PI) / 180);
-  ctx.translate(-canvas.width / 2, -canvas.height / 2);
+  ctx.rotate(rotRad);
+  ctx.translate(-image.width / 2, -image.height / 2);
 
-  // Draw image with proper scaling
-  const drawWidth = Math.min(image.width, MAX_CANVAS_SIZE);
-  const drawHeight = Math.min(image.height, MAX_CANVAS_SIZE);
-  
-  ctx.drawImage(
-    image,
-    (canvas.width - drawWidth) / 2,
-    (canvas.height - drawHeight) / 2,
-    drawWidth,
-    drawHeight
-  );
-  
-  ctx.restore();
+  // Draw the image
+  ctx.drawImage(image, 0, 0);
 
-  // Get image data with error handling
-  let data;
-  try {
-    data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  } catch (error) {
-    console.error('Failed to get image data:', error);
-    throw new Error('Image processing failed. Please try a smaller image.');
+  // Now extract the cropped area
+  // The pixelCrop coordinates are relative to the rotated image's bounding box
+  const croppedCanvas = document.createElement('canvas');
+  const croppedCtx = croppedCanvas.getContext('2d');
+
+  if (!croppedCtx) {
+    throw new Error('Failed to create cropped context');
   }
 
-  // Create output canvas with optimized size
-  const outputCanvas = document.createElement('canvas');
-  const outputCtx = outputCanvas.getContext('2d', {
-    alpha: false,
-    desynchronized: true
-  });
+  // Limit output size for memory efficiency
+  const outputWidth = Math.min(pixelCrop.width, MAX_OUTPUT_SIZE);
+  const outputHeight = Math.min(pixelCrop.height, MAX_OUTPUT_SIZE);
   
-  if (!outputCtx) {
-    throw new Error('Failed to create output context');
-  }
+  croppedCanvas.width = outputWidth;
+  croppedCanvas.height = outputHeight;
 
-  // Limit output size for iPad
-  const maxOutputSize = isIPadDevice ? 1024 : 2048;
-  outputCanvas.width = Math.min(pixelCrop.width, maxOutputSize);
-  outputCanvas.height = Math.min(pixelCrop.height, maxOutputSize);
+  // Fill with white background
+  croppedCtx.fillStyle = 'white';
+  croppedCtx.fillRect(0, 0, croppedCanvas.width, croppedCanvas.height);
 
-  // Clear output canvas
-  outputCtx.fillStyle = 'white';
-  outputCtx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
-
-  // Draw cropped image
-  outputCtx.putImageData(
-    data,
-    Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
-    Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+  // FIXED: Use drawImage to extract the cropped region correctly
+  // This is the key fix - we draw from the rotated canvas to the output canvas
+  // using the crop coordinates as the source rectangle
+  croppedCtx.drawImage(
+    canvas,
+    pixelCrop.x,           // source x - where to start clipping
+    pixelCrop.y,           // source y - where to start clipping
+    pixelCrop.width,       // source width - width of the clipped image
+    pixelCrop.height,      // source height - height of the clipped image
+    0,                     // destination x - where to place on output canvas
+    0,                     // destination y - where to place on output canvas
+    outputWidth,           // destination width - scale to fit
+    outputHeight           // destination height - scale to fit
   );
 
-  // Convert to blob with error handling and cleanup
+  // Clean up the intermediate canvas
+  canvas.width = 0;
+  canvas.height = 0;
+
+  // Convert to blob
   return new Promise((resolve, reject) => {
-    outputCanvas.toBlob(
+    croppedCanvas.toBlob(
       (blob) => {
-        // Clean up canvases to free memory
-        canvas.width = 0;
-        canvas.height = 0;
-        outputCanvas.width = 0;
-        outputCanvas.height = 0;
-        
+        // Clean up
+        croppedCanvas.width = 0;
+        croppedCanvas.height = 0;
+
         if (blob) {
           resolve(blob);
         } else {
@@ -193,13 +175,23 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     }
   };
 
+  // Reset state when modal opens
+  const handleClose = () => {
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setRotation(0);
+    setCroppedAreaPixels(null);
+    setError(null);
+    onClose();
+  };
+
   // Limit zoom for iPad
   const maxZoom = isIPad() ? 2 : 3;
 
   return (
     <Modal 
       isOpen={isOpen} 
-      onClose={onClose}
+      onClose={handleClose}
       size="3xl"
       classNames={{
         base: "bg-background/95 backdrop-blur-md",
@@ -283,7 +275,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
           <Button 
             color="danger" 
             variant="light" 
-            onPress={onClose}
+            onPress={handleClose}
             disabled={loading}
           >
             Cancel
