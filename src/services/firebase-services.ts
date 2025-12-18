@@ -1486,6 +1486,13 @@ export const ProjectService = {
         updatedAt: serverTimestamp()
       });
       
+      // Increment portfolioCount on user
+      if (projectData.freelancerId) {
+        await updateDoc(doc(db, 'users', projectData.freelancerId), {
+          portfolioCount: increment(1)
+        });
+      }
+      
       return { success: true, projectId: projectRef.id };
     } catch (error) {
       console.error('Error creating project:', error);
@@ -1508,9 +1515,25 @@ export const ProjectService = {
   },
 
   // Delete project
-  async deleteProject(projectId: string) {
+  async deleteProject(projectId: string, freelancerId?: string) {
     try {
+      // If freelancerId not provided, get it from the project first
+      if (!freelancerId) {
+        const projectSnap = await getDoc(doc(db, 'projects', projectId));
+        if (projectSnap.exists()) {
+          freelancerId = projectSnap.data().freelancerId;
+        }
+      }
+      
       await deleteDoc(doc(db, 'projects', projectId));
+      
+      // Decrement portfolioCount on user
+      if (freelancerId) {
+        await updateDoc(doc(db, 'users', freelancerId), {
+          portfolioCount: increment(-1)
+        });
+      }
+      
       return { success: true };
     } catch (error) {
       console.error('Error deleting project:', error);

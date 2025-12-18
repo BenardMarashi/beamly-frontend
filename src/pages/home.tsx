@@ -33,6 +33,7 @@ interface Freelancer {
   completedProjects?: number;
   skills?: string[];
   isPro?: boolean;
+  portfolioCount?: number;
 }
 
 interface Project {
@@ -180,8 +181,7 @@ export const HomePage: React.FC = () => {
         const proUsersQuery = query(
           collection(db, 'users'),
           where('userType', 'in', ['freelancer', 'both']),
-          where('isPro', '==', true),
-          where('profileCompleted', '==', true)
+          where('isPro', '==', true)
         );
 
         const proSnapshot = await getDocs(proUsersQuery);
@@ -195,6 +195,7 @@ export const HomePage: React.FC = () => {
             rating: data.rating || 0,
             ratingCount: data.ratingCount || 0,
             completedProjects: data.completedJobs || 0,
+            portfolioCount: data.portfolioCount || 0,
             skills: data.skills || [],
             isPro: true
           } as Freelancer;
@@ -215,14 +216,13 @@ export const HomePage: React.FC = () => {
             collection(db, 'users'),
             where('userType', 'in', ['freelancer', 'both']),
             where('isPro', '==', false),
-            where('profileCompleted', '==', true),
-            limit(30) // Get more to sort by rating
+            limit(500) // Get more to sort by rating
           );
 
           const regularSnapshot = await getDocs(regularUsersQuery);
           const regularUsers = regularSnapshot.docs.map(doc => {
             const data = doc.data();
-            return {
+              return {
               id: doc.id,
               displayName: data.displayName || t('home.unknownUser'),
               title: data.title || '',
@@ -230,6 +230,7 @@ export const HomePage: React.FC = () => {
               rating: data.rating || 0,
               ratingCount: data.ratingCount || 0,
               completedProjects: data.completedJobs || 0,
+              portfolioCount: data.portfolioCount || 0,
               skills: data.skills || [],
               isPro: false
             } as Freelancer;
@@ -237,7 +238,38 @@ export const HomePage: React.FC = () => {
 
 
           // Sort regular users by rating and take only what we need
-          regularUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+          // Helper: Check for real profile picture
+          const hasRealPhoto = (photoURL?: string): boolean => {
+            if (!photoURL) return false;
+            const url = photoURL.trim();
+            if (url === '' || url === 'null' || url === 'undefined') return false;
+            if (!url.startsWith('http')) return false;
+            if (url.includes('ui-avatars.com')) return false;
+            return true;
+          };
+
+          // Sort regular users: Photo+Portfolio > Photo only > Rest, then by rating
+          regularUsers.sort((a, b) => {
+            const aHasPhoto = hasRealPhoto(a.photoURL);
+            const bHasPhoto = hasRealPhoto(b.photoURL);
+            const aHasPortfolio = (a.portfolioCount || 0) > 0;
+            const bHasPortfolio = (b.portfolioCount || 0) > 0;
+            
+            // Tier: Photo+Portfolio=2, Photo only=1, Neither=0
+            let aTier = 0;
+            if (aHasPhoto && aHasPortfolio) aTier = 2;
+            else if (aHasPhoto) aTier = 1;
+            
+            let bTier = 0;
+            if (bHasPhoto && bHasPortfolio) bTier = 2;
+            else if (bHasPhoto) bTier = 1;
+            
+            // Higher tier first
+            if (aTier !== bTier) return bTier - aTier;
+            
+            // Within same tier, sort by rating
+            return (b.rating || 0) - (a.rating || 0);
+          });
           const topRegularUsers = regularUsers.slice(0, regularUsersNeeded);
 
           console.log(`Found ${regularUsers.length} regular users, using ${topRegularUsers.length}`);
@@ -257,31 +289,61 @@ export const HomePage: React.FC = () => {
           const fallbackQuery = query(
             collection(db, 'users'),
             where('userType', 'in', ['freelancer', 'both']),
-            limit(50) // Increase limit to have better chance of getting Pro users
+            limit(500) // Increase limit to have better chance of getting Pro users
           );
 
           const fallbackSnapshot = await getDocs(fallbackQuery);
           const allFreelancers = fallbackSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
-              id: doc.id,
-              displayName: data.displayName || t('home.unknownUser'),
-              title: data.title || '',
-              photoURL: data.photoURL || '',
-              rating: data.rating || 0,
-              ratingCount: data.ratingCount || 0,
-              completedProjects: data.completedJobs || 0,
-              skills: data.skills || [],
-              isPro: data.isPro === true
-            } as Freelancer;
+            id: doc.id,
+            displayName: data.displayName || t('home.unknownUser'),
+            title: data.title || '',
+            photoURL: data.photoURL || '',
+            rating: data.rating || 0,
+            ratingCount: data.ratingCount || 0,
+            completedProjects: data.completedJobs || 0,
+            portfolioCount: data.portfolioCount || 0,
+            skills: data.skills || [],
+            isPro: data.isPro === true
+          } as Freelancer;
           });
 
           // Separate and sort
           const proUsers = allFreelancers.filter(f => f.isPro === true);
           const regularUsers = allFreelancers.filter(f => f.isPro !== true);
-          
+
+          // Pro users by rating
           proUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-          regularUsers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+          // Helper for fallback
+          const hasRealPhoto = (photoURL?: string): boolean => {
+            if (!photoURL) return false;
+            const url = photoURL.trim();
+            if (url === '' || url === 'null' || url === 'undefined') return false;
+            if (!url.startsWith('http')) return false;
+            if (url.includes('ui-avatars.com')) return false;
+            return true;
+          };
+
+          // Regular users: tiered sorting
+          regularUsers.sort((a, b) => {
+            const aHasPhoto = hasRealPhoto(a.photoURL);
+            const bHasPhoto = hasRealPhoto(b.photoURL);
+            const aHasPortfolio = ((a as any).portfolioCount || 0) > 0;
+            const bHasPortfolio = ((b as any).portfolioCount || 0) > 0;
+            
+            let aTier = 0;
+            if (aHasPhoto && aHasPortfolio) aTier = 2;
+            else if (aHasPhoto) aTier = 1;
+            
+            let bTier = 0;
+            if (bHasPhoto && bHasPortfolio) bTier = 2;
+            else if (bHasPhoto) bTier = 1;
+            
+            if (aTier !== bTier) return bTier - aTier;
+            return (b.rating || 0) - (a.rating || 0);
+          });
           
           const sortedFreelancers = [...proUsers, ...regularUsers].slice(0, 10);
           console.log(`Fallback: ${proUsers.length} Pro users, ${regularUsers.length} regular users`);

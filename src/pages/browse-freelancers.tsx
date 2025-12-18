@@ -35,6 +35,7 @@ interface Freelancer {
   createdAt?: any;
   email?: string;
   location?: string;
+  portfolioCount?: number;
   profileCompleted?: boolean;
   isPro?: boolean;
 }
@@ -236,6 +237,7 @@ const fetchUsersFromDatabase = useCallback(async (reset = false) => {
         isPro: data.isPro === true,
         rating: data.rating || 0,
         completedJobs: data.completedJobs || 0,
+        portfolioCount: data.portfolioCount || 0,
         hourlyRate: data.hourlyRate || '0',
         createdAt: data.createdAt || { seconds: 0 }
       } as Freelancer;
@@ -318,26 +320,96 @@ const filteredAndSortedFreelancers = useMemo(() => {
     return true;
   });
 
-  // ✅ SORT: PRO users first (by createdAt asc), then regular users (by createdAt asc)
-  const sorted = [...filtered].sort((a, b) => {
+// Helper: Check for real profile picture (not default avatar)
+const hasRealPhoto = (photoURL?: string): boolean => {
+  // Check if falsy
+  if (!photoURL) return false;
+  if (typeof photoURL !== 'string') return false;
+  
+  const url = photoURL.trim().toLowerCase();
+  
+  // Check for empty or invalid strings
+  if (url === '') return false;
+  if (url === 'null') return false;
+  if (url === 'undefined') return false;
+  if (url === 'none') return false;
+  
+  // Block known default/placeholder services
+  if (url.includes('ui-avatars.com')) return false;
+  if (url.includes('gravatar.com')) return false;
+  if (url.includes('default')) return false;
+  if (url.includes('placeholder')) return false;
+  if (url.includes('avatar')) return false; // catches most default avatars
+  
+  // Must start with http/https
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+  
+  // Must be from a known image hosting service (whitelist approach)
+  const validSources = [
+    'firebasestorage.googleapis.com',
+    'googleusercontent.com',
+    'lh3.google',
+    'fbsbx.com',
+    'facebook.com',
+    'cloudinary.com',
+    's3.amazonaws.com',
+    'storage.googleapis.com',
+    'imgur.com',
+    'cdn.',
+    '.jpg',
+    '.jpeg', 
+    '.png',
+    '.webp',
+    '.gif'
+  ];
+  
+  return validSources.some(source => url.includes(source));
+};
+
+// Helper: Check for portfolio
+const hasPortfolio = (freelancer: Freelancer): boolean => {
+  return ((freelancer as any).portfolioCount || 0) > 0;
+};
+
+
+// ✅ SORT: PRO > Photo+Portfolio > Photo only > Rest
+const sorted = [...filtered].sort((a, b) => {
   const aIsPro = a.isPro === true;
   const bIsPro = b.isPro === true;
   
-  // PRO users always first
+  // 1. PRO users always first
   if (aIsPro && !bIsPro) return -1;
   if (!aIsPro && bIsPro) return 1;
   
-  // Within same tier, different sorting
+  // 2. Among PRO users: oldest first
+  if (aIsPro && bIsPro) {
+    const aTime = a.createdAt?.seconds || 0;
+    const bTime = b.createdAt?.seconds || 0;
+    return aTime - bTime;
+  }
+  
+  // 3. For non-PRO users: calculate tier
+  const aHasPhoto = hasRealPhoto(a.photoURL);
+  const bHasPhoto = hasRealPhoto(b.photoURL);
+  const aHasPortfolio = hasPortfolio(a);
+  const bHasPortfolio = hasPortfolio(b);
+  
+  // Tier: Photo+Portfolio=2, Photo only=1, Neither=0
+  let aTier = 0;
+  if (aHasPhoto && aHasPortfolio) aTier = 2;
+  else if (aHasPhoto) aTier = 1;
+  
+  let bTier = 0;
+  if (bHasPhoto && bHasPortfolio) bTier = 2;
+  else if (bHasPhoto) bTier = 1;
+  
+  // Higher tier comes first
+  if (aTier !== bTier) return bTier - aTier;
+  
+  // 4. Within same tier: newest first
   const aTime = a.createdAt?.seconds || 0;
   const bTime = b.createdAt?.seconds || 0;
-  
-  if (aIsPro && bIsPro) {
-    // Both PRO: oldest first (ascending)
-    return aTime - bTime;
-  } else {
-    // Both regular: newest first (descending)
-    return bTime - aTime;
-  }
+  return bTime - aTime;
 });
 
   return sorted.slice(0, displayCount);

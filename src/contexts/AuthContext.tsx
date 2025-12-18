@@ -170,12 +170,16 @@ useEffect(() => {
   const canPostProjects = isFreelancer;
 
   useEffect(() => {
-  if (user?.uid) {
-    // Set Appilix user identity for push notifications
-    (window as any).defined_user_identity = user.uid;
-    console.log('✅ User identity set:', user.uid);
-  }
-}, [user?.uid]);
+    if (user?.uid) {
+      (window as any).appilix_push_notification_user_identity = user.uid;
+      document.cookie = `appilix_push_notification_user_identity=${user.uid}; path=/; max-age=31536000`;
+      
+      // DEBUG: Log everything
+      console.log('✅ Appilix identity set:', user.uid);
+      console.log('Cookie:', document.cookie);
+      console.log('Window var:', (window as any).appilix_push_notification_user_identity);
+    }
+  }, [user?.uid]);
 
 return (
     <AuthContext.Provider value={{
