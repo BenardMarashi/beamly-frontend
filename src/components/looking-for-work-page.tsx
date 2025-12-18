@@ -9,7 +9,6 @@ import {
   Select, 
   SelectItem,
   Chip,
-  Pagination,
   Skeleton,
   Avatar
 } from "@nextui-org/react";
@@ -28,6 +27,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { PageHeader } from "./page-header";
+import { formatNameWithInitial } from '../utils/nameFormatter';
 
 interface Job {
   id: string;
@@ -66,6 +66,7 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = () => {
   const [selectedBudget, setSelectedBudget] = useState("all");
   const [selectedDuration, setSelectedDuration] = useState("all");
   const [currentPage, setCurrentPageNum] = useState(1);
+  const [displayedCount, setDisplayedCount] = useState(9);
   const [totalPages, setTotalPages] = useState(1);
   const lastDocRef = useRef<DocumentSnapshot | null>(null);
   const jobsPerPage = 9;
@@ -107,6 +108,7 @@ export const LookingForWorkPage: React.FC<LookingForWorkPageProps> = () => {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPageNum(1);
+    setDisplayedCount(9);
     lastDocRef.current = null;
   }, [selectedCategory, selectedBudget, selectedDuration, searchQuery]);
 
@@ -197,25 +199,24 @@ const fetchJobs = async (reset = false) => {
     }
 
     // Limit to jobsPerPage after all filtering
-    const finalJobs = jobsData.slice(0, jobsPerPage);
-    console.log("✅ Final jobs to display:", finalJobs.length);
+    console.log("✅ Total jobs available:", jobsData.length);
 
-    if (reset) {
-      setJobs(finalJobs);
-    } else {
-      setJobs(prev => [...prev, ...finalJobs]);
-    }
+if (reset) {
+  setJobs(jobsData);
+} else {
+  // Avoid duplicates when loading more
+  setJobs(prev => {
+    const existingIds = new Set(prev.map(j => j.id));
+    const newJobs = jobsData.filter(j => !existingIds.has(j.id));
+    return [...prev, ...newJobs];
+  });
+}
 
     if (querySnapshot.docs.length > 0) {
       lastDocRef.current = querySnapshot.docs[querySnapshot.docs.length - 1];
     }
 
     // Update pagination
-    if (finalJobs.length < jobsPerPage || querySnapshot.docs.length < fetchLimit) {
-      setTotalPages(currentPage);
-    } else {
-      setTotalPages(currentPage + 1);
-    }
   } catch (error) {
     console.error("❌ Error fetching jobs:", error);
     setJobs([]);
@@ -275,6 +276,18 @@ const fetchJobs = async (reset = false) => {
       return t('common.recently');
     }
   };
+
+  const displayedJobs = jobs.slice(0, displayedCount);
+const canLoadMore = displayedCount < jobs.length || currentPage < totalPages;
+
+const handleLoadMore = () => {
+  if (displayedCount < jobs.length) {
+    setDisplayedCount(prev => prev + 9);
+  } else if (currentPage < totalPages) {
+    setCurrentPageNum(currentPage + 1);
+    setDisplayedCount(prev => prev + 9);
+  }
+};
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
@@ -407,7 +420,7 @@ const fetchJobs = async (reset = false) => {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {jobs.map((job) => (
+            {displayedJobs.map((job) => (
               <motion.div
                 key={job.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -426,11 +439,11 @@ const fetchJobs = async (reset = false) => {
                             <Avatar
                               src={job.clientPhotoURL}
                               className="w-6 h-6"
-                              name={job.clientName || job.company}
+                              name={formatNameWithInitial(job.clientName || job.company)}
                             />
                           ) : (
                             <Avatar
-                              name={job.clientName || job.company || t('common.client')}
+                              name={formatNameWithInitial(job.clientName || job.company) || t('common.client')}
                               className="w-6 h-6"
                               classNames={{
                                 base: "bg-beamly-secondary/20",
@@ -439,7 +452,7 @@ const fetchJobs = async (reset = false) => {
                             />
                           )}
                           <span className="text-sm text-gray-400">
-                            {job.clientName || job.company || t('common.client')}
+                            {formatNameWithInitial(job.clientName || job.company) || t('common.client')}
                           </span>
                         </div>
                       </div>
@@ -506,19 +519,19 @@ const fetchJobs = async (reset = false) => {
               </motion.div>
             ))}
           </div>
-
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-8">
-              <Pagination
-                total={totalPages}
-                page={currentPage}
-                onChange={setCurrentPageNum}
-                color="secondary"
-                variant="bordered"
-                showControls
-              />
-            </div>
-          )}
+        {canLoadMore && !loading && (
+          <div className="flex justify-center mt-8">
+            <Button
+              color="secondary"
+              variant="bordered"
+              size="lg"
+              onPress={handleLoadMore}
+              className="font-medium"
+            >
+              {t('common.loadMore')}
+            </Button>
+          </div>
+        )}
         </>
       )}
     </div>

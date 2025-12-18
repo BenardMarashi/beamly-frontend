@@ -25,7 +25,10 @@ import { db } from '../lib/firebase';
 import { 
   updatePassword, 
   EmailAuthProvider, 
+  GoogleAuthProvider,
+  OAuthProvider,
   reauthenticateWithCredential,
+  reauthenticateWithPopup, 
   deleteUser
 } from 'firebase/auth';
 import { toast } from 'react-hot-toast';
@@ -38,7 +41,7 @@ const SettingsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { isOpen: isPasswordOpen, onOpen: onPasswordOpen, onClose: onPasswordClose } = useDisclosure();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
-  
+  const [deletePassword, setDeletePassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState({
     language: i18n.language,
@@ -49,7 +52,17 @@ const SettingsPage: React.FC = () => {
     weeklyReports: true,
     profileVisibility: 'public'
   });
-  
+  const getAuthProvider = (): 'password' | 'google' | 'apple' | 'unknown' => {
+  if (!user) return 'unknown';
+  const providerId = user.providerData[0]?.providerId;
+  if (providerId === 'password') return 'password';
+  if (providerId === 'google.com') return 'google';
+  if (providerId === 'apple.com') return 'apple';
+  return 'unknown';
+};
+
+const authProvider = getAuthProvider();
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -191,22 +204,46 @@ const SettingsPage: React.FC = () => {
   };
   
   const handleDeleteAccount = async () => {
+    if (!user) return;
+    
+    if (authProvider === 'password' && !deletePassword) {
+      toast.error(t('settings.errors.passwordRequired') || 'Please enter your password');
+      return;
+    }
+    
     setLoading(true);
     
     try {
-      // Delete user data from Firestore
-      await deleteDoc(doc(db, 'users', user!.uid));
+      // Reauthenticate based on provider
+      if (authProvider === 'password') {
+        const credential = EmailAuthProvider.credential(user.email!, deletePassword);
+        await reauthenticateWithCredential(user, credential);
+      } else if (authProvider === 'google') {
+        await reauthenticateWithPopup(user, new GoogleAuthProvider());
+      } else if (authProvider === 'apple') {
+        await reauthenticateWithPopup(user, new OAuthProvider('apple.com'));
+      }
       
-      // Delete the user account
-      await deleteUser(user!);
+      await deleteDoc(doc(db, 'users', user.uid));
+      await deleteUser(user);
       
       toast.success(t('settings.success.accountDeleted'));
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting account:', error);
-      toast.error(t('settings.errors.deleteAccountFailed'));
+      
+      if (error.code === 'auth/wrong-password') {
+        toast.error(t('settings.errors.wrongPassword'));
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        toast.error('Authentication cancelled. Please try again.');
+      } else if (error.code === 'auth/requires-recent-login') {
+        toast.error('Please log out and log back in, then try again');
+      } else {
+        toast.error(t('settings.errors.deleteAccountFailed'));
+      }
     } finally {
       setLoading(false);
+      setDeletePassword('');
       onDeleteClose();
     }
   };
@@ -427,15 +464,39 @@ const SettingsPage: React.FC = () => {
             <p className="text-gray-400 text-sm mt-2">
               {t('settings.deleteWarning')}
             </p>
+            
+            {authProvider === 'password' ? (
+              <Input
+                type="password"
+                label={t('settings.currentPassword')}
+                placeholder="Enter your password to confirm"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                variant="bordered"
+                className="mt-4"
+              />
+            ) : (
+              <p className="text-yellow-400 text-sm mt-4">
+                You will be asked to sign in with {authProvider === 'google' ? 'Google' : 'Apple'} to confirm.
+              </p>
+            )}
           </ModalBody>
           <ModalFooter>
-            <Button variant="light" onPress={onDeleteClose} disabled={loading}>
+            <Button 
+              variant="light" 
+              onPress={() => {
+                setDeletePassword('');
+                onDeleteClose();
+              }} 
+              disabled={loading}
+            >
               {t('common.cancel')}
             </Button>
             <Button 
               color="danger" 
               onPress={handleDeleteAccount}
               isLoading={loading}
+              isDisabled={authProvider === 'password' && !deletePassword}
             >
               {t('settings.deleteAccount')}
             </Button>

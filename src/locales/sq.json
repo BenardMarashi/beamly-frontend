@@ -753,8 +753,8 @@
       "howItWorks": "Shiko si Funksionon",
       "startFreelancing": "Fillo si Freelancer"
     },
-    "joinAsFreelancer": "Bëhu Freelancer",
-    "hireFreelancers": "Bashkëpuno me Freelancer"
+    "joinAsFreelancer": "Rregjistrohu si Freelancer",
+    "hireFreelancers": "Rregjistrohu si Klient"
   },
   "categories": {
     "explore": "Eksploro të njohurat",
@@ -1586,6 +1586,7 @@
     "browseFreelancers": "Shfleto Freelancerët",
     "noComment": "Nuk ka koment",
     "noProjects": "Nuk ka projekte",
+    "addProject": "Shto Projekt",
     "stats": {
       "jobSuccess": "Suksesi i punës",
       "onTime": "Në kohë",

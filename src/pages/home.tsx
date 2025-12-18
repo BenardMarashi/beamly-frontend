@@ -13,6 +13,7 @@ import { db } from "../lib/firebase";
 import { toast } from "react-hot-toast";
 import { ProfileCompletionBanner } from '../components/banners/ProfileCompletionBanner';
 import { formatNameWithInitial } from '../utils/nameFormatter';
+import { FloatingActionButton } from '../components/Floatingactionbutton';
 
 interface Job {
   id: string;
@@ -753,6 +754,7 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
     </div>
+    <FloatingActionButton />
   </div>
   );
 };

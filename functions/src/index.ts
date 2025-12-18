@@ -6,7 +6,125 @@ import { onCall, HttpsError, onRequest } from "firebase-functions/v2/https";
 import { defineSecret, defineString } from "firebase-functions/params";
 import axios from "axios";
 
+const appilixAppKey = defineSecret("APPILIX_APP_KEY");
+const appilixApiKey = defineSecret("APPILIX_API_KEY");
 
+// Helper to send Appilix push notification
+async function sendAppilixPush(
+  userIdentity: string,
+  title: string,
+  body: string,
+  openUrl?: string
+) {
+  try {
+    const params = new URLSearchParams({
+      app_key: appilixAppKey.value(),
+      api_key: appilixApiKey.value(),
+      notification_title: title,
+      notification_body: body,
+      user_identity: userIdentity,
+    });
+
+    if (openUrl) {
+      params.append("open_link_url", openUrl);
+    }
+
+    const response = await fetch("https://appilix.com/api/push-notification", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+
+    const result = await response.text();
+    console.log(`✅ Appilix push sent to ${userIdentity}:`, result);
+    return result;
+  } catch (error) {
+    console.error("❌ Appilix push error:", error);
+    return null;
+  }
+}
+
+function filterMessageText(text: string | null | undefined): string {
+  if (!text || typeof text !== "string") {
+    return text || "";
+  }
+
+  const censorText = (txt: string): string => "*".repeat(txt.length);
+
+  const findMatches = (txt: string, pattern: RegExp): Array<{start: number; end: number}> => {
+    const matches: Array<{start: number; end: number}> = [];
+    let match: RegExpExecArray | null;
+    pattern.lastIndex = 0;
+    while ((match = pattern.exec(txt)) !== null) {
+      matches.push({
+        start: match.index,
+        end: match.index + match[0].length,
+      });
+    }
+    return matches;
+  };
+
+  const mergeMatches = (matches: Array<{start: number; end: number}>): Array<{start: number; end: number}> => {
+    if (matches.length === 0) return [];
+    matches.sort((a, b) => a.start - b.start);
+    const merged = [matches[0]];
+    for (let i = 1; i < matches.length; i++) {
+      const current = matches[i];
+      const last = merged[merged.length - 1];
+      if (current.start <= last.end) {
+        last.end = Math.max(last.end, current.end);
+      } else {
+        merged.push(current);
+      }
+    }
+    return merged;
+  };
+
+  const urlPatterns = [
+    /(?:https?|ftp|ftps):\/\/[^\s]+/gi,
+    /(?:^|\s)www\.[^\s]+/gi,
+    /(?:^|\s)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(?:\/[^\s]*)?/gi,
+  ];
+
+  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
+
+  const phonePatterns = [
+    /\+?\d{1,4}[\s.-]?\(?\d{1,4}\)?[\s.-]?\d{1,4}[\s.-]?\d{1,4}[\s.-]?\d{1,9}/g,
+    /\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g,
+  ];
+
+  let allMatches: Array<{start: number; end: number}> = [];
+
+  for (const pattern of urlPatterns) {
+    allMatches = allMatches.concat(findMatches(text, pattern));
+  }
+
+  allMatches = allMatches.concat(findMatches(text, emailPattern));
+
+  for (const pattern of phonePatterns) {
+    allMatches = allMatches.concat(findMatches(text, pattern));
+  }
+
+  if (allMatches.length === 0) {
+    return text;
+  }
+
+  const mergedMatches = mergeMatches(allMatches);
+
+  let filtered = "";
+  let lastEnd = 0;
+
+  for (const match of mergedMatches) {
+    filtered += text.substring(lastEnd, match.start);
+    const matchText = text.substring(match.start, match.end);
+    filtered += censorText(matchText);
+    lastEnd = match.end;
+  }
+
+  filtered += text.substring(lastEnd);
+
+  return filtered;
+}
 
 // One source of truth for your site URL.
 const APP_URL = defineString("APP_URL");
@@ -85,6 +203,7 @@ export const onNewProposal = onDocumentCreated(
     document: "proposals/{proposalId}",
     region: "us-central1",
     maxInstances: 10,
+    secrets: [appilixAppKey, appilixApiKey],
   },
   async (event) => {
     const { db, FieldValue } = getAdmin();
@@ -100,7 +219,11 @@ export const onNewProposal = onDocumentCreated(
 
       if (!job) return;
 
-      // Create notification for client
+      // Get client data
+      const clientDoc = await db.doc(`users/${job.clientId}`).get();
+      const client = clientDoc.data();
+
+      // Create in-app notification for client
       await db.collection("notifications").add({
         userId: job.clientId,
         title: "New Proposal Received",
@@ -116,10 +239,17 @@ export const onNewProposal = onDocumentCreated(
         createdAt: FieldValue.serverTimestamp(),
       });
 
-      // Send push notification if FCM token exists
-      const clientDoc = await db.doc(`users/${job.clientId}`).get();
-      const client = clientDoc.data();
+      // Send Appilix push notification to client (if push enabled)
+      if (client?.notifications?.push !== false) {
+        await sendAppilixPush(
+          job.clientId,
+          "You have a new proposal!",
+          `${proposal.freelancerName} submitted a proposal for "${job.title}"`,
+          `https://beamlyapp.com/proposals/${proposalId}`
+        );
+      }
 
+      // Also send FCM if token exists
       if (client?.fcmToken) {
         const { messaging } = getAdmin();
         await messaging.send({
@@ -203,11 +333,13 @@ export const onProposalAccepted = onDocumentUpdated(
 
 
 // Trigger: Send notification for new messages
+// Trigger: Send notification for new messages
 export const onNewMessage = onDocumentCreated(
   {
     document: "messages/{messageId}",
     region: "us-central1",
     maxInstances: 10,
+    secrets: [appilixAppKey, appilixApiKey],
   },
   async (event) => {
     const { db, messaging, FieldValue } = getAdmin();
@@ -216,7 +348,7 @@ export const onNewMessage = onDocumentCreated(
     if (!message) return;
 
     try {
-      // Determine recipient
+      // Determine recipient from conversationId
       const conversationParts = message.conversationId.split("_");
       const recipientId = conversationParts.find(
         (id: string) => id !== message.senderId
@@ -224,7 +356,11 @@ export const onNewMessage = onDocumentCreated(
 
       if (!recipientId) return;
 
-      // Create notification
+      // Get recipient data
+      const recipientDoc = await db.doc(`users/${recipientId}`).get();
+      const recipient = recipientDoc.data();
+
+      // Create in-app notification
       await db.collection("notifications").add({
         userId: recipientId,
         title: "New Message",
@@ -244,16 +380,23 @@ export const onNewMessage = onDocumentCreated(
         [`unreadCount.${recipientId}`]: FieldValue.increment(1),
       });
 
-      // Send push notification
-      const recipientDoc = await db.doc(`users/${recipientId}`).get();
-      const recipient = recipientDoc.data();
+      // Send Appilix push notification (if push enabled)
+      if (recipient?.notifications?.push !== false) {
+        await sendAppilixPush(
+          recipientId,
+          "You have a new message!",
+          `${message.senderName} sent you a message`,
+          `https://beamlyapp.com/messages/${message.conversationId}`
+        );
+      }
 
+      // Also send FCM if token exists
       if (recipient?.fcmToken) {
         await messaging.send({
           token: recipient.fcmToken,
           notification: {
             title: `New message from ${message.senderName}`,
-            body: message.text?.substring(0, 100) || "Sent an attachment",
+            body: message.text?.substring(0, 100),
           },
           data: {
             type: "message",
@@ -1811,7 +1954,7 @@ export const sendMessage = onCall(
         senderId: senderId,
         senderName: senderData.displayName || "Unknown",
         senderAvatar: senderData.photoURL || "",
-        text: data.text,
+        text: filterMessageText(data.text),
         attachments: data.attachments || [],
         status: "sent",
         createdAt: now,

@@ -5,6 +5,8 @@ import { db, functions } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input, Button, Avatar } from '@heroui/react';
 import { Icon } from '@iconify/react';
+import { filterMessageText } from '@/utils/chatFilter';
+
 
 interface Message {
   id: string;
@@ -82,10 +84,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
     setSending(true);
     try {
+      const filteredText = filterMessageText(newMessage.trim());
       const sendMessageFn = httpsCallable(functions, 'sendMessage');
       await sendMessageFn({
         recipientId,
-        text: newMessage.trim(),
+        text: filteredText,
         attachments: []
       });
       setNewMessage('');

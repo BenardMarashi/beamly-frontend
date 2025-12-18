@@ -169,6 +169,14 @@ useEffect(() => {
   const canApplyToJobs = isFreelancer;
   const canPostProjects = isFreelancer;
 
+  useEffect(() => {
+  if (user?.uid) {
+    // Set Appilix user identity for push notifications
+    (window as any).defined_user_identity = user.uid;
+    console.log('✅ User identity set:', user.uid);
+  }
+}, [user?.uid]);
+
 return (
     <AuthContext.Provider value={{
       user,

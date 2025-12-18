@@ -25,6 +25,8 @@ import {
 import { ref, uploadBytes, getDownloadURL, deleteObject, StorageReference } from 'firebase/storage';
 import { auth, db, storage } from '../lib/firebase';
 import { StripeService } from './stripe-service';
+import { filterMessageText } from '@/utils/chatFilter';
+
 
 // Type definitions
 interface UserData {
@@ -1111,7 +1113,7 @@ export const ConversationService = {
         senderId,
         senderName,
         recipientId,
-        text,
+        text: filterMessageText(text),
         attachments,
         status: 'sent',
         createdAt: serverTimestamp()

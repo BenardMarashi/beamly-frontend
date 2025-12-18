@@ -43,6 +43,7 @@ interface Proposal {
   freelancerName?: string;
   freelancerAvatar?: string;
   freelancerRating?: number;
+  attachments?: string[];
   coverLetter: string;
   proposedRate?: number;
   bidAmount: number;
@@ -544,76 +545,110 @@ export const ClientProposalsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Proposal Details Modal */}
-      <Modal isOpen={isDetailOpen} onClose={onDetailClose} size="2xl">
-        <ModalContent>
-          <ModalHeader>{t('clientProposals.proposalDetails')}</ModalHeader>
-          <ModalBody>
-            {selectedProposal && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <Avatar
-                    src={selectedProposal.freelancerAvatar}
-                    name={selectedProposal.freelancerName}
-                    size="lg"
-                  />
-                  <div>
-                    <h3 className="font-semibold text-white">{selectedProposal.freelancerName}</h3>
-                    <p className="text-sm text-gray-400">{t('clientProposals.for')}: {selectedProposal.jobTitle}</p>
-                  </div>
-                </div>
-                
-                <Divider />
-                
-                <div>
-                  <h4 className="font-semibold text-white mb-2">{t('clientProposals.coverLetter')}</h4>
-                  <p className="text-gray-300 whitespace-pre-wrap">{selectedProposal.coverLetter}</p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-400">{t('clientProposals.bidAmount')}</p>
-                    <p className="font-semibold text-white text-lg">€{selectedProposal.bidAmount}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">{t('clientProposals.deliveryTime')}</p>
-                    <p className="font-semibold text-white text-lg">{selectedProposal.deliveryTime}</p>
-                  </div>
-                </div>
+{/* Proposal Details Modal */}
+<Modal isOpen={isDetailOpen} onClose={onDetailClose} size="2xl" scrollBehavior="inside">
+  <ModalContent>
+    <ModalHeader>{t('clientProposals.proposalDetails')}</ModalHeader>
+    <ModalBody>
+      {selectedProposal && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Avatar
+              src={selectedProposal.freelancerAvatar}
+              name={selectedProposal.freelancerName}
+              size="lg"
+            />
+            <div>
+              <h3 className="font-semibold text-white">{selectedProposal.freelancerName}</h3>
+              <p className="text-sm text-gray-400">{t('clientProposals.for')}: {selectedProposal.jobTitle}</p>
+            </div>
+          </div>
+          
+          <Divider />
+          
+          <div>
+            <h4 className="font-semibold text-white mb-2">{t('clientProposals.coverLetter')}</h4>
+            <p className="text-gray-300 whitespace-pre-wrap">{selectedProposal.coverLetter}</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-400">{t('clientProposals.bidAmount')}</p>
+              <p className="font-semibold text-white text-lg">€{selectedProposal.bidAmount || selectedProposal.proposedRate}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">{t('clientProposals.deliveryTime')}</p>
+              <p className="font-semibold text-white text-lg">{selectedProposal.deliveryTime || selectedProposal.estimatedDuration || t('clientProposals.notSpecified')}</p>
+            </div>
+          </div>
+
+          {/* Attachments Section */}
+          {selectedProposal.attachments && selectedProposal.attachments.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-white mb-2">{t('proposals.attachments')}</h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedProposal.attachments.map((attachment, index) => {
+                  const fileName = decodeURIComponent(
+                    attachment.split('/').pop()?.split('?')[0] || `Attachment ${index + 1}`
+                  );
+                  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+                  
+                  return (
+                    <a
+                      key={index}
+                      href={attachment}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-colors"
+                    >
+                      <Icon 
+                        icon={isImage ? "lucide:image" : "lucide:file-text"} 
+                        className="text-lg text-gray-400" 
+                      />
+                      <span className="text-sm text-white truncate max-w-[180px]">
+                        {fileName}
+                      </span>
+                      <Icon icon="lucide:external-link" className="text-gray-400 text-sm" />
+                    </a>
+                  );
+                })}
               </div>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="light" onPress={onDetailClose}>
-              {t('common.close')}
-            </Button>
-            {selectedProposal?.status === 'pending' && (
-              <>
-                <Button
-                  color="danger"
-                  variant="flat"
-                  onPress={() => {
-                    handleRejectProposal(selectedProposal.id);
-                    onDetailClose();
-                  }}
-                >
-                  {t('clientProposals.reject')}
-                </Button>
-                <Button
-                  color="secondary"
-                  onPress={() => {
-                    handleAcceptProposal(selectedProposal);
-                    onDetailClose();
-                  }}
-                  isLoading={processingPayment}
-                >
-                  {t('clientProposals.acceptPay')}
-                </Button>
-              </>
-            )}
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+            </div>
+          )}
+        </div>
+      )}
+    </ModalBody>
+    <ModalFooter>
+      <Button variant="light" onPress={onDetailClose}>
+        {t('common.close')}
+      </Button>
+      {selectedProposal?.status === 'pending' && (
+        <>
+          <Button
+            color="danger"
+            variant="flat"
+            onPress={() => {
+              handleRejectProposal(selectedProposal.id);
+              onDetailClose();
+            }}
+          >
+            {t('clientProposals.reject')}
+          </Button>
+          <Button
+            color="secondary"
+            onPress={() => {
+              handleAcceptProposal(selectedProposal);
+              onDetailClose();
+            }}
+            isLoading={processingPayment}
+          >
+            {t('clientProposals.acceptPay')}
+          </Button>
+        </>
+      )}
+    </ModalFooter>
+  </ModalContent>
+</Modal>
 
       {/* Rating Modal */}
       <Modal isOpen={isRatingOpen} onClose={onRatingClose}>

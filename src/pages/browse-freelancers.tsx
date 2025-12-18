@@ -211,14 +211,14 @@ const fetchUsersFromDatabase = useCallback(async (reset = false) => {
       constraints.push(where('category', '==', selectedCategory));
     }
     
-    constraints.push(orderBy('createdAt', 'desc'));
+    // ✅ NO orderBy - sorting happens in memory instead
+    // This avoids needing a composite index
     
     if (!reset && lastDocRef.current) {
       constraints.push(startAfter(lastDocRef.current));
     }
     
-    // Fetch more on initial load to get Pro users
-    const fetchLimit = reset ? 500 : 50;  // ← INCREASED
+    const fetchLimit = reset ? 500 : 50;
     constraints.push(limit(fetchLimit));
     
     const q = query(collection(db, 'users'), ...constraints);
@@ -244,7 +244,6 @@ const fetchUsersFromDatabase = useCallback(async (reset = false) => {
     if (reset) {
       setAllFetchedUsers(newUsers);
     } else {
-      // FIX: PREVENT DUPLICATES
       setAllFetchedUsers(prev => {
         const existingIds = new Set(prev.map(u => u.id));
         const uniqueNewUsers = newUsers.filter(u => !existingIds.has(u.id));
@@ -272,35 +271,32 @@ const fetchUsersFromDatabase = useCallback(async (reset = false) => {
 }, [selectedCategory]);
 
 const filteredAndSortedFreelancers = useMemo(() => {
-  // FIX 1: Remove duplicates first
+  // Remove duplicates first
   const uniqueUsersMap = new Map<string, Freelancer>();
   allFetchedUsers.forEach(user => {
     uniqueUsersMap.set(user.id, user);
   });
   const uniqueUsers = Array.from(uniqueUsersMap.values());
   
-  // Apply filters
-  const searchLower = searchQuery.toLowerCase().trim();
-
-const completedProfiles = uniqueUsers.filter(user => {
-  // Check if profile is explicitly marked as complete
-  if (user.profileCompleted === true) return true;
-  
-  // Otherwise, check for minimum required fields (matching ProfileCompletionBanner logic)
-  const hasDisplayName = user.displayName && user.displayName.trim() !== '';
-  const hasBio = user.bio && user.bio.trim() !== '';
-  
-  // For freelancers, also need skills and hourlyRate
-  if (user.userType === 'freelancer' || user.userType === 'both') {
-    const hasSkills = user.skills && user.skills.length > 0;
-    const hasHourlyRate = user.hourlyRate && parseFloat(user.hourlyRate) > 0;
+  // Apply profile completion filter
+  const completedProfiles = uniqueUsers.filter(user => {
+    if (user.profileCompleted === true) return true;
     
-    return hasDisplayName && hasBio && hasSkills && hasHourlyRate;
-  }
+    const hasDisplayName = user.displayName && user.displayName.trim() !== '';
+    const hasBio = user.bio && user.bio.trim() !== '';
+    
+    if (user.userType === 'freelancer' || user.userType === 'both') {
+      const hasSkills = user.skills && user.skills.length > 0;
+      const hasHourlyRate = user.hourlyRate && parseFloat(user.hourlyRate) > 0;
+      
+      return hasDisplayName && hasBio && hasSkills && hasHourlyRate;
+    }
+    
+    return hasDisplayName && hasBio;
+  });
   
-  // For clients (shouldn't appear here but just in case)
-  return hasDisplayName && hasBio;
-});
+  // Apply search and budget filters
+  const searchLower = searchQuery.toLowerCase().trim();
   const [minBudget, maxBudget] = budgetFilter === 'all' 
     ? [0, Infinity] 
     : budgetFilter === '100+' 
@@ -322,29 +318,27 @@ const completedProfiles = uniqueUsers.filter(user => {
     return true;
   });
 
-  // FIX 2: Sort Pro users first with explicit checks
+  // ✅ SORT: PRO users first (by createdAt asc), then regular users (by createdAt asc)
   const sorted = [...filtered].sort((a, b) => {
-    // Explicit boolean conversion for safety
-    const aIsPro = Boolean(a.isPro);
-    const bIsPro = Boolean(b.isPro);
-    
-    // Pro users ALWAYS come first
-    if (aIsPro && !bIsPro) return -1;
-    if (!aIsPro && bIsPro) return 1;
-    
-    // Same tier - sort by selected criteria
-    switch (sortBy) {
-      case 'rating':
-        return (b.rating || 0) - (a.rating || 0);
-      case 'completedJobs':
-        return (b.completedJobs || 0) - (a.completedJobs || 0);
-      case 'hourlyRate':
-        return parseInt(a.hourlyRate || '0') - parseInt(b.hourlyRate || '0');
-      case 'newest':
-      default:
-        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
-    }
-  });
+  const aIsPro = a.isPro === true;
+  const bIsPro = b.isPro === true;
+  
+  // PRO users always first
+  if (aIsPro && !bIsPro) return -1;
+  if (!aIsPro && bIsPro) return 1;
+  
+  // Within same tier, different sorting
+  const aTime = a.createdAt?.seconds || 0;
+  const bTime = b.createdAt?.seconds || 0;
+  
+  if (aIsPro && bIsPro) {
+    // Both PRO: oldest first (ascending)
+    return aTime - bTime;
+  } else {
+    // Both regular: newest first (descending)
+    return bTime - aTime;
+  }
+});
 
   return sorted.slice(0, displayCount);
 }, [allFetchedUsers, budgetFilter, searchQuery, sortBy, displayCount]);

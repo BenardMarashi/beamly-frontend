@@ -307,20 +307,9 @@ export const useSignUp = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      try {
-        await sendEmailVerification(user, {
-          url: `${window.location.origin}/dashboard`,
-          handleCodeInApp: false
-        });
-        toast.success('Account created! Please check your email to verify your account.', {
-          duration: 6000
-        });
-      } catch (verificationError) {
-        console.error('Failed to send verification email:', verificationError);
-        toast.error('Account created but verification email failed. You can request it later.', {
-          duration: 6000
-        });
-      }
+      toast.success('Account created! Please verify your email to continue.', {
+        duration: 6000
+      });
 
       // Update display name
       await updateProfile(user, { displayName });

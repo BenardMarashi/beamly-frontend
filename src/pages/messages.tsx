@@ -10,6 +10,8 @@ import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestor
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { filterMessageText } from '@/utils/chatFilter';
+
 
 interface Message {
   id: string;
@@ -180,7 +182,8 @@ export const MessagesPage: React.FC = () => {
     }
 
     const messageText = newMessage.trim();
-    setNewMessage(''); // Clear input immediately for better UX
+    const filteredText = filterMessageText(messageText);
+    setNewMessage('');
 
     setSending(true);
     try {
@@ -190,7 +193,7 @@ export const MessagesPage: React.FC = () => {
         senderId: user!.uid,
         senderName: userData?.displayName || t('common.user'),
         recipientId: otherUser.id,
-        text: messageText
+        text: filteredText
       });
 
       if (result.success) {

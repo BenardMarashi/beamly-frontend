@@ -9,6 +9,8 @@ import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp,
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
+import { filterMessageText } from '@/utils/chatFilter';
+
 
 interface Message {
   id: string;
@@ -201,12 +203,13 @@ export const ChatPage: React.FC = () => {
     }
   };
   
-  const sendMessage = async (e: React.FormEvent) => {
+    const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newMessage.trim() || !selectedConversation || !user) return;
     
     const messageText = newMessage.trim();
+    const filteredText = filterMessageText(messageText);
     setNewMessage('');
     
     try {
@@ -217,7 +220,7 @@ export const ChatPage: React.FC = () => {
       await sendMessageFn({
         conversationId: selectedConversation.id,
         recipientId: otherParticipantId,
-        text: messageText,
+        text: filteredText,  // <-- CHANGE THIS LINE
         attachments: []
       });
       
